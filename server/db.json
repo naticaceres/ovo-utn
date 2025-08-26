@@ -1,0 +1,39 @@
+{
+  "users": [
+    { "id": 1, "email": "demo@ovo.app", "password": "demo123", "name": "Demo" }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "text": "Me interesa resolver problemas lógicos y matemáticos.",
+      "dimension": "analitica"
+    },
+    {
+      "id": 2,
+      "text": "Disfruto de actividades creativas como diseño o escritura.",
+      "dimension": "creativa"
+    },
+    {
+      "id": 3,
+      "text": "Prefiero trabajar con personas, enseñar o coordinar.",
+      "dimension": "social"
+    }
+  ],
+  "answers": [],
+  "recommendations": [
+    {
+      "id": 1,
+      "career": "Ingeniería en Sistemas",
+      "university": "UTN",
+      "link": "https://www.utn.edu.ar/"
+    },
+    {
+      "id": 2,
+      "career": "Diseño Industrial",
+      "university": "UBA",
+      "link": "https://www.uba.ar/"
+    }
+  ]
+}
+
+
