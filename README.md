@@ -47,7 +47,7 @@ Aplicación web para orientación vocacional que ayuda a los usuarios a explorar
 
 4. **Acceder a la aplicación**
    - **App**: http://localhost:5173
-   - **API**: http://localhost:3001
+   - **API**: Backend se encuentra en el repositorio https://github.com/wincox02/OVOBackend/tree/main. Tener en cuenta inicialización previa al front-end
 
 ## 📁 Estructura del Proyecto
 
