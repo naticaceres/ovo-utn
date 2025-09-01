@@ -30,17 +30,20 @@ Aplicación web para orientación vocacional que ayuda a los usuarios a explorar
 ## 🚀 Instalación y Configuración
 
 1. **Clonar el repositorio**
+
    ```bash
    git clone https://github.com/naticaceres/ovo-utn.git
    cd ovo-utn
    ```
 
 2. **Instalar dependencias**
+
    ```bash
    npm install
    ```
 
 3. **Iniciar aplicación**
+
    ```bash
    npm run dev
    ```
@@ -86,14 +89,17 @@ ovo-utn/
 ## 📊 Endpoints de la API
 
 ### Autenticación
+
 - `GET /api/users?email=...` - Buscar usuario por email
 - `POST /api/users` - Crear nuevo usuario
 
 ### Cuestionario
+
 - `GET /api/questions` - Obtener preguntas del cuestionario
 - `POST /api/answers` - Enviar respuestas del usuario
 
 ### Resultados
+
 - `GET /api/recommendations` - Obtener recomendaciones de carreras
 
 ## 🎯 Flujo de la Aplicación
@@ -116,18 +122,21 @@ npm run api          # Solo API mock (puerto 3001)
 ## 🎨 Buenas Prácticas Implementadas
 
 ### Arquitectura
+
 - **Estructura feature-based** para mejor organización
 - **Separación de responsabilidades** (UI/lógica)
 - **Imports absolutos** con alias de TypeScript
 - **Componentes pequeños y reutilizables**
 
 ### Desarrollo
+
 - **TypeScript estricto** para type safety
 - **ESLint + Prettier** para consistencia de código
 - **React Query** para gestión de estado del servidor
 - **CSS Modules** para estilos encapsulados
 
 ### UX/UI
+
 - **Routing declarativo** con React Router
 - **Formularios accesibles** con labels y ARIA
 - **Estados de carga** y manejo de errores
@@ -136,6 +145,7 @@ npm run api          # Solo API mock (puerto 3001)
 ## 🔄 Estado del Desarrollo
 
 ### ✅ Completado (v0.0.1)
+
 - [x] Scaffolding de React 19 + TypeScript + Vite
 - [x] Configuración de ESLint, Prettier, y path aliases
 - [x] Sistema de routing con React Router
@@ -147,6 +157,7 @@ npm run api          # Solo API mock (puerto 3001)
 - [x] Data fetching con React Query
 
 ### 🚧 En Desarrollo
+
 - [ ] Protección de rutas (guards)
 - [ ] Validación de formularios con Zod
 - [ ] Gráfico de aptitudes interactivo
@@ -154,6 +165,7 @@ npm run api          # Solo API mock (puerto 3001)
 - [ ] Tests unitarios y de integración
 
 ### 📋 Próximas Funcionalidades
+
 - [ ] Integración con Amazon Bedrock para IA
 - [ ] Dashboard de administrador
 - [ ] Exportación de resultados
@@ -181,6 +193,7 @@ Este proyecto es parte del trabajo final de la carrera de Ingeniería en Sistema
 **Fecha**: Agosto 2024
 
 ### ✨ Nuevas Funcionalidades
+
 - **Aplicación base completa** con React 19 y TypeScript
 - **Sistema de autenticación** con registro e inicio de sesión
 - **Cuestionario interactivo** para evaluación de aptitudes
@@ -190,6 +203,7 @@ Este proyecto es parte del trabajo final de la carrera de Ingeniería en Sistema
 - **Layout responsive** con header y footer
 
 ### 🛠️ Mejoras Técnicas
+
 - **Arquitectura moderna** siguiendo mejores prácticas 2025
 - **Tooling completo** (ESLint, Prettier, TypeScript)
 - **Data fetching optimizado** con React Query
@@ -197,17 +211,20 @@ Este proyecto es parte del trabajo final de la carrera de Ingeniería en Sistema
 - **CSS Modules** para estilos encapsulados
 
 ### 🐛 Correcciones
+
 - Configuración inicial de JSON Server
 - Estructura de archivos optimizada
 - Tipos TypeScript completos
 
 ### 📚 Documentación
+
 - README completo con instrucciones de instalación
 - Estructura del proyecto documentada
 - Scripts y comandos explicados
 - Credenciales de demo incluidas
 
 ### 🔧 Configuración
+
 - **Node.js**: v23.7.0
 - **React**: v19.1.1
 - **TypeScript**: v5.8.3

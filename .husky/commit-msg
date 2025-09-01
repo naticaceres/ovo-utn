@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Validar formato del mensaje de commit
+# Puedes personalizar esta validación según tus necesidades
+commit_msg=$(cat "$1")
+
+# Verificar que el mensaje no esté vacío
+if [ -z "$commit_msg" ]; then
+  echo "Error: El mensaje de commit no puede estar vacío"
+  exit 1
+fi
+
+# Verificar que el mensaje tenga al menos 3 caracteres
+if [ ${#commit_msg} -lt 3 ]; then
+  echo "Error: El mensaje de commit debe tener al menos 3 caracteres"
+  exit 1
+fi
+
+# Verificar que no comience con espacios
+if [[ "$commit_msg" =~ ^[[:space:]] ]]; then
+  echo "Error: El mensaje de commit no puede comenzar con espacios"
+  exit 1
+fi
