@@ -18,7 +18,7 @@ if [ ${#commit_msg} -lt 3 ]; then
 fi
 
 # Verificar que no comience con espacios
-if [[ "$commit_msg" =~ ^[[:space:]] ]]; then
+if echo "$commit_msg" | grep -q '^[[:space:]]'; then
   echo "Error: El mensaje de commit no puede comenzar con espacios"
   exit 1
 fi
