@@ -1,0 +1,40 @@
+@import '../../styles/variables.css';
+
+.mainLayout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-secondary);
+  font-family: var(--font-family-primary);
+}
+
+.main {
+  flex: 1;
+  padding-top: calc(80px + var(--spacing-3xl)); /* Header height + padding */
+  padding-bottom: var(--spacing-3xl);
+}
+
+.container {
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+  padding: 0 var(--container-padding);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .main {
+    padding-top: calc(120px + var(--spacing-2xl));
+    padding-bottom: var(--spacing-2xl);
+  }
+}
+
+@media (max-width: 480px) {
+  .main {
+    padding-top: calc(100px + var(--spacing-xl));
+    padding-bottom: var(--spacing-xl);
+  }
+
+  .container {
+    padding: 0 var(--spacing-md);
+  }
+}

@@ -1,0 +1,104 @@
+@import '../../styles/variables.css';
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.container.fullWidth {
+  width: 100%;
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input {
+  width: 100%;
+  padding: var(--spacing-md);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-primary);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+  transition: all var(--transition-normal);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(107, 70, 193, 0.1);
+}
+
+.input::placeholder {
+  color: var(--color-text-light);
+}
+
+.input:disabled {
+  background-color: var(--color-bg-tertiary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Error State */
+.input.error {
+  border-color: var(--color-accent-2);
+}
+
+.input.error:focus {
+  border-color: var(--color-accent-2);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* Icon Support */
+.input.hasLeftIcon {
+  padding-left: calc(var(--spacing-md) + 1.5rem + var(--spacing-sm));
+}
+
+.input.hasRightIcon {
+  padding-right: calc(var(--spacing-md) + 1.5rem + var(--spacing-sm));
+}
+
+.leftIcon,
+.rightIcon {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}
+
+.leftIcon {
+  left: var(--spacing-md);
+}
+
+.rightIcon {
+  right: var(--spacing-md);
+}
+
+/* Error and Helper Text */
+.errorText {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent-2);
+  margin-top: var(--spacing-xs);
+}
+
+.helperText {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--spacing-xs);
+}

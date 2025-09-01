@@ -2,14 +2,19 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { questionnaireApi } from '@/lib/api';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { MainLayout } from '../components/layout/MainLayout';
+import { Button } from '../components/ui/Button';
+import styles from './QuestionnairePage.module.css';
 
 export function QuestionnairePage() {
-  const { data: questions } = useQuery({
+  const { data: questions, isLoading } = useQuery({
     queryKey: ['questions'],
     queryFn: questionnaireApi.getQuestions,
   });
+
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const navigate = useNavigate();
+
   const submitMutation = useMutation({
     mutationFn: (payload: { userId: number; values: Record<number, number> }) =>
       questionnaireApi.submitAnswers(
@@ -19,7 +24,7 @@ export function QuestionnairePage() {
           value,
         }))
       ),
-    onSuccess: () => navigate('/results'),
+    onSuccess: () => navigate('/app/results'),
   });
 
   const onSubmit = () => {
@@ -28,40 +33,97 @@ export function QuestionnairePage() {
     submitMutation.mutate({ userId, values: answers });
   };
 
+  const handleAnswerChange = (questionId: number, value: number) => {
+    setAnswers(prev => ({
+      ...prev,
+      [questionId]: value,
+    }));
+  };
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className={styles.loadingContainer}>
+          <div className={styles.loadingSpinner} />
+          <p>Cargando cuestionario...</p>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
-    <section>
-      <h2>Cuestionario</h2>
-      {!questions ? (
-        <p>Cargando...</p>
-      ) : (
-        <ul>
-          {questions.map(q => (
-            <li key={q.id}>
-              <label>
-                {q.text}
-                <input
-                  type='range'
-                  min={1}
-                  max={5}
-                  value={answers[q.id] ?? 3}
-                  onChange={e =>
-                    setAnswers(prev => ({
-                      ...prev,
-                      [q.id]: Number(e.target.value),
-                    }))
-                  }
-                />
-              </label>
-            </li>
-          ))}
-        </ul>
-      )}
-      <button
-        onClick={onSubmit}
-        disabled={!questions || submitMutation.isPending}
-      >
-        Enviar
-      </button>
-    </section>
+    <MainLayout>
+      <div className={styles.questionnaireContainer}>
+        <div className={styles.questionnaireCard}>
+          <header className={styles.header}>
+            <h1 className={styles.title}>Cuestionario Vocacional</h1>
+            <p className={styles.subtitle}>
+              Responde las siguientes preguntas para descubrir tu vocación
+            </p>
+          </header>
+
+          {questions && (
+            <form className={styles.form}>
+              <div className={styles.questionsList}>
+                {questions.map((question, index) => (
+                  <div key={question.id} className={styles.questionItem}>
+                    <div className={styles.questionHeader}>
+                      <span className={styles.questionNumber}>
+                        Pregunta {index + 1} de {questions.length}
+                      </span>
+                      <h3 className={styles.questionText}>{question.text}</h3>
+                    </div>
+
+                    <div className={styles.answerSection}>
+                      <div className={styles.scaleLabels}>
+                        <span>Muy en desacuerdo</span>
+                        <span>Muy de acuerdo</span>
+                      </div>
+
+                      <input
+                        type='range'
+                        min={1}
+                        max={5}
+                        value={answers[question.id] ?? 3}
+                        onChange={e =>
+                          handleAnswerChange(
+                            question.id,
+                            Number(e.target.value)
+                          )
+                        }
+                        className={styles.rangeInput}
+                      />
+
+                      <div className={styles.scaleValues}>
+                        <span>1</span>
+                        <span>2</span>
+                        <span>3</span>
+                        <span>4</span>
+                        <span>5</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className={styles.submitSection}>
+                <Button
+                  onClick={onSubmit}
+                  disabled={!questions || submitMutation.isPending}
+                  variant='primary'
+                  size='lg'
+                  fullWidth
+                  isLoading={submitMutation.isPending}
+                >
+                  {submitMutation.isPending
+                    ? 'Enviando...'
+                    : 'Enviar Respuestas'}
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </MainLayout>
   );
 }
