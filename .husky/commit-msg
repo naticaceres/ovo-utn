@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Validar formato del mensaje de commit
 # Puedes personalizar esta validación según tus necesidades
 commit_msg=$(cat "$1")
