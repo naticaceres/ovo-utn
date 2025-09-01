@@ -7,8 +7,13 @@
     "dev": "concurrently \"vite\" \"npm:api\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "preview": "vite preview",
-    "api": "json-server --watch server/db.json --routes server/routes.json --port 3001"
+    "api": "json-server --watch server/db.json --routes server/routes.json --port 3001",
+    "prepare": "husky",
+    "lint-staged": "lint-staged"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.85.5",
@@ -16,6 +21,7 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.8.2",
+    "vite-plugin-svgr": "^4.5.0",
     "vite-tsconfig-paths": "^5.1.4",
     "zod": "^4.1.3"
   },
@@ -33,10 +39,21 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
+    "husky": "^9.1.7",
     "json-server": "^0.17.4",
+    "lint-staged": "^16.1.6",
     "prettier": "^3.6.2",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.39.1",
     "vite": "^7.1.2"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{css,scss,md,json,html}": [
+      "prettier --write"
+    ]
   }
 }

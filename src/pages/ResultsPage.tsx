@@ -1,8 +1,11 @@
-import { useQuery } from '@tanstack/react-query'
-import { resultsApi } from '@/lib/api'
+import { useQuery } from '@tanstack/react-query';
+import { resultsApi } from '@/lib/api';
 
 export function ResultsPage() {
-  const { data: recs } = useQuery({ queryKey: ['recommendations'], queryFn: resultsApi.getRecommendations })
+  const { data: recs } = useQuery({
+    queryKey: ['recommendations'],
+    queryFn: resultsApi.getRecommendations,
+  });
 
   return (
     <section>
@@ -12,15 +15,16 @@ export function ResultsPage() {
         <p>Cargando...</p>
       ) : (
         <ul>
-          {recs.map((r) => (
+          {recs.map(r => (
             <li key={r.id}>
-              <strong>{r.career}</strong> — {r.university} — <a href={r.link} target="_blank" rel="noreferrer">Ver</a>
+              <strong>{r.career}</strong> — {r.university} —{' '}
+              <a href={r.link} target='_blank' rel='noreferrer'>
+                Ver
+              </a>
             </li>
           ))}
         </ul>
       )}
     </section>
-  )
+  );
 }
-
-
