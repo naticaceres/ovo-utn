@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import styles from './HomePage.module.css';
-import { OvoLogo } from '../components/OvoLogo';
+import OvoLogo from '../assets/ovoLogo.svg?react';
 
 export function HomePage() {
   return (
@@ -10,7 +10,7 @@ export function HomePage() {
         <div className={styles.headerContent}>
           <div className={styles.logoSection}>
             <div className={styles.logo}>
-              <OvoLogo width={40} height={40} />
+              <OvoLogo viewBox='0 0 550 500' />
               <span className={styles.brandText}>
                 ORIENTACIÓN VOCACIONAL ONLINE
               </span>

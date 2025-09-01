@@ -1,6 +1,11 @@
 {
   "users": [
-    { "id": 1, "email": "demo@ovo.app", "password": "demo123", "name": "Demo" }
+    {
+      "id": 1,
+      "email": "demo@ovo.app",
+      "password": "demo123",
+      "name": "Demo"
+    }
   ],
   "questions": [
     {
@@ -19,7 +24,27 @@
       "dimension": "social"
     }
   ],
-  "answers": [],
+  "answers": [
+    {
+      "userId": 1,
+      "answers": [
+        {
+          "questionId": 1,
+          "value": 4
+        },
+        {
+          "questionId": 2,
+          "value": 4
+        },
+        {
+          "questionId": 3,
+          "value": 5
+        }
+      ],
+      "createdAt": "2025-09-01T21:00:33.799Z",
+      "id": 1
+    }
+  ],
   "recommendations": [
     {
       "id": 1,
