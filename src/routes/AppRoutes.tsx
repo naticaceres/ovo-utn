@@ -12,6 +12,7 @@ import AvisoLegal from '../pages/legal/AvisoLegalPage';
 import TerminosYCondiciones from '../pages/legal/TerminosYCondicionesPage';
 import PoliticasDePrivacidad from '../pages/legal/PoliticasDePrivacidadPage';
 import AdminHomePage from '../pages/admin/AdminHomePage';
+import InstitucionHomePage from '../pages/institucion/InstitucionHomePage';
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const router = createBrowserRouter([
       { path: 'results', element: <ResultsPage /> },
       { path: 'student', element: <StudentHomePage /> },
       { path: 'admin', element: <AdminHomePage /> },
+      { path: 'institucion', element: <InstitucionHomePage /> },
     ],
   },
   {

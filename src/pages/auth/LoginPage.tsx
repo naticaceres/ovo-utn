@@ -31,6 +31,10 @@ export function LoginPage() {
           navigate('/app/admin');
           return;
         }
+        if (user.role === 'institucion') {
+          navigate('/app/institucion');
+          return;
+        }
         navigate('/app/questionnaire');
       } else {
         setError('Credenciales inválidas');
