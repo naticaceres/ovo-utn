@@ -151,7 +151,7 @@ npm run api          # Solo API mock (puerto 3001)
 
 ## 🔄 Estado del Desarrollo
 
-### ✅ Completado (v0.0.1)
+### ✅ Completado (v0.0.1 y posteriores)
 
 - [x] Scaffolding de React 19 + TypeScript + Vite
 - [x] Configuración de ESLint, Prettier, y path aliases
@@ -162,22 +162,81 @@ npm run api          # Solo API mock (puerto 3001)
 - [x] Página de resultados con recomendaciones
 - [x] Layout responsive con header/footer
 - [x] Data fetching con React Query
+- [x] Panel de administración con módulos y vistas (AdminHomePage)
+- [x] Panel de institución con accesos rápidos (InstitucionHomePage)
+- [x] Panel de estudiante con accesos rápidos (StudentHomePage)
+- [x] Páginas legales y de contacto
+- [x] Gestión de módulos y vistas por rol
+- [x] Estados de carga y manejo de errores
+- [x] Navegación protegida y layouts diferenciados
 
 ### 🚧 En Desarrollo
 
-- [ ] Protección de rutas (guards)
+- [ ] Protección avanzada de rutas (guards)
 - [ ] Validación de formularios con Zod
 - [ ] Gráfico de aptitudes interactivo
 - [ ] Estilos mejorados según diseño del PDF
 - [ ] Tests unitarios y de integración
+- [ ] Exportación de resultados
+- [ ] Notificaciones push
+- [ ] PWA capabilities
 
 ### 📋 Próximas Funcionalidades
 
 - [ ] Integración con Amazon Bedrock para IA
-- [ ] Dashboard de administrador
-- [ ] Exportación de resultados
-- [ ] Notificaciones push
-- [ ] PWA capabilities
+- [ ] Dashboard de administrador avanzado
+- [ ] Gestión avanzada de usuarios e instituciones
+- [ ] Soporte y tickets
+- [ ] Importación/exportación de datos
+
+## 📋 Historias de Usuario (Checklist)
+
+- [x] US001 Autenticación de usuarios según rol
+- [x] US002 Backup y Restauración
+- [x] US003 Gestión de perfiles de usuarios
+- [x] US004 Asignación dinámica de permisos
+- [ ] US005 Visualización de historial de accesos
+- [ ] US006 Auditoría de acciones del sistema
+- [x] US007 Registro de nuevo usuario
+- [ ] US008 Baja lógica de usuario
+- [ ] US009 Recuperación de contraseña
+- [ ] US010 Gestión de preferencias de usuario
+- [x] US011 Visualización de histórico de tests realizados
+- [x] US012 Visualización de resultado de test
+- [x] US013 Eliminación de respuestas previas del test
+- [x] US014 Consultar Carreras
+- [x] US015 Consultar Instituciones Académicas
+- [x] US016 Gestionar Perfil Usuario
+- [x] US017 Registro de institución académica
+- [x] US018 Gestión de carreras por institución
+- [ ] US019 Gestión de preguntas frecuentes
+- [ ] US020 Gestión de material complementario
+- [x] US021 Relación de carreras con aptitudes
+- [x] US022 Realización de test
+- [x] US023 Tablero de estadísticas para Administrador del Sistema
+- [x] US024 Tablero de estadísticas para instituciones
+- [x] US025 Tablero de estadísticas para estudiantes
+- [x] US026 Configuración de backups automáticos
+- [x] US027 Recuperación de datos
+- [ ] US028 Gestión y validación de solicitudes de instituciones
+- [x] US029 ABM Carrera
+- [ ] US030 ABM TipoCarrera
+- [ ] US031 ABM País
+- [ ] US032 ABM Provincia
+- [ ] US033 ABM Localidad
+- [ ] US034 ABM Género
+- [ ] US035 ABM EstadoUsuario
+- [x] US036 ABM Permiso
+- [ ] US037 ABM Grupo
+- [x] US038 ABM TipoInstitución
+- [x] US039 ABM ModalidadCarreraInstitución
+- [x] US040 ABM de Aptitud
+- [x] US041 ABM EstadoAcceso
+- [x] US042 ABM TipoAcción
+- [x] US043 ABM EstadoInstitucion
+- [x] US044 ABM EstadoCarreraInstitución
+- [x] US045 ABM ConfiguraciónBackup
+- [x] US046 Gestión de usuarios (creación, bloqueo, baja)
 
 ## 🤝 Contribución
 

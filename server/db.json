@@ -112,6 +112,25 @@
       "answers": [],
       "createdAt": "2025-09-02T19:40:43.531Z",
       "id": 10
+    },
+    {
+      "userId": 1,
+      "answers": [
+        {
+          "questionId": 1,
+          "value": 4
+        },
+        {
+          "questionId": 2,
+          "value": 2
+        },
+        {
+          "questionId": 3,
+          "value": 4
+        }
+      ],
+      "createdAt": "2025-09-02T19:43:51.656Z",
+      "id": 11
     }
   ],
   "recommendations": [
