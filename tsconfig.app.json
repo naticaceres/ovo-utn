@@ -29,7 +29,7 @@
       "@/pages/*": ["src/pages/*"],
       "@/layouts/*": ["src/layouts/*"],
       "@/routes/*": ["src/routes/*"],
-      "@/lib/*": ["src/lib/*"],
+      "@/lib/*": ["src/context/*"],
       "@/styles/*": ["src/styles/*"],
       "@/types/*": ["src/types/*"]
     }

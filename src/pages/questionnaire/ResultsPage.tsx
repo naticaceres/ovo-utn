@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { resultsApi } from '@/lib/api';
+import { resultsApi } from 'src/context/api';
 import { Button } from '../../components/ui/Button';
 import { Link } from 'react-router-dom';
 import styles from './ResultsPage.module.css';
-import { useAuth } from '../../lib/use-auth';
+import { useAuth } from '../../context/use-auth';
 
 export function ResultsPage() {
   const { data: recommendations, isLoading } = useQuery({

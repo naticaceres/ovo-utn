@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import styles from './StudentHomePage.module.css';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../../lib/api';
+import { api } from '../../context/api';
 
 interface Aptitude {
   label: string;

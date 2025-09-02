@@ -1,8 +1,8 @@
 import { Outlet, Link } from 'react-router-dom';
-import { AuthProvider } from '../lib/AuthProvider';
+import { AuthProvider } from '../context/AuthProvider';
 import { MainLayout } from '../components/layout/MainLayout';
 import styles from './AppLayout.module.css';
-import { useAuth } from '../lib/use-auth';
+import { useAuth } from '../context/use-auth';
 
 export function AppLayout() {
   const { user, logout } = useAuth();
