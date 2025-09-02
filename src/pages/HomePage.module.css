@@ -53,9 +53,9 @@
 }
 
 .ctaButton:hover {
-  background-color: var(--color-primary-dark);
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
+  color: var(--color-bg-primary);
 }
 
 /* Features Section */

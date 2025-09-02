@@ -13,7 +13,7 @@ export function GlobalHeader({ children }: GlobalHeaderProps) {
       <div className={styles.headerContent}>
         <div className={styles.logoSection}>
           <Link to='/' className={styles.logoLink}>
-            <OvoLogo viewBox='0 0 550 500' />
+            <OvoLogo viewBox='0 0 1600 1200' />
             <span className={styles.brandText}>
               ORIENTACIÓN VOCACIONAL ONLINE
             </span>
