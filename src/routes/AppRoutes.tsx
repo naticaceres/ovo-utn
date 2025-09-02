@@ -8,6 +8,7 @@ import { QuestionnairePage } from '@/pages/questionnaire/QuestionnairePage';
 import { ResultsPage } from '@/pages/questionnaire/ResultsPage';
 import StudentHomePage from '../pages/student/StudentHomePage';
 import Contacto from '../pages/legal/Contacto';
+import AvisoLegal from '../pages/legal/AvisoLegalPage';
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,10 @@ const router = createBrowserRouter([
   {
     path: '/contact',
     element: <Contacto />,
+  },
+  {
+    path: '/legal',
+    element: <AvisoLegal />,
   },
 ]);
 
