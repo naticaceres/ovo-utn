@@ -10,6 +10,7 @@ import StudentHomePage from '../pages/student/StudentHomePage';
 import Contacto from '../pages/legal/Contacto';
 import AvisoLegal from '../pages/legal/AvisoLegalPage';
 import TerminosYCondiciones from '../pages/legal/TerminosYCondicionesPage';
+import PoliticasDePrivacidad from '../pages/legal/PoliticasDePrivacidadPage';
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,10 @@ const router = createBrowserRouter([
   {
     path: '/terms',
     element: <TerminosYCondiciones />,
+  },
+  {
+    path: '/privacy',
+    element: <PoliticasDePrivacidad />,
   },
 ]);
 
