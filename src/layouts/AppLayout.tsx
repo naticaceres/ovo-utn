@@ -10,12 +10,17 @@ export function AppLayout() {
     <MainLayout
       headerContent={
         <nav className={styles.nav}>
-          <Link to='/app/questionnaire' className={styles.navLink}>
-            Cuestionario
-          </Link>
-          <Link to='/app/results' className={styles.navLink}>
-            Resultados
-          </Link>
+          {user && user.role === 'estudiante' && (
+            <>
+              {' '}
+              <Link to='/app/questionnaire' className={styles.navLink}>
+                Cuestionario
+              </Link>
+              <Link to='/app/results' className={styles.navLink}>
+                Resultados
+              </Link>{' '}
+            </>
+          )}
           {!user && (
             <>
               <Link to='/app/login' className={styles.navLink}>

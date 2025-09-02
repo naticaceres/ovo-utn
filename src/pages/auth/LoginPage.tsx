@@ -27,6 +27,10 @@ export function LoginPage() {
           navigate('/app/student');
           return;
         }
+        if (user.role === 'admin') {
+          navigate('/app/admin');
+          return;
+        }
         navigate('/app/questionnaire');
       } else {
         setError('Credenciales inválidas');

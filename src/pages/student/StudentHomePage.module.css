@@ -31,6 +31,20 @@
   box-shadow: var(--shadow-xl);
 }
 
+.gridItemSm {
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md);
+  min-height: 80px;
+  transition: box-shadow var(--transition-normal);
+  cursor: pointer;
+}
+
 .icon {
   font-size: 2.5rem;
   color: var(--color-primary);

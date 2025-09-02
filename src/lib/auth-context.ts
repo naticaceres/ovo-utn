@@ -4,6 +4,7 @@ export interface AuthUser {
   id: number;
   email: string;
   name: string;
+  role: 'admin' | 'estudiante' | 'guest' | 'institucion';
 }
 
 export interface AuthContextType {

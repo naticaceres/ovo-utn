@@ -88,10 +88,10 @@ ovo-utn/
   - **Contraseña**: `ks9WQsC(7XL4T!!zLE6`
 - **Nombre**: Admin
   - **Email**: `demo-admin@ovo.app`
-  - **Contraseña**: `sYA$2ZOnZHOM!QbTSpI`
+  - **Contraseña**: `ks9WQsC(7XL4T!!zLE6`
 - **Nombre**: Institución
   - **Email**: `demo-institucion@ovo.app`
-  - **Contraseña**: `bKlc6vSMf#NX7UB0W9O`
+  - **Contraseña**: `ks9WQsC(7XL4T!!zLE6`
 
 ## 📊 Endpoints de la API
 

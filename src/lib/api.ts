@@ -5,13 +5,19 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-export type User = { id: number; email: string; name: string };
+export type User = {
+  id: number;
+  email: string;
+  name: string;
+  role: 'admin' | 'estudiante' | 'guest' | 'institucion';
+};
 export type AuthPayload = { email: string; password: string; name?: string };
 type UserWithPassword = {
   id: number;
   email: string;
   name: string;
   password: string;
+  role: 'admin' | 'estudiante' | 'guest' | 'institucion';
 };
 
 export const authApi = {
@@ -21,13 +27,13 @@ export const authApi = {
     });
     const user = (data as UserWithPassword[])[0];
     if (user && user.password === payload.password) {
-      return { id: user.id, email: user.email, name: user.name };
+      return user as User;
     }
     return null;
   },
   async signup(payload: AuthPayload): Promise<User> {
     const { data } = await api.post(`/users`, payload);
-    return { id: data.id, email: data.email, name: data.name };
+    return data as User;
   },
 };
 
