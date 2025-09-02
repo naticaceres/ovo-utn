@@ -2,9 +2,21 @@
   "users": [
     {
       "id": 1,
-      "email": "demo@ovo.app",
-      "password": "demo123",
-      "name": "Demo"
+      "email": "demo-estudiante@ovo.app",
+      "password": "ks9WQsC(7XL4T!!zLE6",
+      "name": "estudiante user"
+    },
+    {
+      "name": "admin user",
+      "email": "demo-admin@ovo.app",
+      "password": "sYA$2ZOnZHOM!QbTSpI",
+      "id": 2
+    },
+    {
+      "name": "institucion user",
+      "email": "demo-institucion@ovo.app",
+      "password": "bKlc6vSMf#NX7UB0W9O",
+      "id": 3
     }
   ],
   "questions": [
@@ -49,6 +61,24 @@
       "answers": [],
       "createdAt": "2025-09-01T21:50:35.141Z",
       "id": 2
+    },
+    {
+      "userId": 1,
+      "answers": [],
+      "createdAt": "2025-09-02T02:06:40.195Z",
+      "id": 3
+    },
+    {
+      "userId": 1,
+      "answers": [],
+      "createdAt": "2025-09-02T02:06:44.592Z",
+      "id": 4
+    },
+    {
+      "userId": 1,
+      "answers": [],
+      "createdAt": "2025-09-02T02:09:59.494Z",
+      "id": 5
     }
   ],
   "recommendations": [

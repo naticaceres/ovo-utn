@@ -83,8 +83,15 @@ ovo-utn/
 
 ## 🔐 Credenciales de Demo
 
-- **Email**: `demo@ovo.app`
-- **Contraseña**: `demo123`
+- **Nombre**: Estudiante
+  - **Email**: `demo-estudiante@ovo.app`
+  - **Contraseña**: `ks9WQsC(7XL4T!!zLE6`
+- **Nombre**: Admin
+  - **Email**: `demo-admin@ovo.app`
+  - **Contraseña**: `sYA$2ZOnZHOM!QbTSpI`
+- **Nombre**: Institución
+  - **Email**: `demo-institucion@ovo.app`
+  - **Contraseña**: `bKlc6vSMf#NX7UB0W9O`
 
 ## 📊 Endpoints de la API
 

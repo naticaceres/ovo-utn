@@ -59,7 +59,13 @@ export function QuestionnairePage() {
         </header>
 
         {questions && (
-          <form className={styles.form}>
+          <form
+            className={styles.form}
+            onSubmit={e => {
+              e.preventDefault();
+              onSubmit();
+            }}
+          >
             <div className={styles.questionsList}>
               {questions.map((question, index) => (
                 <div key={question.id} className={styles.questionItem}>
@@ -101,7 +107,7 @@ export function QuestionnairePage() {
 
             <div className={styles.submitSection}>
               <Button
-                onClick={onSubmit}
+                type='submit'
                 disabled={!questions || submitMutation.isPending}
                 variant='primary'
                 size='lg'
