@@ -27,9 +27,9 @@ export function AppLayout() {
             </>
           )}
           {user && (
-            <button className={styles.navLink} onClick={logout}>
+            <Link to='/' className={styles.navLink} onClick={logout}>
               Cerrar sesión
-            </button>
+            </Link>
           )}
         </nav>
       }

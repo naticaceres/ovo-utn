@@ -7,6 +7,7 @@ import { SignupPage } from '@/pages/auth/SignupPage';
 import { QuestionnairePage } from '@/pages/questionnaire/QuestionnairePage';
 import { ResultsPage } from '@/pages/questionnaire/ResultsPage';
 import StudentHomePage from '../pages/student/StudentHomePage';
+import Contacto from '../pages/legal/Contacto';
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,10 @@ const router = createBrowserRouter([
       { path: 'results', element: <ResultsPage /> },
       { path: 'student', element: <StudentHomePage /> },
     ],
+  },
+  {
+    path: '/contact',
+    element: <Contacto />,
   },
 ]);
 

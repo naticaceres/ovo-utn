@@ -3,12 +3,15 @@ import { resultsApi } from '@/lib/api';
 import { Button } from '../../components/ui/Button';
 import { Link } from 'react-router-dom';
 import styles from './ResultsPage.module.css';
+import { useAuth } from '../../lib/use-auth';
 
 export function ResultsPage() {
   const { data: recommendations, isLoading } = useQuery({
     queryKey: ['recommendations'],
     queryFn: resultsApi.getRecommendations,
   });
+
+  const { user, logout } = useAuth();
 
   if (isLoading) {
     return (
@@ -121,11 +124,20 @@ export function ResultsPage() {
               Volver al Cuestionario
             </Button>
           </Link>
-          <Link to='/'>
-            <Button variant='primary' size='lg'>
-              Volver al Inicio
-            </Button>
-          </Link>
+          {!user && (
+            <Link to='/'>
+              <Button variant='primary' size='lg'>
+                Volver al Inicio
+              </Button>
+            </Link>
+          )}
+          {user && (
+            <Link to='/app/student' onClick={logout}>
+              <Button variant='primary' size='lg'>
+                Volver al Inicio
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
     </div>
