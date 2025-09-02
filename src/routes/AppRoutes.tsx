@@ -1,11 +1,12 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AppLayout } from '@/layouts/AppLayout';
+import { AppLayoutWrapper } from '@/layouts/AppLayout';
 import { HomePage } from '@/pages/HomePage';
-import { LoginPage } from '@/pages/LoginPage';
-import { SignupPage } from '@/pages/SignupPage';
-import { QuestionnairePage } from '@/pages/QuestionnairePage';
-import { ResultsPage } from '@/pages/ResultsPage';
+import { LoginPage } from '@/pages/auth/LoginPage';
+import { SignupPage } from '@/pages/auth/SignupPage';
+import { QuestionnairePage } from '@/pages/questionnaire/QuestionnairePage';
+import { ResultsPage } from '@/pages/questionnaire/ResultsPage';
+import StudentHomePage from '../pages/student/StudentHomePage';
 
 const queryClient = new QueryClient();
 
@@ -24,10 +25,11 @@ const router = createBrowserRouter([
   },
   {
     path: '/app',
-    element: <AppLayout />,
+    element: <AppLayoutWrapper />, // Asegura que AuthProvider envuelva AppLayout
     children: [
       { path: 'questionnaire', element: <QuestionnairePage /> },
       { path: 'results', element: <ResultsPage /> },
+      { path: 'student', element: <StudentHomePage /> },
     ],
   },
 ]);

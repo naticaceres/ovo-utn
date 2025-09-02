@@ -1,14 +1,13 @@
-@import '../styles/variables.css';
+@import '../../styles/variables.css';
 
-.signupContainer {
+.loginContainer {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
   padding: var(--spacing-xl);
 }
 
-.signupCard {
+.loginCard {
   background-color: var(--color-bg-primary);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
@@ -50,7 +49,7 @@
   text-align: center;
 }
 
-.loginLink {
+.signupLink {
   text-align: center;
   font-size: var(--font-size-base);
   color: var(--color-text-secondary);
@@ -69,11 +68,11 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .signupContainer {
+  .loginContainer {
     padding: var(--spacing-md);
   }
 
-  .signupCard {
+  .loginCard {
     padding: var(--spacing-2xl);
   }
 
@@ -87,7 +86,7 @@
 }
 
 @media (max-width: 480px) {
-  .signupCard {
+  .loginCard {
     padding: var(--spacing-xl);
   }
 

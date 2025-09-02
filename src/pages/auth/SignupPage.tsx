@@ -2,9 +2,9 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '@/lib/api';
-import { AuthLayout } from '../components/layout/AuthLayout';
-import { Input } from '../components/ui/Input';
-import { Button } from '../components/ui/Button';
+import { AuthLayout } from '../../components/layout/AuthLayout';
+import { Input } from '../../components/ui/Input';
+import { Button } from '../../components/ui/Button';
 import styles from './SignupPage.module.css';
 
 export function SignupPage() {

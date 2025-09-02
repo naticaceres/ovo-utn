@@ -1,8 +1,11 @@
 import { Outlet, Link } from 'react-router-dom';
+import { AuthProvider } from '../lib/AuthProvider';
 import { MainLayout } from '../components/layout/MainLayout';
 import styles from './AppLayout.module.css';
+import { useAuth } from '../lib/use-auth';
 
 export function AppLayout() {
+  const { user, logout } = useAuth();
   return (
     <MainLayout
       headerContent={
@@ -13,12 +16,21 @@ export function AppLayout() {
           <Link to='/app/results' className={styles.navLink}>
             Resultados
           </Link>
-          <Link to='/app/login' className={styles.navLink}>
-            Ingresar
-          </Link>
-          <Link to='/app/signup' className={styles.navLink}>
-            Registro
-          </Link>
+          {!user && (
+            <>
+              <Link to='/app/login' className={styles.navLink}>
+                Ingresar
+              </Link>
+              <Link to='/app/signup' className={styles.navLink}>
+                Registro
+              </Link>
+            </>
+          )}
+          {user && (
+            <button className={styles.navLink} onClick={logout}>
+              Cerrar sesión
+            </button>
+          )}
         </nav>
       }
     >
@@ -26,5 +38,13 @@ export function AppLayout() {
         <Outlet />
       </div>
     </MainLayout>
+  );
+}
+
+export function AppLayoutWrapper() {
+  return (
+    <AuthProvider>
+      <AppLayout />
+    </AuthProvider>
   );
 }

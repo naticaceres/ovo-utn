@@ -2,7 +2,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { questionnaireApi } from '@/lib/api';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '../components/ui/Button';
+import { Button } from '../../components/ui/Button';
 import styles from './QuestionnairePage.module.css';
 
 export function QuestionnairePage() {

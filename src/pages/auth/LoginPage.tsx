@@ -2,14 +2,14 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '@/lib/api';
-import { AuthLayout } from '../components/layout/AuthLayout';
-import { Input } from '../components/ui/Input';
-import { Button } from '../components/ui/Button';
+import { AuthLayout } from '../../components/layout/AuthLayout';
+import { Input } from '../../components/ui/Input';
+import { Button } from '../../components/ui/Button';
 import styles from './LoginPage.module.css';
 
 export function LoginPage() {
-  const [email, setEmail] = useState('demo@ovo.app');
-  const [password, setPassword] = useState('demo123');
+  const [email, setEmail] = useState('demo-estudiante@ovo.app');
+  const [password, setPassword] = useState('ks9WQsC(7XL4T!!zLE6');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -23,6 +23,10 @@ export function LoginPage() {
       const user = await authApi.login({ email, password });
       if (user) {
         sessionStorage.setItem('user', JSON.stringify(user));
+        if (user.name === 'estudiante user') {
+          navigate('/app/student');
+          return;
+        }
         navigate('/app/questionnaire');
       } else {
         setError('Credenciales inválidas');

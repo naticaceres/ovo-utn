@@ -11,6 +11,7 @@
     "esbenp.prettier-vscode",
     "github.copilot",
     "github.copilot-chat",
-    "jock.svg"
+    "jock.svg",
+    "waderyan.gitblame"
   ]
 }
