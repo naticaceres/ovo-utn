@@ -9,6 +9,7 @@ import { ResultsPage } from '@/pages/questionnaire/ResultsPage';
 import StudentHomePage from '../pages/student/StudentHomePage';
 import Contacto from '../pages/legal/Contacto';
 import AvisoLegal from '../pages/legal/AvisoLegalPage';
+import TerminosYCondiciones from '../pages/legal/TerminosYCondicionesPage';
 
 const queryClient = new QueryClient();
 
@@ -27,7 +28,7 @@ const router = createBrowserRouter([
   },
   {
     path: '/app',
-    element: <AppLayoutWrapper />, // Asegura que AuthProvider envuelva AppLayout
+    element: <AppLayoutWrapper />,
     children: [
       { path: 'questionnaire', element: <QuestionnairePage /> },
       { path: 'results', element: <ResultsPage /> },
@@ -41,6 +42,10 @@ const router = createBrowserRouter([
   {
     path: '/legal',
     element: <AvisoLegal />,
+  },
+  {
+    path: '/terms',
+    element: <TerminosYCondiciones />,
   },
 ]);
 
