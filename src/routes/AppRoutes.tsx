@@ -13,6 +13,11 @@ import TerminosYCondiciones from '../pages/legal/TerminosYCondicionesPage';
 import PoliticasDePrivacidad from '../pages/legal/PoliticasDePrivacidadPage';
 import AdminHomePage from '../pages/admin/AdminHomePage';
 import InstitucionHomePage from '../pages/institucion/InstitucionHomePage';
+import ProfilePage from '../pages/student/ProfilePage';
+import ConsultarCarrerasPage from '../pages/institucion/ConsultarCarrerasPage';
+import DetalleCarreraPage from '../pages/institucion/DetalleCarreraPage';
+import DetalleInstitucionPage from '../pages/institucion/DetalleInstitucionPage';
+import ConsultarInstitucionPage from '../pages/institucion/ConsultarInstitucionPage';
 
 const queryClient = new QueryClient();
 
@@ -36,8 +41,13 @@ const router = createBrowserRouter([
       { path: 'questionnaire', element: <QuestionnairePage /> },
       { path: 'results', element: <ResultsPage /> },
       { path: 'student', element: <StudentHomePage /> },
+      { path: 'careers', element: <ConsultarCarrerasPage /> },
+      { path: 'profile', element: <ProfilePage /> },
       { path: 'admin', element: <AdminHomePage /> },
       { path: 'institucion', element: <InstitucionHomePage /> },
+      { path: 'detalle-carrera', element: <DetalleCarreraPage /> },
+      { path: 'detalle-institucion', element: <DetalleInstitucionPage /> },
+      { path: 'consultar-institucion', element: <ConsultarInstitucionPage /> },
     ],
   },
   {

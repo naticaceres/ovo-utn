@@ -1,0 +1,119 @@
+.carreraList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.carreraItem {
+  padding: 0.7rem 1rem;
+  border-radius: var(--radius-md);
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.carreraItem:hover {
+  background: var(--color-bg-hover);
+}
+
+.selected {
+  background: var(--color-primary);
+  color: #fff !important;
+  font-weight: bold;
+  border-radius: var(--radius-md);
+}
+.container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-xl);
+  min-height: 100vh;
+  background: var(--color-bg-secondary);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+
+.logo {
+  width: 40px;
+  height: 40px;
+}
+
+.title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+}
+
+.searchCard {
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: var(--spacing-xl);
+  width: 100%;
+  max-width: 700px;
+  margin-bottom: var(--spacing-lg);
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background: #fff;
+  border-radius: var(--radius-md);
+  padding: 0.5rem 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.searchIcon {
+  font-size: 1.3rem;
+  color: var(--color-primary);
+}
+
+.input {
+  border: none;
+  outline: none;
+  font-size: var(--font-size-base);
+  width: 100%;
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+.result {
+  margin-top: var(--spacing-md);
+  font-size: var(--font-size-lg);
+  color: var(--color-text-primary);
+}
+
+.card {
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: var(--spacing-xl);
+  width: 100%;
+  max-width: 700px;
+  margin-bottom: var(--spacing-lg);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-lg);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.institutions {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+}
+
+.institutions li {
+  margin-bottom: 0.5rem;
+}

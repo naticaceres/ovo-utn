@@ -72,7 +72,7 @@ export default function StudentHomePage() {
         </div>
         <div
           className={styles.gridItem}
-          onClick={() => navigate('/app/institution')}
+          onClick={() => navigate('/app/consultar-institucion')}
         >
           <span className={styles.icon}>📖</span>
           <span className={styles.label}>Consultar Institución</span>
