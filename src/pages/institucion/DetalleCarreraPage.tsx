@@ -1,91 +1,105 @@
-// ...existing code...
-import styles from './DetalleCarreraPage.module.css';
+import { useState, useEffect } from 'react';
+import styles from './ConsultarCarrerasPage.module.css';
 import { BackButton } from '../../components/ui/BackButton';
-import ovoLogo from '../../assets/ovoLogo.svg';
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+// @ts-expect-error - services are JS modules without .d.ts in the resolver path
+import { listCareers } from '../../services/careers';
 
-export default function DetalleCarreraPage() {
-  // Datos simulados, reemplaza por props o fetch si lo necesitas
-  const carrera = {
-    nombre: 'Ingeniería en sistemas FRM-UTN',
-    cantidadMaterias: 30,
-    fechaInicio: '6/1/2025',
-    horasCursado: 120,
-    montoCuota: 5,
-    titulo: '1',
-    observaciones: 'TEST',
-    contenidoMultimedia: '',
-    preguntasFrecuentes: '',
-    modalidad: 'presencial',
-  };
-  const [favorito, setFavorito] = useState(false);
+interface Carrera {
+  id: string | number;
+  nombre: string;
+  instituciones: string[];
+}
+
+export default function ConsultarCarrerasPage() {
+  const [query, setQuery] = useState('');
+  const [selectedCarrera, setSelectedCarrera] = useState<string | null>(null);
+  const [carreras, setCarreras] = useState<Carrera[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const carrerasFiltradas = carreras.filter(c =>
+    c.nombre.toLowerCase().includes(query.toLowerCase())
+  );
+  const carreraSeleccionada = carreras.find(c => c.nombre === selectedCarrera);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    listCareers()
+      .then((data: unknown) => {
+        setCarreras(data as Carrera[]);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError('Error al cargar las carreras');
+        setLoading(false);
+      });
+  }, []);
 
   return (
     <div className={styles.container}>
       <BackButton />
       <div className={styles.header}>
-        <h1 className={styles.title}>Detalle de Carrera</h1>
+        <h1 className={styles.title}>Catálogo de Carreras</h1>
       </div>
-      <div className={styles.card}>
-        <h2 className={styles.carreraTitle}>{carrera.nombre}</h2>
-        <div className={styles.infoList}>
-          <p>
-            <b>Cantidad de Materias:</b> {carrera.cantidadMaterias}
-          </p>
-          <p>
-            <b>Fecha de Inicio:</b> {carrera.fechaInicio}
-          </p>
-          <p>
-            <b>Horas de Cursado:</b> {carrera.horasCursado}
-          </p>
-          <p>
-            <b>Monto de Cuota:</b> {carrera.montoCuota}
-          </p>
-          <p>
-            <b>Título de la Carrera:</b> {carrera.titulo}
-          </p>
-          <p>
-            <b>Observaciones:</b> {carrera.observaciones}
-          </p>
-          <p>
-            <b>Contenido Multimedia:</b> {carrera.contenidoMultimedia}
-          </p>
-          <p>
-            <b>Preguntas Frecuentes:</b> {carrera.preguntasFrecuentes}
-          </p>
-          <p>
-            <b>Modalidad:</b> {carrera.modalidad}
-          </p>
+      <div className={styles.searchCard}>
+        <h2 className={styles.sectionTitle}>Carreras</h2>
+        <div className={styles.searchBox}>
+          <span className={styles.searchIcon}>🔍</span>
+          <input
+            type='text'
+            placeholder='Buscar carrera...'
+            value={query}
+            onChange={e => {
+              setQuery(e.target.value);
+              setSelectedCarrera(null);
+            }}
+            className={styles.input}
+          />
         </div>
-        <div className={styles.buttonRow}>
-          <button
-            className={styles.favBtn}
-            aria-label={
-              favorito ? 'Quitar de favoritos' : 'Marcar como favorito'
-            }
-            onClick={() => setFavorito((f: boolean) => !f)}
-          >
-            {favorito ? (
-              <span style={{ color: '#FFD700', fontSize: '1.5rem' }}>★</span>
-            ) : (
-              <span style={{ color: '#bbb', fontSize: '1.5rem' }}>☆</span>
+        {loading ? (
+          <div className={styles.noResult}>Cargando carreras...</div>
+        ) : error ? (
+          <div className={styles.noResult}>{error}</div>
+        ) : (
+          <ul className={styles.carreraList}>
+            {carrerasFiltradas.length === 0 && (
+              <li className={styles.noResult}>No se encontraron carreras</li>
             )}
-            <span style={{ marginLeft: 8 }}>
-              {favorito ? 'Favorito' : 'Marcar favorito'}
-            </span>
-          </button>
-
-          <button
-            className={styles.institutionBtn}
-            style={{ marginLeft: '1rem' }}
-            onClick={() => navigate('/app/detalle-institucion')}
-          >
-            &rarr; Ver Institución
-          </button>
-        </div>
+            {carrerasFiltradas.map(c => (
+              <li
+                key={c.id}
+                className={
+                  selectedCarrera === c.nombre
+                    ? styles.selected
+                    : styles.carreraItem
+                }
+                onClick={() => setSelectedCarrera(c.nombre)}
+                style={{ cursor: 'pointer', color: 'var(--color-primary)' }}
+              >
+                {c.nombre}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
+      {carreraSeleccionada && (
+        <div className={styles.card}>
+          <h2 className={styles.sectionTitle}>
+            Instituciones con {carreraSeleccionada.nombre}
+          </h2>
+          <ul className={styles.institutions}>
+            {carreraSeleccionada.instituciones.map((inst: string) => (
+              <li
+                key={inst}
+                style={{ cursor: 'pointer', color: 'var(--color-primary)' }}
+                onClick={() => navigate('/app/detalle-carrera')}
+              >
+                {inst}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

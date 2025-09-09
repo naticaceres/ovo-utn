@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 export const api = axios.create({
-  baseURL: 'http://localhost:3001/api',
+  baseURL: 'http://ovotest.mooo.com:5000',
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -11,27 +11,20 @@ export type User = {
   name: string;
   role: 'admin' | 'estudiante' | 'guest' | 'institucion';
 };
-export type AuthPayload = { email: string; password: string; name?: string };
-type UserWithPassword = {
-  id: number;
-  email: string;
-  name: string;
-  password: string;
-  role: 'admin' | 'estudiante' | 'guest' | 'institucion';
-};
+export type AuthPayload = { correo: string; contrasena: string; name?: string };
 
 export const authApi = {
-  async login(payload: AuthPayload): Promise<User | null> {
-    const { data } = await api.get(`/users`, {
-      params: { email: payload.email },
+  async login(payload: AuthPayload): Promise<User> {
+    // POST /api/v1/auth/login con correo y contrasena
+    const { data } = await api.post('/api/v1/auth/login', {
+      correo: payload.correo,
+      contrasena: payload.contrasena,
     });
-    const user = (data as UserWithPassword[])[0];
-    if (user && user.password === payload.password) {
-      return user as User;
-    }
-    return null;
+    return data as User;
   },
+  // Puedes actualizar signup si el backend lo requiere
   async signup(payload: AuthPayload): Promise<User> {
+    // ...existing code...
     const { data } = await api.post(`/users`, payload);
     return data as User;
   },
@@ -71,3 +64,4 @@ export const resultsApi = {
     return data;
   },
 };
+// Nota: las llamadas a carreras ahora están en src/services/careers.js

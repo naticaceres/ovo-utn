@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authApi } from 'src/context/api';
+import { login as loginService } from '../../services/login';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import styles from './LoginPage.module.css';
 
 export function LoginPage() {
-  const [email, setEmail] = useState('demo-estudiante@ovo.app');
-  const [password, setPassword] = useState('ks9WQsC(7XL4T!!zLE6');
+  const [email, setEmail] = useState('m1718c@gmail.com');
+  const [password, setPassword] = useState('Holatrolo1');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -20,27 +20,52 @@ export function LoginPage() {
     setIsLoading(true);
 
     try {
-      const user = await authApi.login({ email, password });
-      if (user) {
-        sessionStorage.setItem('user', JSON.stringify(user));
-        if (user.name === 'estudiante user') {
-          navigate('/app/student');
-          return;
-        }
-        if (user.role === 'admin') {
-          navigate('/app/admin');
-          return;
-        }
-        if (user.role === 'institucion') {
-          navigate('/app/institucion');
-          return;
-        }
-        navigate('/app/questionnaire');
-      } else {
+      const resp = await loginService(email, password);
+      if (!resp) {
         setError('Credenciales inválidas');
+        return;
       }
-    } catch {
-      setError('Error al iniciar sesión');
+
+      // La respuesta esperada puede tener la forma:
+      // { grupos: [...], permisos: [...], usuario: { ... } }
+      const grupos: string[] = resp.grupos || resp.groups || [];
+      const usuario = resp.usuario || resp.user || resp;
+
+      // Guardamos la respuesta completa para usarla después
+      sessionStorage.setItem('user', JSON.stringify(resp));
+
+      const hasGroup = (name: string) =>
+        grupos.some(
+          g =>
+            typeof g === 'string' &&
+            g.toLowerCase().includes(name.toLowerCase())
+        );
+
+      // Prioridad: administrador > institucion > estudiante
+      if (hasGroup('administrador') || hasGroup('admin')) {
+        navigate('/app/admin');
+      } else if (hasGroup('institucion') || hasGroup('institución')) {
+        navigate('/app/institucion');
+      } else if (
+        hasGroup('estudiante') ||
+        hasGroup('estudiantes') ||
+        hasGroup('student')
+      ) {
+        navigate('/app/student');
+      } else if (
+        usuario &&
+        (usuario.name === 'estudiante user' || usuario.role === 'estudiante')
+      ) {
+        // fallback por compatibilidad con la lógica previa
+        navigate('/app/student');
+      } else {
+        navigate('/app/questionnaire');
+      }
+    } catch (err) {
+      setError(
+        'Error al iniciar sesión' +
+          (err instanceof Error ? `: ${err.message}` : '')
+      );
     } finally {
       setIsLoading(false);
     }
