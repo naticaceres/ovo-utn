@@ -1,42 +1,48 @@
+import { useNavigate } from 'react-router-dom';
 import styles from '../student/StudentHomePage.module.css';
-import { AdminModules } from './AdminModules';
 import { ICONS } from './AdminIcons';
+import { CATEGORIES, CATEGORY_ICON_KEY } from './adminConfig';
 
 export default function AdminHomePage() {
-  const modules = AdminModules;
-  const loading = false;
-
-  const mainModules = modules.filter(m => m.category === 'main');
-  const gridModules = modules.filter(m => m.category === 'grid');
+  const navigate = useNavigate();
 
   return (
     <div className={styles.container}>
       <div
         style={{
-          display: 'flex',
-          gap: 16,
-          marginBottom: 32,
-          flexWrap: 'wrap',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: 20,
+          alignItems: 'stretch',
         }}
       >
-        {mainModules.map(mod => (
-          <div key={mod.id} className={styles.gridItemSm}>
-            {ICONS[mod.icon] || <span className={styles.icon}>🔹</span>}
-            <span className={styles.label}>{mod.label}</span>
-          </div>
-        ))}
-      </div>
-      <div className={styles.grid}>
-        {loading ? (
-          <div>Cargando módulos...</div>
-        ) : (
-          gridModules.map(mod => (
-            <div key={mod.id} className={styles.gridItem}>
-              {ICONS[mod.icon] || <span className={styles.icon}>🔹</span>}
-              <span className={styles.label}>{mod.label}</span>
+        {CATEGORIES.map(cat => (
+          <button
+            key={cat.id}
+            type='button'
+            onClick={() => navigate(`/app/admin/${cat.id}`)}
+            aria-label={`Ir a ${cat.title}`}
+            className={styles.gridItem}
+            style={{
+              height: 260,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 14,
+              padding: 24,
+              textAlign: 'center',
+              cursor: 'pointer',
+              background: 'var(--card-bg, transparent)',
+              borderRadius: 10,
+            }}
+          >
+            <div style={{ fontSize: 72 }}>
+              {ICONS[CATEGORY_ICON_KEY[cat.id] || 'layers']}
             </div>
-          ))
-        )}
+            <div style={{ fontSize: 24, fontWeight: 700 }}>{cat.title}</div>
+          </button>
+        ))}
       </div>
     </div>
   );

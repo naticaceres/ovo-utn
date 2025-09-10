@@ -12,10 +12,10 @@ import AvisoLegal from '../pages/legal/AvisoLegalPage';
 import TerminosYCondiciones from '../pages/legal/TerminosYCondicionesPage';
 import PoliticasDePrivacidad from '../pages/legal/PoliticasDePrivacidadPage';
 import AdminHomePage from '../pages/admin/AdminHomePage';
+import AdminCategoryPage from '../pages/admin/AdminCategoryPage';
 import InstitucionHomePage from '../pages/institucion/InstitucionHomePage';
 import ProfilePage from '../pages/student/ProfilePage';
 import ConsultarCarrerasPage from '../pages/institucion/ConsultarCarrerasPage';
-import MisCarrerasPage from '../pages/institucion/MisCarrerasPage';
 import DetalleCarreraPage from '../pages/institucion/DetalleCarreraPage';
 import DetalleInstitucionPage from '../pages/institucion/DetalleInstitucionPage';
 import ConsultarInstitucionPage from '../pages/institucion/ConsultarInstitucionPage';
@@ -47,8 +47,8 @@ const router = createBrowserRouter([
       { path: 'profile', element: <ProfilePage /> },
       { path: 'statistics', element: <EstadisticasPage /> },
       { path: 'admin', element: <AdminHomePage /> },
+      { path: 'admin/:categoryId', element: <AdminCategoryPage /> },
       { path: 'institucion', element: <InstitucionHomePage /> },
-      { path: 'institucion/mis-carreras', element: <MisCarrerasPage /> },
       { path: 'detalle-carrera', element: <DetalleCarreraPage /> },
       { path: 'detalle-institucion', element: <DetalleInstitucionPage /> },
       { path: 'consultar-institucion', element: <ConsultarInstitucionPage /> },
