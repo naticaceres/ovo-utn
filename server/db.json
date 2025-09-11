@@ -131,6 +131,21 @@
       ],
       "createdAt": "2025-09-02T19:43:51.656Z",
       "id": 11
+    },
+    {
+      "userId": 0,
+      "answers": [
+        {
+          "questionId": 1,
+          "value": 4
+        },
+        {
+          "questionId": 2,
+          "value": 2
+        }
+      ],
+      "createdAt": "2025-09-09T20:21:33.030Z",
+      "id": 12
     }
   ],
   "recommendations": [

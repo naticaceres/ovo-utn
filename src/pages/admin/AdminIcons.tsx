@@ -3,6 +3,7 @@ import styles from '../student/StudentHomePage.module.css';
 export const ICONS: Record<string, React.ReactNode> = {
   shield: <span className={styles.icon}>🛡️</span>,
   users: <span className={styles.icon}>👥</span>,
+  'users-cog': <span className={styles.icon}>🧑‍🔧</span>,
   university: <span className={styles.icon}>🏫</span>,
   book: <span className={styles.icon}>📚</span>,
   database: <span className={styles.icon}>💾</span>,
