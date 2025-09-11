@@ -63,6 +63,8 @@ export function SignupPage() {
       setModalStage(0);
       navigate('/app/login');
     } catch (err: unknown) {
+      // cerrar modal si hay un error al intentar registrar
+      setModalStage(0);
       setError(extractErrorMessage(err));
     } finally {
       setIsLoading(false);

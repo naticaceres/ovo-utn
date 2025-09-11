@@ -5,6 +5,48 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+/**
+ * Set or remove the Authorization header for the shared axios instance.
+ * Call with a token string to set the header, or with undefined/null to remove it.
+ */
+export function setAuthToken(token?: string | null) {
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common['Authorization'];
+  }
+}
+
+// Request interceptor: attach token from localStorage if present
+api.interceptors.request.use(config => {
+  try {
+    const t = localStorage.getItem('token');
+    if (t) {
+      config.headers = config.headers || {};
+      // preserve existing headers and set Authorization
+      config.headers['Authorization'] = `Bearer ${t}`;
+    }
+  } catch {
+    // ignore localStorage errors (e.g., SSR) and continue
+  }
+  return config;
+});
+
+// Response interceptor: if backend sends a renewed token in header 'new_token', persist it
+api.interceptors.response.use(res => {
+  try {
+    const nt = res?.headers?.['new_token'];
+    if (nt) {
+      localStorage.setItem('token', nt);
+      // also update default header so subsequent requests use it immediately
+      api.defaults.headers.common['Authorization'] = `Bearer ${nt}`;
+    }
+  } catch {
+    // ignore storage errors
+  }
+  return res;
+});
+
 export type User = {
   id: number;
   email: string;

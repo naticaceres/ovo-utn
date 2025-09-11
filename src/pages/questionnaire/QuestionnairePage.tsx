@@ -27,7 +27,7 @@ export function QuestionnairePage() {
   });
 
   const onSubmit = () => {
-    const user = sessionStorage.getItem('user');
+    const user = localStorage.getItem('user');
     const userId = user ? JSON.parse(user).id : 0;
     submitMutation.mutate({ userId, values: answers });
   };

@@ -30,7 +30,7 @@ function useStudentLastCareer(userId: number) {
 
 export default function StudentHomePage() {
   const navigate = useNavigate();
-  const user = sessionStorage.getItem('user');
+  const user = localStorage.getItem('user');
   const userId = user ? JSON.parse(user).id : 0;
 
   const { data: aptitudes = [], isLoading: loadingApt } =

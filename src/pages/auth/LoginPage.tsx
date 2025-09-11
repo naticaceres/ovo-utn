@@ -2,14 +2,15 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login as loginService } from '../../services/login';
+import { setAuthToken } from '../../context/api';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import styles from './LoginPage.module.css';
 
 export function LoginPage() {
-  const [email, setEmail] = useState('m1718c@gmail.com');
-  const [password, setPassword] = useState('Holatrolo1');
+  const [email, setEmail] = useState('estudiante@prueba.com');
+  const [password, setPassword] = useState('Prueba1234.');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -31,11 +32,23 @@ export function LoginPage() {
       const grupos: string[] = resp.grupos || resp.groups || [];
       const usuario = resp.usuario || resp.user || resp;
 
-      // Guardamos la respuesta completa para usarla después
-      sessionStorage.setItem('user', JSON.stringify(resp));
+      // El servicio ahora devuelve la respuesta completa. Revisar headers para new_token
+      const headerToken = resp?.headers?.['new_token'];
+      const bodyToken =
+        resp?.data?.token ||
+        resp?.data?.accessToken ||
+        resp?.data?.access_token;
+      const token = headerToken || bodyToken;
+      if (token) {
+        localStorage.setItem('token', token);
+        setAuthToken(token);
+      }
+
+      // Guardamos la respuesta (body) completa para usarla después
+      localStorage.setItem('user', JSON.stringify(resp.data || resp));
 
       const hasGroup = (name: string) =>
-        grupos.some(
+        resp.data.grupos.some(
           g =>
             typeof g === 'string' &&
             g.toLowerCase().includes(name.toLowerCase())
@@ -46,11 +59,7 @@ export function LoginPage() {
         navigate('/app/admin');
       } else if (hasGroup('institucion') || hasGroup('institución')) {
         navigate('/app/institucion');
-      } else if (
-        hasGroup('estudiante') ||
-        hasGroup('estudiantes') ||
-        hasGroup('student')
-      ) {
+      } else if (hasGroup('Estudiante')) {
         navigate('/app/student');
       } else if (
         usuario &&

@@ -35,3 +35,12 @@ export async function removeInterest(id) {
     throw error.response ? error.response.data : error;
   }
 }
+
+export async function updateProfile(payload) {
+  try {
+    const { data } = await api.put('/api/v1/user/profile', payload);
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
