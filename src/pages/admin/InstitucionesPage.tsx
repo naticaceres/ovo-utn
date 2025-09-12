@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import styles from '../student/StudentHomePage.module.css';
+import { BackButton } from '../../components/ui/BackButton';
 import { ICONS } from './AdminIcons';
 
 const GROUPS = [
@@ -35,6 +36,7 @@ export default function InstitucionesPage() {
 
   return (
     <div className={styles.container}>
+      <BackButton />
       <header style={{ marginBottom: 20 }}>
         <h2>Instituciones</h2>
       </header>

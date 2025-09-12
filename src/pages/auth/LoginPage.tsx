@@ -9,8 +9,8 @@ import { Button } from '../../components/ui/Button';
 import styles from './LoginPage.module.css';
 
 export function LoginPage() {
-  const [email, setEmail] = useState('estudiante@prueba.com');
-  const [password, setPassword] = useState('Prueba1234.');
+  const [email, setEmail] = useState('m1718c@gmail.com');
+  const [password, setPassword] = useState('Holatrolo1');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -29,7 +29,6 @@ export function LoginPage() {
 
       // La respuesta esperada puede tener la forma:
       // { grupos: [...], permisos: [...], usuario: { ... } }
-      const grupos: string[] = resp.grupos || resp.groups || [];
       const usuario = resp.usuario || resp.user || resp;
 
       // El servicio ahora devuelve la respuesta completa. Revisar headers para new_token
@@ -47,12 +46,19 @@ export function LoginPage() {
       // Guardamos la respuesta (body) completa para usarla después
       localStorage.setItem('user', JSON.stringify(resp.data || resp));
 
-      const hasGroup = (name: string) =>
-        resp.data.grupos.some(
-          g =>
+      const hasGroup = (name: string) => {
+        const candidates =
+          resp?.data?.grupos ||
+          resp?.data?.groups ||
+          resp.grupos ||
+          resp.groups ||
+          [];
+        return candidates.some(
+          (g: unknown) =>
             typeof g === 'string' &&
             g.toLowerCase().includes(name.toLowerCase())
         );
+      };
 
       // Prioridad: administrador > institucion > estudiante
       if (hasGroup('administrador') || hasGroup('admin')) {

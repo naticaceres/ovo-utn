@@ -194,7 +194,7 @@ export default function ProfilePage() {
         <h2 className={styles.sectionTitle}>Carreras favoritas</h2>
         <div
           className={styles.linkCard}
-          onClick={() => navigate('/app/student/carreras')}
+          onClick={() => navigate('/app/student/favorites')}
         >
           <span className={styles.arrow}>&rarr;</span> Ir al listado de carreras
         </div>

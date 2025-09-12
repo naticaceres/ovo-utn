@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import styles from '../student/StudentHomePage.module.css';
 import { ICONS } from './AdminIcons';
+import { BackButton } from '../../components/ui/BackButton';
 
 const GROUPS = [
   {
@@ -27,6 +28,7 @@ export default function CarrerasPage() {
 
   return (
     <div className={styles.container}>
+      <BackButton />
       <header style={{ marginBottom: 20 }}>
         <h2>Carreras</h2>
       </header>

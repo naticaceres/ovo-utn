@@ -1,0 +1,45 @@
+.container {
+  padding: 16px;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table th,
+.table td {
+  border: 1px solid #eee;
+  padding: 8px;
+  text-align: left;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+}
+.error {
+  color: #c00;
+}
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+}
+.modal {
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  min-width: 320px;
+}

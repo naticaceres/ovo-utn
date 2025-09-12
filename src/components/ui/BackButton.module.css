@@ -4,10 +4,11 @@
   border-radius: 10px;
   cursor: pointer;
   padding: 0.5rem 0.8rem;
-  position: absolute;
-  top: 1.5rem;
+  position: fixed;
+  /* place below the navbar: approximate navbar height + spacing */
+  top: calc(64px + 0.75rem);
   left: 1.5rem;
-  z-index: 10;
+  z-index: calc(var(--z-fixed) + 1);
   box-shadow: var(--shadow-md);
   display: flex;
   align-items: center;
@@ -33,4 +34,14 @@
 
 .backBtn:hover .arrow {
   color: #fff;
+}
+
+@media (max-width: 600px) {
+  .backBtn {
+    top: calc(56px + 0.5rem);
+    left: 0.75rem;
+    padding: 0.4rem 0.6rem;
+    min-width: 36px;
+    min-height: 36px;
+  }
 }

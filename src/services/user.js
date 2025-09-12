@@ -11,7 +11,15 @@ export async function getProfile() {
 
 export async function getInterests() {
   try {
-    const { data } = await api.get('/api/v1/user/interests');
+    // attach token explicitly if present to avoid AUTH errors when interceptor is not applied
+    const headers = {};
+    try {
+      const t = localStorage.getItem('token');
+      if (t) headers['Authorization'] = `Bearer ${t}`;
+    } catch {
+      // ignore storage errors
+    }
+    const { data } = await api.get('/api/v1/user/interests', { headers });
     return data;
   } catch (error) {
     throw error.response ? error.response.data : error;
