@@ -1,47 +1,53 @@
 import React from 'react';
 import { Button } from '../../components/ui/Button';
 import { BackButton } from '../../components/ui/BackButton';
-import styles from './AdminCrud.module.css';
+import styles from './UserStatesPage.module.css';
 import { Input } from '../../components/ui/Input';
+import {
+  listUserStates,
+  createUserState,
+  updateUserState,
+  deactivateUserState,
+} from '../../services/admin';
 
-type Item = { id: number | string; nombre: string; activo?: boolean };
+type StateItem = {
+  id: number | string;
+  nombre: string;
+  activo?: boolean;
+  fechaFin?: string | null;
+};
 
-interface Props {
-  title: string;
-  list: () => Promise<Item[]>;
-  create: (payload: { nombre: string }) => Promise<boolean>;
-  update: (
-    id: number | string,
-    payload: { nombre: string }
-  ) => Promise<boolean>;
-  deactivate: (id: number | string, nombre?: string) => Promise<boolean>;
-}
-
-export default function AdminCrud({
-  title,
-  list,
-  create,
-  update,
-  deactivate,
-}: Props) {
-  const [items, setItems] = React.useState<Item[]>([]);
+export default function UserStatesPage() {
+  const [items, setItems] = React.useState<StateItem[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [showModal, setShowModal] = React.useState(false);
-  const [editing, setEditing] = React.useState<Item | null>(null);
+  const [editing, setEditing] = React.useState<StateItem | null>(null);
   const [name, setName] = React.useState('');
 
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      const data = await list();
-      setItems(Array.isArray(data) ? data : []);
+      const data = await listUserStates({ includeInactive: 1 });
+      // service now normalizes fechaFin/activo; accept arrays or wrapped responses
+      const toObj = (v: unknown): Record<string, unknown> =>
+        v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
+      if (Array.isArray(data)) {
+        setItems(data as StateItem[]);
+      } else {
+        const o = toObj(data);
+        if (Array.isArray(o['userStatuses']))
+          setItems(o['userStatuses'] as StateItem[]);
+        else if (Array.isArray(o['userStates']))
+          setItems(o['userStates'] as StateItem[]);
+        else setItems([]);
+      }
     } catch {
-      setError('No se pudieron cargar los items');
+      setError('No se pudieron cargar los estados');
     } finally {
       setLoading(false);
     }
-  }, [list]);
+  }, []);
 
   React.useEffect(() => {
     load();
@@ -53,7 +59,7 @@ export default function AdminCrud({
     setShowModal(true);
   };
 
-  const openEdit = (it: Item) => {
+  const openEdit = (it: StateItem) => {
     setEditing(it);
     setName(it.nombre || '');
     setShowModal(true);
@@ -63,9 +69,9 @@ export default function AdminCrud({
     setError(null);
     try {
       if (editing) {
-        await update(editing.id, { nombre: name });
+        await updateUserState(editing.id, { nombreEstadoUsuario: name });
       } else {
-        await create({ nombre: name });
+        await createUserState({ nombreEstadoUsuario: name });
       }
       setShowModal(false);
       load();
@@ -77,7 +83,7 @@ export default function AdminCrud({
   const remove = async (id: number | string, nombre?: string) => {
     setError(null);
     try {
-      await deactivate(id, nombre);
+      await deactivateUserState(id, nombre);
       load();
     } catch {
       setError('No se pudo eliminar');
@@ -88,8 +94,8 @@ export default function AdminCrud({
     <div className={styles.container}>
       <BackButton />
       <div className={styles.header}>
-        <h1>{title}</h1>
-        <Button onClick={openCreate}>+ Agregar</Button>
+        <h1>Estados de Usuario</h1>
+        <Button onClick={openCreate}>+ Agregar Estado</Button>
       </div>
 
       {loading ? (
@@ -117,6 +123,8 @@ export default function AdminCrud({
                       rec['fecha_fin'] ??
                       rec['fechaBaja'] ??
                       rec['fecha_baja'] ??
+                      rec['fechaHasta'] ??
+                      rec['fecha_hasta'] ??
                       rec['endDate'] ??
                       rec['end_date'] ??
                       null;
@@ -141,13 +149,9 @@ export default function AdminCrud({
       {showModal && (
         <div className={styles.modalBackdrop}>
           <div className={styles.modal}>
-            <h3>
-              {editing
-                ? `Editar ${title.toLowerCase()}`
-                : `Agregar ${title.toLowerCase()}`}
-            </h3>
+            <h3>{editing ? `Editar Estado` : `Agregar Estado`}</h3>
             <Input
-              label='Nombre'
+              label='Nombre de Estado'
               fullWidth
               value={name}
               onChange={e => setName(e.target.value)}

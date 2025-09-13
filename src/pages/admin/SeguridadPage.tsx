@@ -31,7 +31,7 @@ const GROUPS = [
   {
     title: 'Gestión de permisos',
     items: [
-      { id: 'abm-permisos', label: 'ABM Permisos', icon: 'settings' },
+      { id: 'permisos', label: 'ABM Permisos', icon: 'settings' },
       {
         id: 'abm-grupos-usuarios',
         label: 'ABM Grupos de Usuarios',

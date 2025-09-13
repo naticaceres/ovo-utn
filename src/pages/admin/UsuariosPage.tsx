@@ -10,6 +10,7 @@ import {
   deactivateAdminUser,
   listGroups,
   listUserStates,
+  userGroups,
   blockAdminUser,
   unblockAdminUser,
 } from '../../services/admin';
@@ -24,6 +25,8 @@ type UserItem = {
   idGrupo?: number | string | null;
   idEstadoUsuario?: number | string | null;
   estadoNombre?: string | null;
+  fechaFin?: string | null;
+  groups?: Array<{ id: number | string; nombre: string }>;
 };
 
 export default function UsuariosPage() {
@@ -46,6 +49,9 @@ export default function UsuariosPage() {
   const [selectedGroup, setSelectedGroup] = React.useState<
     number | string | null
   >(null);
+  const [selectedGroups, setSelectedGroups] = React.useState<
+    Array<number | string>
+  >([]);
   const [selectedState, setSelectedState] = React.useState<
     number | string | null
   >(null);
@@ -55,7 +61,40 @@ export default function UsuariosPage() {
     setLoading(true);
     try {
       const data = await listAdminUsers();
-      setItems(Array.isArray(data) ? data : []);
+      const users = Array.isArray(data) ? (data as UserItem[]) : [];
+      // fetch groups for each user in parallel and attach normalized groups
+      try {
+        const promises = users.map(u => userGroups(u.id));
+        const results = await Promise.all(promises);
+        const toObj = (v: unknown): Record<string, unknown> =>
+          v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
+        const enriched = users.map((u, idx) => {
+          const gdata = results[idx];
+          let raw = Array.isArray(gdata)
+            ? gdata
+            : (toObj(gdata)['groups'] ?? toObj(gdata)['data'] ?? gdata ?? []);
+          if (!Array.isArray(raw)) raw = [];
+          const normalized = (raw as unknown[]).map(item => {
+            const obj = item as Record<string, unknown>;
+            return {
+              id: (obj['id'] ??
+                obj['idGrupo'] ??
+                obj['groupId'] ??
+                obj['_id']) as number | string,
+              nombre: (obj['nombre'] ??
+                obj['nombreGrupo'] ??
+                obj['label'] ??
+                obj['name'] ??
+                '') as string,
+            };
+          });
+          return { ...u, groups: normalized } as UserItem;
+        });
+        setItems(enriched);
+      } catch {
+        // if userGroups fails, fallback to users without groups
+        setItems(users);
+      }
       // also load groups and states
       try {
         const g = await listGroups();
@@ -88,6 +127,7 @@ export default function UsuariosPage() {
     setEmail('');
     setRol('Usuario');
     setSelectedGroup(null);
+    setSelectedGroups([]);
     setSelectedState(null);
     setShowModal(true);
   };
@@ -99,6 +139,8 @@ export default function UsuariosPage() {
     setEmail(it.email || '');
     setRol(it.rol || 'Usuario');
     setSelectedGroup(it.idGrupo ?? null);
+    // preselect groups if available
+    setSelectedGroups((it.groups || []).map(g => g.id));
     setSelectedState(it.idEstadoUsuario ?? null);
     setShowModal(true);
   };
@@ -112,12 +154,15 @@ export default function UsuariosPage() {
           apellido?: string;
           rol?: string;
           idGrupo?: number | string | null;
+          idGrupos?: Array<number | string>;
           idEstadoUsuario?: number | string | null;
         } = {
           nombre,
           apellido,
           rol,
-          idGrupo: selectedGroup,
+          idGrupo:
+            selectedGroups.length > 0 ? selectedGroups[0] : selectedGroup,
+          idGrupos: selectedGroups,
           idEstadoUsuario: selectedState,
         };
         await updateAdminUser(editing.id, body);
@@ -127,7 +172,9 @@ export default function UsuariosPage() {
           apellido,
           email,
           rol,
-          idGrupo: selectedGroup,
+          idGrupo:
+            selectedGroups.length > 0 ? selectedGroups[0] : selectedGroup,
+          idGrupos: selectedGroups,
           idEstadoUsuario: selectedState,
           estadoInicial: selectedState,
         });
@@ -177,43 +224,83 @@ export default function UsuariosPage() {
               <tr key={u.id}>
                 <td>{u.nombre}</td>
                 <td>{u.email}</td>
-                <td>{u.rol}</td>
-                <td>{u.estadoNombre ?? (u.activo ? 'Activo' : 'Bloqueado')}</td>
+                <td>
+                  {u.groups && u.groups.length > 0
+                    ? u.groups.map(g => g.nombre).join(', ')
+                    : u.rol}
+                </td>
+                <td>
+                  {(() => {
+                    const rec = u as unknown as Record<string, unknown>;
+                    const f =
+                      rec['fechaFin'] ??
+                      rec['fecha_fin'] ??
+                      rec['fechaBaja'] ??
+                      rec['fecha_baja'] ??
+                      rec['endDate'] ??
+                      rec['end_date'] ??
+                      null;
+                    if (f && String(f).trim() !== '') return 'Baja';
+                    // blocked if activo === false
+                    if (u.activo === false) return 'Bloqueado';
+                    return 'Activo';
+                  })()}
+                </td>
                 <td>
                   <div className={styles.actions}>
                     <Button variant='outline' onClick={() => openEdit(u)}>
                       ✏️
                     </Button>
                     <Button onClick={() => remove(u.id, u.nombre)}>🗑️</Button>
-                    {u.activo ? (
-                      <Button
-                        variant='outline'
-                        onClick={async () => {
-                          try {
-                            await blockAdminUser(u.id);
-                            load();
-                          } catch {
-                            setError('No se pudo bloquear al usuario');
-                          }
-                        }}
-                      >
-                        🔒
-                      </Button>
-                    ) : (
-                      <Button
-                        variant='outline'
-                        onClick={async () => {
-                          try {
-                            await unblockAdminUser(u.id);
-                            load();
-                          } catch {
-                            setError('No se pudo desbloquear al usuario');
-                          }
-                        }}
-                      >
-                        🔓
-                      </Button>
-                    )}
+                    {/* Determine blocked state more reliably: prefer explicit idEstadoUsuario or activo flag */}
+                    {(() => {
+                      // Backend mapping:
+                      // idEstadoUsuario === '1' => activo (desbloqueado) -> show closed padlock (🔒) to block
+                      // idEstadoUsuario === '2' => suspendido (bloqueado) -> show open padlock (🔓) to unblock
+                      const state =
+                        typeof u.idEstadoUsuario !== 'undefined' &&
+                        u.idEstadoUsuario !== null
+                          ? String(u.idEstadoUsuario)
+                          : u.activo === false
+                            ? '2'
+                            : '1';
+
+                      if (state === '1') {
+                        // user is active; show closed padlock to perform block
+                        return (
+                          <Button
+                            variant='outline'
+                            onClick={async () => {
+                              try {
+                                await blockAdminUser(u.id);
+                                load();
+                              } catch {
+                                setError('No se pudo bloquear al usuario');
+                              }
+                            }}
+                          >
+                            🔒
+                          </Button>
+                        );
+                      }
+
+                      // state === '2' -> suspended: show open padlock to unblock
+                      return (
+                        <Button
+                          variant='outline'
+                          onClick={async () => {
+                            try {
+                              await unblockAdminUser(u.id);
+                              load();
+                            } catch {
+                              setError('No se pudo desbloquear al usuario');
+                            }
+                          }}
+                        >
+                          🔓
+                        </Button>
+                      );
+                    })()}
                   </div>
                 </td>
               </tr>
@@ -239,27 +326,39 @@ export default function UsuariosPage() {
               onChange={e => setEmail(e.target.value)}
               disabled={!!editing}
             />
-            <label style={{ display: 'block', marginTop: 12 }}>
-              Rol o grupo
-            </label>
-            <select
-              value={selectedGroup ?? ''}
-              onChange={e => setSelectedGroup(e.target.value || null)}
+            <label style={{ display: 'block', marginTop: 12 }}>Grupos</label>
+            <div
               style={{
-                width: '100%',
-                padding: '10px',
-                borderRadius: 6,
-                border: '1px solid #e6e6e6',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 8,
                 marginTop: 6,
               }}
             >
-              <option value=''>-- seleccionar --</option>
-              {groups.map(g => (
-                <option key={String(g.id)} value={String(g.id)}>
-                  {g.nombre}
-                </option>
-              ))}
-            </select>
+              {groups.map(g => {
+                const gid = String(g.id);
+                const checked = selectedGroups.map(String).includes(gid);
+                return (
+                  <label
+                    key={gid}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <input
+                      type='checkbox'
+                      checked={checked}
+                      onChange={() => {
+                        setSelectedGroups(prev =>
+                          prev.map(String).includes(gid)
+                            ? prev.filter(p => String(p) !== gid)
+                            : [...prev, g.id]
+                        );
+                      }}
+                    />
+                    {g.nombre}
+                  </label>
+                );
+              })}
+            </div>
 
             <label style={{ display: 'block', marginTop: 12 }}>
               Estado inicial

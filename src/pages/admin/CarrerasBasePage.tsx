@@ -47,12 +47,16 @@ export default function CarrerasBasePage() {
   const loadTypes = React.useCallback(async () => {
     try {
       const data = await listCareerTypes();
-      // assume data is an array or wrapped; keep simple
-      const raw = Array.isArray(data) ? data : (data?.careerTypes ?? data);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const normalized = (raw || []).map((t: any) => ({
-        id: t.id ?? t.idTipoCarrera ?? t._id,
-        nombre: t.nombre ?? t.nombreTipo ?? t.title ?? '',
+      // assume data is an array or wrapped; keep simple and safe
+      const toObj = (v: unknown): Record<string, unknown> =>
+        v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
+      const raw = Array.isArray(data)
+        ? data
+        : (toObj(data)['careerTypes'] ?? data);
+      const rawArr = Array.isArray(raw) ? raw : [];
+      const normalized = (rawArr || []).map((t: Record<string, unknown>) => ({
+        id: (t['id'] ?? t['idTipoCarrera'] ?? t['_id']) as string | number,
+        nombre: (t['nombre'] ?? t['nombreTipo'] ?? t['title'] ?? '') as string,
       }));
       setTypes(normalized);
     } catch {
@@ -136,7 +140,21 @@ export default function CarrerasBasePage() {
                 <td>
                   {types.find(t => t.id === it.idTipoCarrera)?.nombre || '-'}
                 </td>
-                <td>{it.activo ? 'Activo' : 'Inactivo'}</td>
+                <td>
+                  {(() => {
+                    const rec = it as unknown as Record<string, unknown>;
+                    const f =
+                      rec['fechaFin'] ??
+                      rec['fecha_fin'] ??
+                      rec['fechaBaja'] ??
+                      rec['fecha_baja'] ??
+                      rec['endDate'] ??
+                      rec['end_date'] ??
+                      null;
+                    if (f && String(f).trim() !== '') return 'Baja';
+                    return it.activo ? 'Activo' : 'Inactivo';
+                  })()}
+                </td>
                 <td>
                   <div className={styles.actions}>
                     <Button variant='outline' onClick={() => openEdit(it)}>

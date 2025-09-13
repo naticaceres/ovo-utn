@@ -18,7 +18,25 @@ export async function listCareerTypes(params = {}, token) {
       return raw.map(item => ({
         id: item.idTipoCarrera ?? item.id ?? item._id,
         nombre: item.nombreTipo ?? item.nombre ?? item.title ?? '',
-        activo: typeof item.activo !== 'undefined' ? item.activo : true,
+        fechaFin:
+          item.fechaFin ??
+          item.fecha_fin ??
+          item.fechaBaja ??
+          item.fecha_baja ??
+          item.endDate ??
+          item.end_date ??
+          null,
+        activo:
+          (item.fechaFin ??
+          item.fecha_fin ??
+          item.fechaBaja ??
+          item.fecha_baja ??
+          item.endDate ??
+          item.end_date)
+            ? false
+            : typeof item.activo !== 'undefined'
+              ? item.activo
+              : true,
       }));
     }
 
@@ -137,7 +155,26 @@ export async function listAdminUsers(params = {}, token) {
           u.emailAddress ??
           '',
         rol: u.rol ?? u.role ?? (u.roles && u.roles[0]) ?? 'Usuario',
-        activo: typeof u.activo !== 'undefined' ? u.activo : (u.active ?? true),
+        // detect fecha fin for users (if present) and derive activo
+        fechaFin:
+          u.fechaFin ??
+          u.fecha_fin ??
+          u.fechaBaja ??
+          u.fecha_baja ??
+          u.endDate ??
+          u.end_date ??
+          null,
+        activo:
+          (u.fechaFin ??
+          u.fecha_fin ??
+          u.fechaBaja ??
+          u.fecha_baja ??
+          u.endDate ??
+          u.end_date)
+            ? false
+            : typeof u.activo !== 'undefined'
+              ? u.activo
+              : (u.active ?? true),
         // try to capture group / state ids when present in payload
         idGrupo:
           u.idGrupo ??
@@ -305,11 +342,195 @@ export async function removeGroup(userId, groupId, token) {
 export async function listPermissions(params = {}, token) {
   try {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const { data } = await api.get('/api/v1/admin/permissions', {
+    // use catalog endpoint to match create/update/delete which use /catalog/permissions
+    const { data } = await api.get('/api/v1/admin/catalog/permissions', {
       headers,
       params,
     });
+    // normalize response: may be array or wrapped object
+    const raw =
+      data && data.permissions
+        ? data.permissions
+        : data && data.catalogPermissions
+          ? data.catalogPermissions
+          : data;
+    if (!raw) return [];
+    if (Array.isArray(raw)) {
+      return raw.map(p => {
+        const id = p.id ?? p.idPermiso ?? p._id;
+        const nombre = p.nombrePermiso ?? p.nombre ?? '';
+        const descripcion = p.descripcion ?? p.description ?? '';
+        const fechaFin =
+          p.fechaFin ??
+          p.fecha_fin ??
+          p.fechaBaja ??
+          p.fecha_baja ??
+          p.endDate ??
+          p.end_date ??
+          '';
+        const activo =
+          fechaFin && String(fechaFin).trim() !== ''
+            ? false
+            : typeof p.activo !== 'undefined'
+              ? p.activo
+              : true;
+        return {
+          id,
+          nombre,
+          descripcion,
+          activo,
+          fechaFin: fechaFin ?? null,
+        };
+      });
+    }
+    return [];
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+// --- Catalog groups (ABM Grupos de Usuarios) ---
+export async function listGroupsCatalog(params = {}, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.get('/api/v1/admin/catalog/groups', {
+      headers,
+      params,
+    });
+    const raw =
+      data && data.groups ? data.groups : data && data.data ? data.data : data;
+    if (!raw) return [];
+    if (Array.isArray(raw)) {
+      return raw.map(g => {
+        const id = g.id ?? g._id;
+        const nombre = g.nombreGrupo ?? g.nombre ?? g.label ?? '';
+        const descripcion = g.descripcion ?? g.description ?? '';
+        const permisos = g.permisos ?? g.permissions ?? [];
+        const fechaFin =
+          g.fechaFin ??
+          g.fecha_fin ??
+          g.fechaBaja ??
+          g.fecha_baja ??
+          g.endDate ??
+          g.end_date ??
+          '';
+        const activo =
+          fechaFin && String(fechaFin).trim() !== ''
+            ? false
+            : typeof g.activo !== 'undefined'
+              ? g.activo
+              : true;
+        return {
+          id,
+          nombreGrupo: nombre,
+          descripcion,
+          permisos,
+          activo,
+          fechaFin: fechaFin ?? null,
+        };
+      });
+    }
+    return [];
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function createGroupCatalog(payload) {
+  try {
+    // payload: { nombreGrupo, descripcion, permisos: [id,...] }
+    const { data } = await api.post('/api/v1/admin/catalog/groups', payload);
     return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function updateGroupCatalog(id, payload) {
+  try {
+    const { data } = await api.put(
+      `/api/v1/admin/catalog/groups/${id}`,
+      payload
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function deactivateGroupCatalog(id, nombreGrupo, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    // Try DELETE without body first (some backends accept that)
+    try {
+      const { data } = await api.delete(`/api/v1/admin/catalog/groups/${id}`, {
+        headers,
+      });
+      return data;
+    } catch (err) {
+      // If server rejects DELETE without body, retry sending confirmation body
+      try {
+        const { data } = await api.delete(
+          `/api/v1/admin/catalog/groups/${id}`,
+          { headers, data: { nombreGrupo } }
+        );
+        return data;
+      } catch (err2) {
+        throw err2.response ? err2.response.data : err2;
+      }
+    }
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function createPermission(payload) {
+  try {
+    // expected payload: { nombrePermiso, descripcion }
+    const { data } = await api.post(
+      '/api/v1/admin/catalog/permissions',
+      payload
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function updatePermission(id, payload) {
+  try {
+    const { data } = await api.put(
+      `/api/v1/admin/catalog/permissions/${id}`,
+      payload
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function deactivatePermission(id, nombre, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    // Try DELETE without body first
+    try {
+      const { data } = await api.delete(
+        `/api/v1/admin/catalog/permissions/${id}`,
+        { headers }
+      );
+      return data;
+    } catch (err) {
+      // Retry with confirmation body if server expects it
+      try {
+        const { data } = await api.delete(
+          `/api/v1/admin/catalog/permissions/${id}`,
+          { headers, data: { nombrePermiso: nombre } }
+        );
+        return data;
+      } catch (err2) {
+        throw err2.response ? err2.response.data : err2;
+      }
+    }
   } catch (error) {
     throw error.response ? error.response.data : error;
   }
@@ -319,20 +540,97 @@ export async function listPermissions(params = {}, token) {
 export async function listUserStates(params = {}, token) {
   try {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const { data } = await api.get('/api/v1/admin/catalog/user-states', {
+    // use the plural 'user-statuses' endpoint (some backends return userStatuses)
+    const { data } = await api.get('/api/v1/admin/catalog/user-statuses', {
       params,
       headers,
     });
-    const raw = data && data.userStates ? data.userStates : data;
+    const raw =
+      data && data.userStatuses
+        ? data.userStatuses
+        : data && data.userStates
+          ? data.userStates
+          : data;
     if (!raw) return [];
     if (Array.isArray(raw)) {
-      return raw.map(s => ({
-        id: s.idEstadoUsuario ?? s.id ?? s._id,
-        nombre: s.nombreEstadoUsuario ?? s.nombreEstado ?? s.nombre ?? '',
-        activo: typeof s.activo !== 'undefined' ? s.activo : true,
-      }));
+      return raw.map(s => {
+        // detect possible fecha fin fields
+        const fechaFin =
+          s.fechaFin ??
+          s.fecha_fin ??
+          s.fechaBaja ??
+          s.fecha_baja ??
+          s.fechaHasta ??
+          s.fecha_hasta ??
+          s.endDate ??
+          s.end_date ??
+          null;
+        const hasFechaFin = fechaFin !== null && String(fechaFin).trim() !== '';
+        return {
+          id: s.idEstadoUsuario ?? s.id ?? s._id,
+          nombre: s.nombreEstadoUsuario ?? s.nombreEstado ?? s.nombre ?? '',
+          // if fechaFin exists => considered 'Baja' -> activo false; otherwise respect provided activo or default true
+          activo: hasFechaFin
+            ? false
+            : typeof s.activo !== 'undefined'
+              ? s.activo
+              : true,
+          fechaFin: fechaFin ?? null,
+        };
+      });
     }
     return [];
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function createUserState(payload) {
+  try {
+    // payload: { nombreEstadoUsuario }
+    const { data } = await api.post(
+      '/api/v1/admin/catalog/user-statuses',
+      payload
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function updateUserState(id, payload) {
+  try {
+    const { data } = await api.put(
+      `/api/v1/admin/catalog/user-statuses/${id}`,
+      payload
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function deactivateUserState(id, nombre, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    // try simple DELETE first
+    try {
+      const { data } = await api.delete(
+        `/api/v1/admin/catalog/user-statuses/${id}`,
+        { headers }
+      );
+      return data;
+    } catch (err) {
+      try {
+        const { data } = await api.delete(
+          `/api/v1/admin/catalog/user-statuses/${id}`,
+          { headers, data: { nombreEstadoUsuario: nombre } }
+        );
+        return data;
+      } catch (err2) {
+        throw err2.response ? err2.response.data : err2;
+      }
+    }
   } catch (error) {
     throw error.response ? error.response.data : error;
   }
@@ -755,7 +1053,25 @@ export async function listCareersBase(params = {}, token) {
       return raw.map(item => ({
         id: item.idCarrera ?? item.id ?? item._id,
         nombre: item.nombreCarrera ?? item.nombre ?? item.title ?? '',
-        activo: typeof item.activo !== 'undefined' ? item.activo : true,
+        fechaFin:
+          item.fechaFin ??
+          item.fecha_fin ??
+          item.fechaBaja ??
+          item.fecha_baja ??
+          item.endDate ??
+          item.end_date ??
+          null,
+        activo:
+          (item.fechaFin ??
+          item.fecha_fin ??
+          item.fechaBaja ??
+          item.fecha_baja ??
+          item.endDate ??
+          item.end_date)
+            ? false
+            : typeof item.activo !== 'undefined'
+              ? item.activo
+              : true,
         idTipoCarrera:
           item.idTipoCarrera ??
           item.idTipo ??

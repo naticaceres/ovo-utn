@@ -35,7 +35,7 @@ export const CATEGORIES: Category[] = [
       {
         title: 'Gestión de permisos',
         items: [
-          { id: 'abm-permisos', label: 'ABM Permisos', icon: 'permissions' },
+          { id: 'permisos', label: 'ABM Permisos', icon: 'permissions' },
           {
             id: 'abm-grupos-usuarios',
             label: 'ABM Grupos de Usuarios',

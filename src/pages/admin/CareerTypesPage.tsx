@@ -102,7 +102,21 @@ export default function CareerTypesPage() {
             {items.map(it => (
               <tr key={it.id}>
                 <td>{it.nombre}</td>
-                <td>{it.activo ? 'Activo' : 'Inactivo'}</td>
+                <td>
+                  {(() => {
+                    const rec = it as unknown as Record<string, unknown>;
+                    const f =
+                      rec['fechaFin'] ??
+                      rec['fecha_fin'] ??
+                      rec['fechaBaja'] ??
+                      rec['fecha_baja'] ??
+                      rec['endDate'] ??
+                      rec['end_date'] ??
+                      null;
+                    if (f && String(f).trim() !== '') return 'Baja';
+                    return it.activo ? 'Activo' : 'Inactivo';
+                  })()}
+                </td>
                 <td>
                   <Button variant='outline' onClick={() => openEdit(it)}>
                     ✏️

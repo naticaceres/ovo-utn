@@ -7,6 +7,12 @@ import SolicitudesInstitucionPage from './SolicitudesInstitucionPage';
 import InstitutionTypesPage from './InstitutionTypesPage';
 import InstitutionStatesPage from './InstitutionStatesPage';
 import UsuariosPage from './UsuariosPage';
+import PermisosPage from './PermisosPage';
+import UserStatesPage from './UserStatesPage';
+import GruposPage from './GruposPage';
+import UserPermissionsPage from './UserPermissionsPage';
+import AccessHistoryPage from './AccessHistoryPage';
+import SystemAuditPage from './SystemAuditPage';
 import AdminCategoryPage from './AdminCategoryPage';
 
 export default function AdminItemPage() {
@@ -51,6 +57,30 @@ export default function AdminItemPage() {
 
   if (categoryId === 'seguridad' && itemId === 'gestionar-usuarios') {
     return <UsuariosPage />;
+  }
+
+  if (categoryId === 'seguridad' && itemId === 'permisos') {
+    return <PermisosPage />;
+  }
+
+  if (categoryId === 'seguridad' && itemId === 'asignar-permisos-dinamicos') {
+    return <UserPermissionsPage />;
+  }
+
+  if (categoryId === 'seguridad' && itemId === 'ver-historial-accesos') {
+    return <AccessHistoryPage />;
+  }
+
+  if (categoryId === 'seguridad' && itemId === 'abm-estados-usuario') {
+    return <UserStatesPage />;
+  }
+
+  if (categoryId === 'seguridad' && itemId === 'abm-grupos-usuarios') {
+    return <GruposPage />;
+  }
+
+  if (categoryId === 'seguridad' && itemId === 'historial-acciones') {
+    return <SystemAuditPage />;
   }
 
   // Fallback: show the category page (user can reselect)

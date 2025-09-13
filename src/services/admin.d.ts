@@ -156,6 +156,11 @@ export function listGroups(
   token?: string
 ): Promise<GroupDTO[]>;
 
+export function userGroups(
+  userId: number | string,
+  token?: string
+): Promise<GroupDTO[]>;
+
 export interface UserStateDTO {
   id: number | string;
   nombre: string;
@@ -166,6 +171,21 @@ export function listUserStates(
   params?: Record<string, unknown>,
   token?: string
 ): Promise<UserStateDTO[]>;
+
+export function createUserState(body: {
+  nombreEstadoUsuario: string;
+}): Promise<boolean>;
+
+export function updateUserState(
+  id: number | string,
+  body: { nombreEstadoUsuario?: string }
+): Promise<boolean>;
+
+export function deactivateUserState(
+  id: number | string,
+  nombre?: string,
+  token?: string
+): Promise<boolean>;
 
 // Users (admin) ABM
 export interface AdminUserDTO {
@@ -187,6 +207,7 @@ export function createAdminUser(body: {
   email: string;
   rol?: string;
   idGrupo?: number | string | null;
+  idGrupos?: Array<number | string>;
   idEstadoUsuario?: number | string | null;
   estadoInicial?: string | number | null;
 }): Promise<boolean>;
@@ -200,6 +221,7 @@ export function updateAdminUser(
     rol?: string;
     password?: string;
     idGrupo?: number | string | null;
+    idGrupos?: Array<number | string>;
     idEstadoUsuario?: number | string | null;
   }
 ): Promise<boolean>;
@@ -218,3 +240,107 @@ export function deactivateAdminUser(
   nombre?: string,
   token?: string
 ): Promise<boolean>;
+
+// Permissions ABM
+export interface PermissionDTO {
+  id: number | string;
+  nombrePermiso: string;
+  descripcion?: string;
+  activo?: boolean;
+}
+
+export function listPermissions(
+  params?: Record<string, unknown>,
+  token?: string
+): Promise<PermissionDTO[]>;
+
+export function createPermission(body: {
+  nombrePermiso: string;
+  descripcion?: string;
+}): Promise<boolean>;
+
+export function updatePermission(
+  id: number | string,
+  body: { nombrePermiso?: string; descripcion?: string }
+): Promise<boolean>;
+
+export function deactivatePermission(
+  id: number | string,
+  nombre?: string,
+  token?: string
+): Promise<boolean>;
+
+// User-specific permissions
+export function userPermissions(
+  userId: number | string,
+  token?: string
+): Promise<PermissionDTO[]>;
+
+export function addUserPermission(
+  userId: number | string,
+  idPermiso: number | string,
+  token?: string
+): Promise<boolean>;
+
+export function removeUserPermission(
+  userId: number | string,
+  permisoId: number | string,
+  token?: string
+): Promise<boolean>;
+
+// Catalog groups ABM (Grupos de usuarios)
+export interface GroupCatalogDTO {
+  id: number | string;
+  nombreGrupo: string;
+  descripcion?: string;
+  permisos?: Array<number | string>;
+  activo?: boolean;
+}
+
+export function listGroupsCatalog(
+  params?: Record<string, unknown>,
+  token?: string
+): Promise<GroupCatalogDTO[]>;
+
+export function createGroupCatalog(body: {
+  nombreGrupo: string;
+  descripcion?: string;
+  permisos?: Array<number | string>;
+}): Promise<boolean>;
+
+export function updateGroupCatalog(
+  id: number | string,
+  body: {
+    nombreGrupo?: string;
+    descripcion?: string;
+    permisos?: Array<number | string>;
+  }
+): Promise<boolean>;
+
+export function deactivateGroupCatalog(
+  id: number | string,
+  nombreGrupo?: string,
+  token?: string
+): Promise<boolean>;
+
+// Access history
+export function accessHistory(
+  params?: Record<string, unknown>,
+  token?: string
+): Promise<unknown>;
+
+export function exportAccessHistory(
+  params?: Record<string, unknown>,
+  token?: string
+): Promise<Blob>;
+
+// System audit
+export function audit(
+  params?: Record<string, unknown>,
+  token?: string
+): Promise<unknown>;
+
+export function exportAudit(
+  params?: Record<string, unknown>,
+  token?: string
+): Promise<Blob>;
