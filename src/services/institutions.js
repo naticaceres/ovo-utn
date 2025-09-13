@@ -57,6 +57,36 @@ export async function getMyCareer(id) {
   }
 }
 
+export async function createMyCareer(payload) {
+  try {
+    const { data } = await api.post('/api/v1/institutions/me/careers', payload);
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function updateMyCareer(id, payload) {
+  try {
+    const { data } = await api.put(
+      `/api/v1/institutions/me/careers/${id}`,
+      payload
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function deleteMyCareer(id) {
+  try {
+    const { data } = await api.delete(`/api/v1/institutions/me/careers/${id}`);
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
 export async function getMyCareerFaqs(careerId) {
   try {
     const { data } = await api.get(

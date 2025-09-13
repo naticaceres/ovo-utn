@@ -16,11 +16,14 @@ import AdminCategoryPage from '../pages/admin/AdminCategoryPage';
 import CareerTypesPage from '../pages/admin/CareerTypesPage';
 import AdminItemPage from '../pages/admin/AdminItemPage';
 import InstitucionHomePage from '../pages/institucion/InstitucionHomePage';
+import ProfilePageInstitucion from '../pages/institucion/ProfilePageInstitucion';
+import InstitutionSignupPage from '@/pages/institucion/InstitutionSignupPage';
 import ProfilePage from '../pages/student/ProfilePage';
 import ConsultarCarrerasPage from '../pages/institucion/ConsultarCarrerasPage';
 import DetalleCarreraPage from '../pages/institucion/DetalleCarreraPage';
 import DetalleInstitucionPage from '../pages/institucion/DetalleInstitucionPage';
 import ConsultarInstitucionPage from '../pages/institucion/ConsultarInstitucionPage';
+import MisCarrerasPage from '../pages/institucion/MisCarrerasPage';
 import EstadisticasPage from '../pages/student/EstadisticasPage';
 import FavoriteCareersPage from '../pages/student/FavoriteCareersPage';
 
@@ -40,6 +43,10 @@ const router = createBrowserRouter([
     element: <SignupPage />,
   },
   {
+    path: '/institution-signup',
+    element: <InstitutionSignupPage />,
+  },
+  {
     path: '/app',
     element: <AppLayoutWrapper />,
     children: [
@@ -55,6 +62,8 @@ const router = createBrowserRouter([
       { path: 'admin/:categoryId', element: <AdminCategoryPage /> },
       { path: 'admin/:categoryId/:itemId', element: <AdminItemPage /> },
       { path: 'institucion', element: <InstitucionHomePage /> },
+      { path: 'institucion/profile', element: <ProfilePageInstitucion /> },
+      { path: 'institucion/mis-carreras', element: <MisCarrerasPage /> },
       { path: 'detalle-carrera', element: <DetalleCarreraPage /> },
       { path: 'detalle-institucion', element: <DetalleInstitucionPage /> },
       { path: 'consultar-institucion', element: <ConsultarInstitucionPage /> },

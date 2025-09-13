@@ -130,7 +130,23 @@ export function SignupPage() {
             >
               Crear cuenta
             </Button>
+            <div className={styles.loginLink}>
+              ¿Ya tienes cuenta?{' '}
+              <a href='/app/login' className={styles.link}>
+                Inicia sesión
+              </a>
+            </div>
           </form>
+
+          <div style={{ marginTop: 12 }}>
+            <Button
+              variant='outline'
+              fullWidth
+              onClick={() => navigate('/institution-signup')}
+            >
+              Registrar institución
+            </Button>
+          </div>
 
           {/* Two-step modal: stage 1 = Terms, stage 2 = Privacy */}
           {modalStage > 0 && (
@@ -188,13 +204,6 @@ export function SignupPage() {
               </div>
             </div>
           )}
-
-          <div className={styles.loginLink}>
-            ¿Ya tienes cuenta?{' '}
-            <a href='/app/login' className={styles.link}>
-              Inicia sesión
-            </a>
-          </div>
         </div>
       </div>
     </AuthLayout>

@@ -8,7 +8,7 @@ export default function InstitucionHomePage() {
       <div className={styles.grid}>
         <div
           className={styles.gridItem}
-          onClick={() => navigate('/app/profile')}
+          onClick={() => navigate('/app/institucion/profile')}
         >
           <span className={styles.icon}>👤</span>
           <span className={styles.label}>Ver Perfil</span>

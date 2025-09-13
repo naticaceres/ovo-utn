@@ -190,24 +190,30 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
-      <div className={styles.card}>
-        <h2 className={styles.sectionTitle}>Carreras favoritas</h2>
-        <div
-          className={styles.linkCard}
-          onClick={() => navigate('/app/student/favorites')}
-        >
-          <span className={styles.arrow}>&rarr;</span> Ir al listado de carreras
-        </div>
-      </div>
-      <div className={styles.card}>
-        <h2 className={styles.sectionTitle}>Historial de Tests</h2>
-        <div
-          className={styles.linkCard}
-          onClick={() => navigate('/app/student/tests')}
-        >
-          <span className={styles.icon}>&#128202;</span> Ver histórico de tests
-        </div>
-      </div>
+      {
+        <>
+          <div className={styles.card}>
+            <h2 className={styles.sectionTitle}>Carreras favoritas</h2>
+            <div
+              className={styles.linkCard}
+              onClick={() => navigate('/app/student/favorites')}
+            >
+              <span className={styles.arrow}>&rarr;</span> Ir al listado de
+              carreras
+            </div>
+          </div>
+          <div className={styles.card}>
+            <h2 className={styles.sectionTitle}>Historial de Tests</h2>
+            <div
+              className={styles.linkCard}
+              onClick={() => navigate('/app/student/tests')}
+            >
+              <span className={styles.icon}>&#128202;</span> Ver histórico de
+              tests
+            </div>
+          </div>
+        </>
+      }
       <div className={styles.cardDanger}>
         <h2 className={styles.sectionTitleDanger}>Baja de Usuario</h2>
         <p className={styles.dangerText}>
