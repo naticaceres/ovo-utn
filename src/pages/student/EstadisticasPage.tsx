@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import styles from './EstadisticasPage.module.css';
 import { BackButton } from '../../components/ui/BackButton';
 

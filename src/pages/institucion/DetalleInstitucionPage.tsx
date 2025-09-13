@@ -1,6 +1,5 @@
 import styles from './DetalleInstitucionPage.module.css';
 import { BackButton } from '../../components/ui/BackButton';
-import ovoLogo from '../../assets/ovoLogo.svg';
 import { useNavigate } from 'react-router-dom';
 
 export default function DetalleInstitucionPage() {

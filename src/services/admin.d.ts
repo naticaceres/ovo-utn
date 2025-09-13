@@ -132,6 +132,135 @@ export function deactivateInstitutionState(
   token?: string
 ): Promise<boolean>;
 
+// Countries (Países)
+export interface CountryDTO {
+  id: number | string;
+  nombre: string;
+  activo?: boolean;
+}
+
+export function listCountries(
+  params?: Record<string, unknown>,
+  token?: string
+): Promise<CountryDTO[]>;
+
+export function createCountry(body: { nombre: string }): Promise<boolean>;
+
+export function updateCountry(
+  id: number | string,
+  body: { nombre: string }
+): Promise<boolean>;
+
+export function deactivateCountry(
+  id: number | string,
+  nombre?: string,
+  token?: string
+): Promise<boolean>;
+
+// Provinces (Provincias)
+export interface ProvinceDTO {
+  id: number | string;
+  nombre: string;
+  idPais?: number | string | null;
+  activo?: boolean;
+}
+
+export function listProvinces(
+  params?: Record<string, unknown>,
+  token?: string
+): Promise<ProvinceDTO[]>;
+
+export function createProvince(body: {
+  nombre: string;
+  idPais?: number | string | null;
+}): Promise<boolean>;
+
+export function updateProvince(
+  id: number | string,
+  body: { nombre: string; idPais?: number | string | null }
+): Promise<boolean>;
+
+export function deactivateProvince(
+  id: number | string,
+  nombre?: string,
+  token?: string
+): Promise<boolean>;
+
+// Localities (Localidades)
+export interface LocalityDTO {
+  id: number | string;
+  nombre: string;
+  idProvincia?: number | string | null;
+  activo?: boolean;
+}
+
+export function listLocalities(
+  params?: Record<string, unknown>,
+  token?: string
+): Promise<LocalityDTO[]>;
+
+export function createLocality(body: {
+  nombre: string;
+  idProvincia?: number | string | null;
+}): Promise<boolean>;
+
+export function updateLocality(
+  id: number | string,
+  body: { nombre: string; idProvincia?: number | string | null }
+): Promise<boolean>;
+
+export function deactivateLocality(
+  id: number | string,
+  nombre?: string,
+  token?: string
+): Promise<boolean>;
+
+// Genders (Géneros)
+export interface GenderDTO {
+  id: number | string;
+  nombre: string;
+  activo?: boolean;
+}
+
+export function listGenders(
+  params?: Record<string, unknown>,
+  token?: string
+): Promise<GenderDTO[]>;
+
+export function createGender(body: { nombre: string }): Promise<boolean>;
+
+export function updateGender(
+  id: number | string,
+  body: { nombre: string }
+): Promise<boolean>;
+
+export function deactivateGender(
+  id: number | string,
+  nombre?: string,
+  token?: string
+): Promise<boolean>;
+
+export interface ActionTypeDTO {
+  id: number | string;
+  nombre: string;
+  activo?: boolean;
+}
+
+export function listActionTypes(
+  params?: Record<string, unknown>,
+  token?: string
+): Promise<ActionTypeDTO[]>;
+export function createActionType(body: { nombre: string }): Promise<boolean>;
+export function updateActionType(
+  id: number | string,
+  body: { nombre: string }
+): Promise<boolean>;
+export function deactivateActionType(
+  id: number | string,
+  nombre?: string,
+  token?: string
+): Promise<boolean>;
+
 // Institution requests
 export function listInstitutionRequests(
   params?: Record<string, unknown>,

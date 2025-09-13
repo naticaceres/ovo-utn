@@ -1,6 +1,11 @@
 import { useParams } from 'react-router-dom';
 import CareerTypesPage from './CareerTypesPage';
 import ModalidadesPage from './ModalidadesPage';
+import PaisesPage from './PaisesPage';
+import ProvinciasPage from './ProvinciasPage';
+import LocalidadesPage from './LocalidadesPage';
+import GenerosPage from './GenerosPage';
+import ActionTypesPage from './ActionTypesPage';
 import EstadosCarreraInstPage from './EstadosCarreraInstPage';
 import CarrerasBasePage from './CarrerasBasePage';
 import SolicitudesInstitucionPage from './SolicitudesInstitucionPage';
@@ -34,6 +39,26 @@ export default function AdminItemPage() {
 
   if (categoryId === 'carreras' && itemId === 'abm-modalidades-carrera') {
     return <ModalidadesPage />;
+  }
+
+  if (categoryId === 'parametros' && itemId === 'abm-paises') {
+    return <PaisesPage />;
+  }
+
+  if (categoryId === 'parametros' && itemId === 'abm-provincias') {
+    return <ProvinciasPage />;
+  }
+
+  if (categoryId === 'parametros' && itemId === 'abm-localidades') {
+    return <LocalidadesPage />;
+  }
+
+  if (categoryId === 'parametros' && itemId === 'abm-generos') {
+    return <GenerosPage />;
+  }
+
+  if (categoryId === 'parametros' && itemId === 'abm-tipos-acciones') {
+    return <ActionTypesPage />;
   }
 
   if (categoryId === 'carreras' && itemId === 'abm-estados-carrera-inst') {

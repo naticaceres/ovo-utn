@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import styles from './ConsultarCarrerasPage.module.css';
 import { BackButton } from '../../components/ui/BackButton';
 import { useNavigate } from 'react-router-dom';
-// @ts-expect-error - services are JS modules without .d.ts in the resolver path
 import { listCareers } from '../../services/careers';
 
 interface Carrera {
