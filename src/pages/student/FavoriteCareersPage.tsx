@@ -48,7 +48,8 @@ export default function FavoriteCareersPage() {
       if (typeof removeInterest === 'function') {
         await removeInterest(id);
       } else {
-        await setCareerInterest(id, false);
+        // backend API exposes setCareerInterest(careerId)
+        await setCareerInterest(id);
       }
       // actualizar UI localmente
       setCarreras(prev => prev.filter(c => String(c.id) !== String(id)));

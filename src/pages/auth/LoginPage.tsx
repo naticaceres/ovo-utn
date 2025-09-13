@@ -32,11 +32,15 @@ export function LoginPage() {
       const usuario = resp.usuario || resp.user || resp;
 
       // El servicio ahora devuelve la respuesta completa. Revisar headers para new_token
-      const headerToken = resp?.headers?.['new_token'];
+      type Loose = Record<string, unknown>;
+      const headerToken = (
+        resp as unknown as { headers?: Record<string, string> }
+      ).headers?.['new_token'];
+      const data = (resp as unknown as { data?: Loose }).data;
       const bodyToken =
-        resp?.data?.token ||
-        resp?.data?.accessToken ||
-        resp?.data?.access_token;
+        (data?.token as string | undefined) ||
+        (data?.accessToken as string | undefined) ||
+        (data?.access_token as string | undefined);
       const token = headerToken || bodyToken;
       if (token) {
         localStorage.setItem('token', token);
@@ -44,15 +48,25 @@ export function LoginPage() {
       }
 
       // Guardamos la respuesta (body) completa para usarla después
-      localStorage.setItem('user', JSON.stringify(resp.data || resp));
+      localStorage.setItem(
+        'user',
+        JSON.stringify((resp as unknown as { data?: Loose }).data || resp)
+      );
 
       const hasGroup = (name: string) => {
-        const candidates =
-          resp?.data?.grupos ||
-          resp?.data?.groups ||
-          resp.grupos ||
-          resp.groups ||
+        const r: unknown = resp;
+        type Loose = Record<string, unknown>;
+        const getArr = (obj: unknown) =>
+          (((obj as Loose)?.data as Loose | undefined)?.grupos as
+            | string[]
+            | undefined) ||
+          (((obj as Loose)?.data as Loose | undefined)?.groups as
+            | string[]
+            | undefined) ||
+          ((obj as Loose)?.grupos as string[] | undefined) ||
+          ((obj as Loose)?.groups as string[] | undefined) ||
           [];
+        const candidates = getArr(r) as string[];
         return candidates.some(
           (g: unknown) =>
             typeof g === 'string' &&
@@ -69,7 +83,9 @@ export function LoginPage() {
         navigate('/app/student');
       } else if (
         usuario &&
-        (usuario.name === 'estudiante user' || usuario.role === 'estudiante')
+        (((usuario as Loose).name as string | undefined) ===
+          'estudiante user' ||
+          ((usuario as Loose).role as string | undefined) === 'estudiante')
       ) {
         // fallback por compatibilidad con la lógica previa
         navigate('/app/student');

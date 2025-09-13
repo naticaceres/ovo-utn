@@ -1020,6 +1020,319 @@ export async function updateCareerState(id, payload) {
   }
 }
 
+// --- Countries (ABM Países) ---
+export async function listCountries(params = {}, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.get('/api/v1/admin/catalog/countries', {
+      params,
+      headers,
+    });
+    let raw = data;
+    if (data && data.countries) raw = data.countries;
+    if (!raw) return [];
+    if (Array.isArray(raw)) {
+      return raw.map(item => ({
+        id: item.idPais ?? item.id ?? item._id,
+        nombre: item.nombrePais ?? item.nombre ?? item.name ?? '',
+        activo: typeof item.activo !== 'undefined' ? item.activo : true,
+      }));
+    }
+    return [];
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function createCountry(payload) {
+  try {
+    const body = { nombrePais: payload.nombre };
+    const { data } = await api.post('/api/v1/admin/catalog/countries', body);
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function updateCountry(id, payload) {
+  try {
+    const body = { nombrePais: payload.nombre };
+    const { data } = await api.put(
+      `/api/v1/admin/catalog/countries/${id}`,
+      body
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function deactivateCountry(id, nombre, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.delete(`/api/v1/admin/catalog/countries/${id}`, {
+      headers,
+      data: { nombrePais: nombre },
+    });
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+// --- Provinces (ABM Provincias) ---
+export async function listProvinces(params = {}, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.get('/api/v1/admin/catalog/provinces', {
+      params,
+      headers,
+    });
+    let raw = data;
+    if (data && data.provinces) raw = data.provinces;
+    if (!raw) return [];
+    if (Array.isArray(raw)) {
+      return raw.map(item => ({
+        id: item.idProvincia ?? item.id ?? item._id,
+        nombre: item.nombreProvincia ?? item.nombre ?? item.name ?? '',
+        idPais: item.idPais ?? item.countryId ?? null,
+        activo: typeof item.activo !== 'undefined' ? item.activo : true,
+      }));
+    }
+    return [];
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function createProvince(payload) {
+  try {
+    const body = { nombreProvincia: payload.nombre, idPais: payload.idPais };
+    const { data } = await api.post('/api/v1/admin/catalog/provinces', body);
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function updateProvince(id, payload) {
+  try {
+    const body = { nombreProvincia: payload.nombre, idPais: payload.idPais };
+    const { data } = await api.put(
+      `/api/v1/admin/catalog/provinces/${id}`,
+      body
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function deactivateProvince(id, nombre, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.delete(`/api/v1/admin/catalog/provinces/${id}`, {
+      headers,
+      data: { nombreProvincia: nombre },
+    });
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+// --- Localities (ABM Localidades) ---
+export async function listLocalities(params = {}, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.get('/api/v1/admin/catalog/localities', {
+      params,
+      headers,
+    });
+    let raw = data;
+    if (data && data.localities) raw = data.localities;
+    if (!raw) return [];
+    if (Array.isArray(raw)) {
+      return raw.map(item => ({
+        id: item.idLocalidad ?? item.id ?? item._id,
+        nombre:
+          item.nombreLocalidad ??
+          item.nombre ??
+          item.name ??
+          item.nombreLocalidad ??
+          '',
+        idProvincia: item.idProvincia ?? item.provinceId ?? null,
+        activo: typeof item.activo !== 'undefined' ? item.activo : true,
+      }));
+    }
+    return [];
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function createLocality(payload) {
+  try {
+    const body = {
+      nombreLocalidad: payload.nombre,
+      idProvincia: payload.idProvincia,
+    };
+    const { data } = await api.post('/api/v1/admin/catalog/localities', body);
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function updateLocality(id, payload) {
+  try {
+    const body = {
+      nombreLocalidad: payload.nombre,
+      idProvincia: payload.idProvincia,
+    };
+    const { data } = await api.put(
+      `/api/v1/admin/catalog/localities/${id}`,
+      body
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function deactivateLocality(id, nombre, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.delete(
+      `/api/v1/admin/catalog/localities/${id}`,
+      {
+        headers,
+        data: { nombreLocalidad: nombre },
+      }
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+// --- Genders (ABM Géneros) ---
+export async function listGenders(params = {}, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.get('/api/v1/admin/catalog/genders', {
+      params,
+      headers,
+    });
+    let raw = data;
+    if (data && data.genders) raw = data.genders;
+    if (!raw) return [];
+    if (Array.isArray(raw)) {
+      return raw.map(item => ({
+        id: item.idGenero ?? item.id ?? item._id,
+        nombre: item.nombreGenero ?? item.nombre ?? item.name ?? '',
+        activo: typeof item.activo !== 'undefined' ? item.activo : true,
+      }));
+    }
+    return [];
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function createGender(payload) {
+  try {
+    const body = { nombreGenero: payload.nombre };
+    const { data } = await api.post('/api/v1/admin/catalog/genders', body);
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function updateGender(id, payload) {
+  try {
+    const body = { nombreGenero: payload.nombre };
+    const { data } = await api.put(`/api/v1/admin/catalog/genders/${id}`, body);
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function deactivateGender(id, nombre, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.delete(`/api/v1/admin/catalog/genders/${id}`, {
+      headers,
+      data: { nombreGenero: nombre },
+    });
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+// --- Action types (ABM Tipos de Acciones del sistema) ---
+export async function listActionTypes(params = {}, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.get('/api/v1/admin/catalog/action-types', {
+      params,
+      headers,
+    });
+    let raw = data;
+    if (data && data.actionTypes) raw = data.actionTypes;
+    if (!raw) return [];
+    if (Array.isArray(raw)) {
+      return raw.map(item => ({
+        id: item.idTipoAccion ?? item.id ?? item._id,
+        nombre: item.nombreTipoAccion ?? item.nombre ?? item.name ?? '',
+        activo: typeof item.activo !== 'undefined' ? item.activo : true,
+      }));
+    }
+    return [];
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function createActionType(payload) {
+  try {
+    const body = { nombreTipoAccion: payload.nombre };
+    const { data } = await api.post('/api/v1/admin/catalog/action-types', body);
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function updateActionType(id, payload) {
+  try {
+    const body = { nombreTipoAccion: payload.nombre };
+    const { data } = await api.put(
+      `/api/v1/admin/catalog/action-types/${id}`,
+      body
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function deactivateActionType(id, nombre, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.delete(
+      `/api/v1/admin/catalog/action-types/${id}`,
+      { headers, data: { nombreTipoAccion: nombre } }
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
 export async function deactivateCareerState(id, nombreEstado, token) {
   try {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
