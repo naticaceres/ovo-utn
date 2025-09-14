@@ -14,4 +14,8 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    // Permitir acceso desde el dominio indicado (error: Blocked request. This host ...)
+    allowedHosts: ['ovotest.mooo.com'],
+  },
 });

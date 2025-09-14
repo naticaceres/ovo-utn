@@ -1,7 +1,11 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
+
+// Usa variable de entorno (vite) permitiendo fallback para desarrollo
+const BASE_URL =
+  import.meta?.env?.VITE_API_BASE_URL || 'http://ovotest.mooo.com:5000';
 
 export const api = axios.create({
-  baseURL: 'http://ovotest.mooo.com:5000',
+  baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -33,19 +37,45 @@ api.interceptors.request.use(config => {
 });
 
 // Response interceptor: if backend sends a renewed token in header 'new_token', persist it
-api.interceptors.response.use(res => {
-  try {
-    const nt = res?.headers?.['new_token'];
-    if (nt) {
-      localStorage.setItem('token', nt);
-      // also update default header so subsequent requests use it immediately
-      api.defaults.headers.common['Authorization'] = `Bearer ${nt}`;
+api.interceptors.response.use(
+  res => {
+    try {
+      const nt = res?.headers?.['new_token'];
+      if (nt) {
+        localStorage.setItem('token', nt);
+        api.defaults.headers.common['Authorization'] = `Bearer ${nt}`;
+      }
+    } catch {
+      /* ignore */
     }
-  } catch {
-    // ignore storage errors
+    return res;
+  },
+  (error: AxiosError<ApiErrorResponse>) => {
+    if (error.response?.status === 401) {
+      try {
+        localStorage.removeItem('token');
+      } catch {
+        /* ignore */
+      }
+      delete api.defaults.headers.common['Authorization'];
+      // Opcional: redirigir a login si no estamos ya allí
+      if (
+        typeof window !== 'undefined' &&
+        !window.location.pathname.includes('/login')
+      ) {
+        // guardar la ruta actual para volver luego
+        const current = window.location.pathname + window.location.search;
+        try {
+          sessionStorage.setItem('post_login_redirect', current);
+        } catch {
+          /* ignore */
+        }
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
   }
-  return res;
-});
+);
 
 export type User = {
   id: number;
@@ -75,9 +105,10 @@ export const authApi = {
 export type Question = { id: number; text: string; dimension: string };
 export type Answer = { questionId: number; value: number };
 
+// TODO: Reemplazar endpoints simulados por los reales de tests cuando estén definidos
 export const questionnaireApi = {
   async getQuestions(): Promise<Question[]> {
-    const { data } = await api.get('/questions');
+    const { data } = await api.get('/questions'); // placeholder
     return data;
   },
   async submitAnswers(
@@ -85,6 +116,7 @@ export const questionnaireApi = {
     answers: Answer[]
   ): Promise<{ id: number }> {
     const { data } = await api.post('/answers', {
+      // placeholder
       userId,
       answers,
       createdAt: new Date().toISOString(),
@@ -102,8 +134,29 @@ export type Recommendation = {
 
 export const resultsApi = {
   async getRecommendations(): Promise<Recommendation[]> {
-    const { data } = await api.get('/recommendations');
+    const { data } = await api.get('/recommendations'); // placeholder
     return data;
   },
 };
+// Tipado del error de la API
+export interface ApiErrorResponse {
+  message?: string;
+  error?: string;
+  statusCode?: number;
+  [key: string]: unknown;
+}
+
+// Helper para obtener mensaje amigable
+export function getApiErrorMessage(err: unknown): string {
+  if (axios.isAxiosError<ApiErrorResponse>(err)) {
+    const data = err.response?.data;
+    return (
+      (typeof data === 'object' && data && (data.message || data.error)) ||
+      err.message ||
+      'Error inesperado'
+    );
+  }
+  if (err instanceof Error) return err.message;
+  return 'Error desconocido';
+}
 // Nota: las llamadas a carreras ahora están en src/services/careers.js

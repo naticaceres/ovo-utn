@@ -4,14 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"npm:api\"",
+    "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview": "vite preview",
-    "api": "json-server --watch server/db.json --routes server/routes.json --middlewares server/student-custom-routes.cjs --port 3001",
     "prepare": "husky",
     "lint-staged": "lint-staged"
   },
