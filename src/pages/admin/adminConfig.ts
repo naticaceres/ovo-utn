@@ -16,26 +16,21 @@ export const CATEGORIES: Category[] = [
             icon: 'users-cog',
           },
           {
-            id: 'asignar-perfil',
-            label: 'Asignar perfil de usuario',
-            icon: 'profile',
-          },
-          {
             id: 'asignar-permisos-dinamicos',
             label: 'Asignar permisos dinámicos a usuarios',
-            icon: 'lock',
+            icon: 'key',
           },
           {
             id: 'ver-historial-accesos',
             label: 'Ver historial de accesos',
-            icon: 'history',
+            icon: 'clock',
           },
         ],
       },
       {
         title: 'Gestión de permisos',
         items: [
-          { id: 'permisos', label: 'ABM Permisos', icon: 'permissions' },
+          { id: 'permisos', label: 'ABM Permisos', icon: 'settings' },
           {
             id: 'abm-grupos-usuarios',
             label: 'ABM Grupos de Usuarios',
@@ -44,7 +39,7 @@ export const CATEGORIES: Category[] = [
           {
             id: 'abm-estados-usuario',
             label: 'ABM Estados de Usuario',
-            icon: 'status',
+            icon: 'list',
           },
         ],
       },

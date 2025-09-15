@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import styles from '../student/StudentHomePage.module.css';
+import backStyles from '../../components/ui/BackButton.module.css';
 import { ICONS } from './AdminIcons';
 
 const GROUPS = [
@@ -61,6 +62,23 @@ export default function SeguridadPage() {
 
   return (
     <div className={styles.container}>
+      {/* small fixed back control (uses same styles as BackButton) */}
+      <button
+        className={backStyles.backBtn}
+        type='button'
+        aria-label='Volver'
+        onClick={() => {
+          try {
+            if (window.history.length > 1) navigate(-1);
+            else navigate('/app/admin');
+          } catch {
+            navigate('/app/admin');
+          }
+        }}
+      >
+        <span className={backStyles.arrow}>&larr;</span>
+      </button>
+
       <header style={{ marginBottom: 20 }}>
         <h2>Seguridad</h2>
       </header>
@@ -84,7 +102,11 @@ export default function SeguridadPage() {
                 <button
                   key={it.id}
                   type='button'
-                  onClick={() => navigate(`/app/admin/seguridad/${it.id}`)}
+                  onClick={() =>
+                    it.id === 'volver-admin'
+                      ? navigate('/app/admin')
+                      : navigate(`/app/admin/seguridad/${it.id}`)
+                  }
                   title={it.label}
                   className={styles.gridItemSm}
                   style={{

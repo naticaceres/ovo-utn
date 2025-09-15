@@ -88,6 +88,36 @@ export default function SystemAuditPage() {
     return String(v);
   };
 
+  const pick = (obj: Record<string, unknown> | undefined, keys: string[]) => {
+    if (!obj) return undefined;
+    for (const k of keys) {
+      if (typeof obj[k] !== 'undefined' && obj[k] !== null) return obj[k];
+    }
+    return undefined;
+  };
+
+  const renderDate = (r: AuditEntry) => {
+    const v = pick(r as unknown as Record<string, unknown>, [
+      'fechaHora',
+      'fecha',
+      'date',
+      'timestamp',
+    ]);
+    return v ? String(v) : '';
+  };
+
+  const renderAction = (r: AuditEntry) => {
+    const v = pick(r as unknown as Record<string, unknown>, [
+      'accion',
+      'action',
+      'tipo',
+      'tipoAccion',
+    ]);
+    return v ? String(v) : '';
+  };
+
+  // renderClase removed per UI request
+
   return (
     <div className={styles.container}>
       <BackButton />
@@ -156,17 +186,15 @@ export default function SystemAuditPage() {
               <th>Fecha/Hora</th>
               <th>Usuario</th>
               <th>Acción</th>
-              <th>Clase</th>
               <th>Módulo</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r, i) => (
               <tr key={i}>
-                <td>{renderCell(r.fechaHora)}</td>
+                <td>{renderDate(r)}</td>
                 <td>{renderCell(r.usuario)}</td>
-                <td>{renderCell(r.accion)}</td>
-                <td>{renderCell(r.clase)}</td>
+                <td>{renderAction(r)}</td>
                 <td>{renderCell(r.modulo)}</td>
               </tr>
             ))}

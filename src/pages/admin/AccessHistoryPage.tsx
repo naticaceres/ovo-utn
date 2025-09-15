@@ -107,6 +107,45 @@ export default function AccessHistoryPage() {
     return String(value);
   };
 
+  // helper to pull a field by multiple possible names
+  const pick = (obj: Record<string, unknown> | undefined, keys: string[]) => {
+    if (!obj) return undefined;
+    for (const k of keys) {
+      if (typeof obj[k] !== 'undefined' && obj[k] !== null) return obj[k];
+    }
+    return undefined;
+  };
+
+  const renderDate = (r: Entry) => {
+    // try common names: fechaHora, fecha, date, timestamp
+    const val = pick(r as unknown as Record<string, unknown>, [
+      'fechaHora',
+      'fecha',
+      'date',
+      'timestamp',
+    ]);
+    if (!val) return '';
+    // if object with fecha inside
+    if (typeof val === 'object') {
+      const inner = pick(val as Record<string, unknown>, ['fecha', 'date']);
+      return inner ? String(inner) : JSON.stringify(val);
+    }
+    return String(val);
+  };
+
+  const renderDevice = (r: Entry) => {
+    const val = pick(r as unknown as Record<string, unknown>, [
+      'dispositivo',
+      'device',
+      'navegador',
+      'userAgent',
+      'ua',
+    ]);
+    if (!val) return '';
+    if (typeof val === 'object') return JSON.stringify(val);
+    return String(val);
+  };
+
   return (
     <div className={styles.container}>
       <BackButton />
@@ -180,10 +219,10 @@ export default function AccessHistoryPage() {
           <tbody>
             {rows.map((r, i) => (
               <tr key={i}>
-                <td>{renderCell(r.fechaHora)}</td>
+                <td>{renderDate(r)}</td>
                 <td>{renderCell(r.usuario)}</td>
                 <td>{renderCell(r.ip)}</td>
-                <td>{renderCell(r.dispositivo)}</td>
+                <td>{renderDevice(r)}</td>
                 <td>{renderCell(r.estado)}</td>
               </tr>
             ))}

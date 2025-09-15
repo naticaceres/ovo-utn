@@ -29,9 +29,19 @@
 }
 .modal {
   background: #fff;
-  padding: 16px;
-  width: 480px;
-  border-radius: 6px;
+  padding: 20px;
+  width: 720px;
+  max-width: calc(100% - 32px);
+  max-height: calc(100% - 48px);
+  overflow: auto;
+  border-radius: 8px;
+}
+.twoColRow {
+  display: flex;
+  gap: 12px;
+}
+.twoColRow > * {
+  flex: 1;
 }
 .modalActions {
   display: flex;

@@ -45,6 +45,8 @@ export default function MisCarrerasPage() {
   const [observaciones, setObservaciones] = useState('');
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
+  const [nombreCarreraInput, setNombreCarreraInput] = useState<string>('');
+  const [tituloCarreraInput, setTituloCarreraInput] = useState<string>('');
 
   const load = async () => {
     setLoading(true);
@@ -81,6 +83,8 @@ export default function MisCarrerasPage() {
     setObservaciones('');
     setFechaInicio('');
     setFechaFin('');
+    setNombreCarreraInput('');
+    setTituloCarreraInput('');
     setShowModal(true);
   };
 
@@ -97,6 +101,12 @@ export default function MisCarrerasPage() {
     setDuracionCarrera((it.duracionCarrera ?? '') as number | '');
     setHorasCursado((it.horasCursado ?? '') as number | '');
     setMontoCuota((it.montoCuota ?? '') as number | '');
+    setNombreCarreraInput(
+      String(it.nombreCarrera ?? it.nombre ?? it.tituloCarrera ?? '')
+    );
+    setTituloCarreraInput(
+      String(it.tituloCarrera ?? it.titulo ?? it.nombre ?? '')
+    );
     setShowModal(true);
   };
 
@@ -172,8 +182,21 @@ export default function MisCarrerasPage() {
       idCarrera: parseMaybeNumber(idCarrera),
       idModalidad: parseMaybeNumber(idModalidad),
       idEstado: parseMaybeNumber(idEstado),
-      tituloCarrera: selectedCareer?.nombre ?? null,
-      nombreCarrera: selectedCareer?.nombre ?? null,
+      // prefer explicitly entered inputs, fallback to career data
+      tituloCarrera: tituloCarreraInput
+        ? tituloCarreraInput
+        : (((selectedCareer as unknown as { titulo?: string })?.titulo as
+            | string
+            | undefined) ??
+          selectedCareer?.nombre ??
+          null),
+      nombreCarrera: nombreCarreraInput
+        ? nombreCarreraInput
+        : (selectedCareer?.nombre ??
+          ((selectedCareer as unknown as { titulo?: string })?.titulo as
+            | string
+            | undefined) ??
+          null),
       cantidadMaterias: Number(cantidadMaterias),
       duracionCarrera: Number(duracionCarrera),
       horasCursado: Number(horasCursado),
@@ -277,33 +300,38 @@ export default function MisCarrerasPage() {
           <div className={styles.modal}>
             <h3>{editing ? 'Editar carrera' : 'Agregar carrera'}</h3>
 
-            <label>Elegir carrera (Carrera base)</label>
-            <select
-              value={idCarrera ?? ''}
-              onChange={e => setIdCarrera(e.target.value)}
-              style={{ width: '100%', padding: 8, marginBottom: 12 }}
-            >
-              <option value=''>-- Seleccionar --</option>
-              {careers.map(c => (
-                <option key={String(c.id)} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
-
-            <label>Modalidad</label>
-            <select
-              value={idModalidad ?? ''}
-              onChange={e => setIdModalidad(e.target.value)}
-              style={{ width: '100%', padding: 8, marginBottom: 12 }}
-            >
-              <option value=''>-- Seleccionar --</option>
-              {modalities.map(m => (
-                <option key={String(m.id)} value={m.id}>
-                  {m.nombre}
-                </option>
-              ))}
-            </select>
+            <div className={styles.twoColRow}>
+              <div>
+                <label>Elegir carrera (Carrera base)</label>
+                <select
+                  value={idCarrera ?? ''}
+                  onChange={e => setIdCarrera(e.target.value)}
+                  style={{ width: '100%', padding: 8, marginBottom: 12 }}
+                >
+                  <option value=''>-- Seleccionar --</option>
+                  {careers.map(c => (
+                    <option key={String(c.id)} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label>Modalidad</label>
+                <select
+                  value={idModalidad ?? ''}
+                  onChange={e => setIdModalidad(e.target.value)}
+                  style={{ width: '100%', padding: 8, marginBottom: 12 }}
+                >
+                  <option value=''>-- Seleccionar --</option>
+                  {modalities.map(m => (
+                    <option key={String(m.id)} value={m.id}>
+                      {m.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
             <label>Estado</label>
             <select
@@ -319,53 +347,71 @@ export default function MisCarrerasPage() {
               ))}
             </select>
 
-            <Input
-              label='Cantidad de materias'
-              type='number'
-              value={cantidadMaterias === '' ? '' : String(cantidadMaterias)}
-              onChange={e =>
-                setCantidadMaterias(
-                  e.target.value === '' ? '' : Number(e.target.value)
-                )
-              }
-              fullWidth
-            />
-            <Input
-              label='Duración (años)'
-              type='number'
-              step='0.1'
-              value={duracionCarrera === '' ? '' : String(duracionCarrera)}
-              onChange={e =>
-                setDuracionCarrera(
-                  e.target.value === '' ? '' : Number(e.target.value)
-                )
-              }
-              fullWidth
-            />
-            <Input
-              label='Horas cursado'
-              type='number'
-              value={horasCursado === '' ? '' : String(horasCursado)}
-              onChange={e =>
-                setHorasCursado(
-                  e.target.value === '' ? '' : Number(e.target.value)
-                )
-              }
-              fullWidth
-            />
-            <Input
-              label='Monto cuota'
-              type='number'
-              step='0.01'
-              value={montoCuota === '' ? '' : String(montoCuota)}
-              onChange={e =>
-                setMontoCuota(
-                  e.target.value === '' ? '' : Number(e.target.value)
-                )
-              }
-              fullWidth
-            />
+            <div className={styles.twoColRow}>
+              <Input
+                label='Nombre de carrera'
+                value={nombreCarreraInput}
+                onChange={e => setNombreCarreraInput(e.target.value)}
+                fullWidth
+              />
+              <Input
+                label='Título de carrera'
+                value={tituloCarreraInput}
+                onChange={e => setTituloCarreraInput(e.target.value)}
+                fullWidth
+              />
+            </div>
 
+            <div className={styles.twoColRow}>
+              <Input
+                label='Cantidad de materias'
+                type='number'
+                value={cantidadMaterias === '' ? '' : String(cantidadMaterias)}
+                onChange={e =>
+                  setCantidadMaterias(
+                    e.target.value === '' ? '' : Number(e.target.value)
+                  )
+                }
+                fullWidth
+              />
+              <Input
+                label='Duración (años)'
+                type='number'
+                step='0.1'
+                value={duracionCarrera === '' ? '' : String(duracionCarrera)}
+                onChange={e =>
+                  setDuracionCarrera(
+                    e.target.value === '' ? '' : Number(e.target.value)
+                  )
+                }
+                fullWidth
+              />
+            </div>
+            <div className={styles.twoColRow}>
+              <Input
+                label='Horas cursado'
+                type='number'
+                value={horasCursado === '' ? '' : String(horasCursado)}
+                onChange={e =>
+                  setHorasCursado(
+                    e.target.value === '' ? '' : Number(e.target.value)
+                  )
+                }
+                fullWidth
+              />
+              <Input
+                label='Monto cuota'
+                type='number'
+                step='0.01'
+                value={montoCuota === '' ? '' : String(montoCuota)}
+                onChange={e =>
+                  setMontoCuota(
+                    e.target.value === '' ? '' : Number(e.target.value)
+                  )
+                }
+                fullWidth
+              />
+            </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <div style={{ flex: 1 }}>
                 <label>Fecha Inicio</label>
