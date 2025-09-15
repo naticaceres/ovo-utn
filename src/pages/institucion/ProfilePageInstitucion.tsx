@@ -13,7 +13,7 @@ export default function ProfilePageInstitucion() {
   const auth = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const institutionName = auth?.user?.name ?? 'Institución';
+  const institutionName = auth?.user?.name ?? 'Usuario';
   const emailFromAuth = auth?.user?.email ?? '';
 
   const [isEditing, setIsEditing] = useState(false);
@@ -144,20 +144,7 @@ export default function ProfilePageInstitucion() {
               </form>
             )}
 
-            <div style={{ marginTop: 16 }}>
-              <Button
-                variant='outline'
-                onClick={() => navigate('/app/institucion/detalle')}
-              >
-                Ver Institución
-              </Button>
-              <Button
-                style={{ marginLeft: 8 }}
-                onClick={() => navigate('/app/institucion/mis-carreras')}
-              >
-                Mis Carreras
-              </Button>
-            </div>
+     
           </div>
         </div>
 

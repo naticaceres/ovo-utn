@@ -29,7 +29,7 @@ export default function InstitucionHomePage() {
         </div>
         <div
           className={styles.gridItem}
-          onClick={() => navigate('/app/institucion/detalle')}
+          onClick={() => navigate('/app/detalle-institucion')}
         >
           <span className={styles.icon}>🏫</span>
           <span className={styles.label}>Ver Institución</span>

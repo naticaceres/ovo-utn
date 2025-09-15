@@ -29,12 +29,14 @@
 }
 .modal {
   background: #fff;
+  position: fixed;
   padding: 20px;
   width: 720px;
   max-width: calc(100% - 32px);
-  max-height: calc(100% - 48px);
+  max-height: calc(90% - 48px);
   overflow: auto;
   border-radius: 8px;
+    top: 12%; 
 }
 .twoColRow {
   display: flex;
