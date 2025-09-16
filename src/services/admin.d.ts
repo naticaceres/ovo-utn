@@ -5,10 +5,12 @@ export interface CareerTypeDTO {
 }
 
 export function listCareerTypes(): Promise<CareerTypeDTO[]>;
-export function createCareerType(body: { nombre: string }): Promise<boolean>;
+export function createCareerType(body: {
+  nombreTipoCarrera: string;
+}): Promise<boolean>;
 export function updateCareerType(
   id: number | string,
-  body: { nombre: string }
+  body: { nombreTipoCarrera: string }
 ): Promise<boolean>;
 export function deactivateCareerType(id: number | string): Promise<boolean>;
 
@@ -66,19 +68,29 @@ export interface CareerBaseDTO {
   nombre: string;
   activo?: boolean;
   idTipoCarrera?: number | string | null;
+  fechaFin?: string | null;
 }
 
 export function listCareersBase(
   params?: Record<string, unknown>,
   token?: string
 ): Promise<CareerBaseDTO[]>;
-export function createCareerBase(body: {
-  nombre: string;
-  idTipoCarrera?: number | string;
-}): Promise<boolean>;
+export function createCareerBase(
+  body: {
+    nombre: string;
+    idTipoCarrera?: number | string;
+    fechaFin?: string | null;
+  },
+  token?: string
+): Promise<boolean>;
 export function updateCareerBase(
   id: number | string,
-  body: { nombre: string; idTipoCarrera?: number | string }
+  body: {
+    nombre: string;
+    idTipoCarrera?: number | string;
+    fechaFin?: string | null;
+  },
+  token?: string
 ): Promise<boolean>;
 export function deactivateCareerBase(
   id: number | string,
@@ -170,14 +182,18 @@ export function listProvinces(
   token?: string
 ): Promise<ProvinceDTO[]>;
 
-export function createProvince(body: {
-  nombre: string;
-  idPais?: number | string | null;
-}): Promise<boolean>;
+export function createProvince(
+  body: {
+    nombre: string;
+    idPais?: number | string | null;
+  },
+  token?: string
+): Promise<boolean>;
 
 export function updateProvince(
   id: number | string,
-  body: { nombre: string; idPais?: number | string | null }
+  body: { nombre: string; idPais?: number | string | null },
+  token?: string
 ): Promise<boolean>;
 
 export function deactivateProvince(
@@ -199,14 +215,18 @@ export function listLocalities(
   token?: string
 ): Promise<LocalityDTO[]>;
 
-export function createLocality(body: {
-  nombre: string;
-  idProvincia?: number | string | null;
-}): Promise<boolean>;
+export function createLocality(
+  body: {
+    nombre: string;
+    idProvincia?: number | string | null;
+  },
+  token?: string
+): Promise<boolean>;
 
 export function updateLocality(
   id: number | string,
-  body: { nombre: string; idProvincia?: number | string | null }
+  body: { nombre: string; idProvincia?: number | string | null },
+  token?: string
 ): Promise<boolean>;
 
 export function deactivateLocality(
@@ -330,38 +350,44 @@ export function listAdminUsers(
   token?: string
 ): Promise<AdminUserDTO[]>;
 
-export function createAdminUser(body: {
-  nombre: string;
-  apellido?: string;
-  email: string;
-  rol?: string;
-  idGrupo?: number | string | null;
-  idGrupos?: Array<number | string>;
-  idEstadoUsuario?: number | string | null;
-  estadoInicial?: string | number | null;
-}): Promise<boolean>;
-
-export function updateAdminUser(
-  id: number | string,
+export function createAdminUser(
   body: {
     nombre: string;
     apellido?: string;
-    email?: string;
+    email: string;
+    correo?: string;
+    dni?: string;
+    fechaNac?: string;
+    idGenero?: number | string | null;
+    idLocalidad?: number | string | null;
     rol?: string;
-    password?: string;
     idGrupo?: number | string | null;
     idGrupos?: Array<number | string>;
     idEstadoUsuario?: number | string | null;
+    estadoInicial?: string | number | null;
+  },
+  token?: string
+): Promise<boolean>;
+
+export function updateUser(
+  id: number | string,
+  body: {
+    nombre: string;
+    apellido: string;
+    email: string;
+    grupos: Array<number | string>;
+    idEstado: number | string | null;
+    idEstadoUsuario?: number | string | null;
+    idGrupo?: number | string | null;
+    idGrupos?: Array<number | string>;
+    estadoInicial?: number | string | null;
   }
 ): Promise<boolean>;
 
-export function blockAdminUser(
+/** @deprecated usar updateUser */
+export function updateAdminUser(
   id: number | string,
-  token?: string
-): Promise<boolean>;
-export function unblockAdminUser(
-  id: number | string,
-  token?: string
+  body: { nombre: string; apellido?: string; email: string }
 ): Promise<boolean>;
 
 export function deactivateAdminUser(
@@ -382,6 +408,14 @@ export function listPermissions(
   params?: Record<string, unknown>,
   token?: string
 ): Promise<PermissionDTO[]>;
+
+// Export / descarga de historial de accesos
+export function exportAccessHistoryFile(
+  params?: Record<string, unknown>,
+  filename?: string,
+  format?: string,
+  token?: string
+): Promise<void>;
 
 export function createPermission(body: {
   nombrePermiso: string;
@@ -411,6 +445,12 @@ export function addUserPermission(
   token?: string
 ): Promise<boolean>;
 
+export function updateUserPermissions(
+  userId: number | string,
+  permisos: Array<number | string>,
+  token?: string
+): Promise<boolean>;
+
 export function removeUserPermission(
   userId: number | string,
   permisoId: number | string,
@@ -431,11 +471,14 @@ export function listGroupsCatalog(
   token?: string
 ): Promise<GroupCatalogDTO[]>;
 
-export function createGroupCatalog(body: {
-  nombreGrupo: string;
-  descripcion?: string;
-  permisos?: Array<number | string>;
-}): Promise<boolean>;
+export function createGroupCatalog(
+  body: {
+    nombreGrupo: string;
+    descripcion?: string;
+    permisos?: Array<number | string>;
+  },
+  token?: string
+): Promise<boolean>;
 
 export function updateGroupCatalog(
   id: number | string,
@@ -443,7 +486,8 @@ export function updateGroupCatalog(
     nombreGrupo?: string;
     descripcion?: string;
     permisos?: Array<number | string>;
-  }
+  },
+  token?: string
 ): Promise<boolean>;
 
 export function deactivateGroupCatalog(
@@ -473,3 +517,50 @@ export function exportAudit(
   params?: Record<string, unknown>,
   token?: string
 ): Promise<Blob>;
+
+// Simple users list for access history page
+export interface BasicUserDTO {
+  id: number | string;
+  nombre?: string;
+  apellido?: string;
+  mail?: string;
+  email?: string;
+}
+
+export function listUsers(
+  token?: string,
+  params?: Record<string, unknown>
+): Promise<BasicUserDTO[]>;
+
+// Skills (Aptitudes)
+export interface SkillDTO {
+  id: number | string;
+  nombre: string;
+  descripcion?: string;
+  activo?: boolean;
+}
+
+export function listSkills(
+  params?: Record<string, unknown>,
+  token?: string
+): Promise<SkillDTO[]>;
+
+export function createSkill(
+  body: {
+    nombre: string;
+    descripcion?: string;
+  },
+  token?: string
+): Promise<boolean>;
+
+export function updateSkill(
+  id: number | string,
+  body: { nombre: string; descripcion?: string },
+  token?: string
+): Promise<boolean>;
+
+export function deactivateSkill(
+  id: number | string,
+  nombre?: string,
+  token?: string
+): Promise<boolean>;

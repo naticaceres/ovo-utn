@@ -3,44 +3,57 @@ import { api } from '../context/api';
 export async function listCareerTypes(params = {}, token) {
   try {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const { data } = await api.get('/api/v1/admin/career-types', {
+    const { data } = await api.get('/api/v1/admin/catalog/career-types', {
       params,
       headers,
     });
 
-    // Normalize to an array of { id, nombre, activo }
+    console.log('[listCareerTypes] Raw response:', data);
+
+    // Based on the API response structure: { "careerTypes": [...] }
     let raw = data;
     if (data && data.careerTypes) raw = data.careerTypes;
     else if (data && data.tipoCarreras) raw = data.tipoCarreras;
+    else if (data && data.data) raw = data.data;
 
-    if (!raw) return [];
-    if (Array.isArray(raw)) {
-      return raw.map(item => ({
-        id: item.idTipoCarrera ?? item.id ?? item._id,
-        nombre: item.nombreTipo ?? item.nombre ?? item.title ?? '',
-        fechaFin:
-          item.fechaFin ??
-          item.fecha_fin ??
-          item.fechaBaja ??
-          item.fecha_baja ??
-          item.endDate ??
-          item.end_date ??
-          null,
-        activo:
-          (item.fechaFin ??
-          item.fecha_fin ??
-          item.fechaBaja ??
-          item.fecha_baja ??
-          item.endDate ??
-          item.end_date)
-            ? false
-            : typeof item.activo !== 'undefined'
-              ? item.activo
-              : true,
-      }));
-    }
+    if (!raw || !Array.isArray(raw)) return [];
 
-    return [];
+    return raw.map((item, index) => {
+      const id = item.idTipoCarrera ?? item.id ?? item._id;
+      const nombre =
+        item.nombreTipoCarrera ??
+        item.nombreTipo ??
+        item.nombre ??
+        item.title ??
+        '';
+
+      console.log(`[listCareerTypes] Mapping item ${index}:`, {
+        original: item,
+        extractedId: id,
+        extractedNombre: nombre,
+      });
+
+      const fechaFin =
+        item.fechaFin ??
+        item.fecha_fin ??
+        item.fechaBaja ??
+        item.fecha_baja ??
+        item.endDate ??
+        item.end_date ??
+        null;
+      const activo = fechaFin
+        ? false
+        : typeof item.activo !== 'undefined'
+          ? item.activo
+          : true;
+
+      return {
+        id,
+        nombre,
+        fechaFin,
+        activo,
+      };
+    });
   } catch (error) {
     throw error.response ? error.response.data : error;
   }
@@ -94,7 +107,10 @@ export async function rejectInstitutionRequest(id, token) {
 
 export async function createCareerType(payload) {
   try {
-    const { data } = await api.post('/api/v1/admin/career-types', payload);
+    const { data } = await api.post(
+      '/api/v1/admin/catalog/career-types',
+      payload
+    );
     return data;
   } catch (error) {
     throw error.response ? error.response.data : error;
@@ -103,7 +119,10 @@ export async function createCareerType(payload) {
 
 export async function updateCareerType(id, payload) {
   try {
-    const { data } = await api.put(`/api/v1/admin/career-types/${id}`, payload);
+    const { data } = await api.put(
+      `/api/v1/admin/catalog/career-types/${id}`,
+      payload
+    );
     return data;
   } catch (error) {
     throw error.response ? error.response.data : error;
@@ -113,8 +132,8 @@ export async function updateCareerType(id, payload) {
 // logical delete / deactivate
 export async function deactivateCareerType(id) {
   try {
-    const { data } = await api.post(
-      `/api/v1/admin/career-types/${id}/deactivate`
+    const { data } = await api.delete(
+      `/api/v1/admin/catalog/career-types/${id}`
     );
     return data;
   } catch (error) {
@@ -193,6 +212,11 @@ export async function listAdminUsers(params = {}, token) {
           u.nombreEstado ??
           (u.estado && u.estado.nombre) ??
           null,
+        // estado textual directo si el backend lo provee (por ejemplo "Activo", "Suspendido")
+        estado:
+          u.estado ??
+          (u.estado && u.estado.nombre ? u.estado.nombre : null) ??
+          null,
       }));
     }
     return [];
@@ -201,38 +225,61 @@ export async function listAdminUsers(params = {}, token) {
   }
 }
 
-export async function createAdminUser(payload) {
+export async function createAdminUser(payload, token) {
   try {
-    // backend catalog endpoint expects nombre, apellido, email, estadoInicial
+    // backend catalog endpoint expects correo, dni, nombre, apellido, fechaNac, idGenero, idLocalidad, estadoInicial
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const body = {
+      correo: payload.email ?? payload.correo,
+      dni: payload.dni,
       nombre: payload.nombre,
       apellido: payload.apellido,
-      email: payload.email,
-      estadoInicial: payload.idEstadoUsuario ?? payload.estadoInicial ?? null,
-      idGrupo: payload.idGrupo,
+      fechaNac: payload.fechaNac,
+      idGenero: payload.idGenero,
+      idLocalidad: payload.idLocalidad,
+      estadoInicial:
+        payload.estadoInicial ?? payload.idEstadoUsuario ?? 'activo',
     };
-    const { data } = await api.post('/api/v1/admin/catalog/users', body);
+    const { data } = await api.post('/api/v1/admin/catalog/users', body, {
+      headers,
+    });
     return data;
   } catch (error) {
     throw error.response ? error.response.data : error;
   }
 }
 
-export async function updateAdminUser(id, payload) {
+// Unified user update (admins or regular users via admin panel)
+export async function updateUser(id, payload) {
   try {
     const body = {
       nombre: payload.nombre,
       apellido: payload.apellido,
-      // email not editable in-place in our UI, include if present
-      ...(payload.email ? { email: payload.email } : {}),
-      estadoInicial: payload.idEstadoUsuario ?? payload.estadoInicial ?? null,
-      idGrupo: payload.idGrupo,
+      email: payload.email,
+      grupos: Array.isArray(payload.grupos)
+        ? payload.grupos
+        : typeof payload.idGrupos !== 'undefined' &&
+            Array.isArray(payload.idGrupos)
+          ? payload.idGrupos
+          : typeof payload.idGrupo !== 'undefined' && payload.idGrupo !== null
+            ? [payload.idGrupo]
+            : [],
+      idEstado:
+        payload.idEstado ??
+        payload.idEstadoUsuario ??
+        payload.estadoInicial ??
+        null,
     };
     const { data } = await api.put(`/api/v1/admin/catalog/users/${id}`, body);
     return data;
   } catch (error) {
     throw error.response ? error.response.data : error;
   }
+}
+
+// Backwards compatibility: keep old name if still imported elsewhere
+export async function updateAdminUser(id, payload) {
+  return updateUser(id, payload);
 }
 
 export async function deactivateAdminUser(id, nombre, token) {
@@ -243,34 +290,6 @@ export async function deactivateAdminUser(id, nombre, token) {
       headers,
       data: { nombre },
     });
-    return data;
-  } catch (error) {
-    throw error.response ? error.response.data : error;
-  }
-}
-
-export async function blockAdminUser(id, token) {
-  try {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const { data } = await api.post(
-      `/api/v1/admin/catalog/users/${id}/block`,
-      {},
-      { headers }
-    );
-    return data;
-  } catch (error) {
-    throw error.response ? error.response.data : error;
-  }
-}
-
-export async function unblockAdminUser(id, token) {
-  try {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const { data } = await api.post(
-      `/api/v1/admin/catalog/users/${id}/unblock`,
-      {},
-      { headers }
-    );
     return data;
   } catch (error) {
     throw error.response ? error.response.data : error;
@@ -397,12 +416,21 @@ export async function listGroupsCatalog(params = {}, token) {
       headers,
       params,
     });
+
+    console.log('[listGroupsCatalog] Raw response data:', data);
+
     const raw =
       data && data.groups ? data.groups : data && data.data ? data.data : data;
     if (!raw) return [];
     if (Array.isArray(raw)) {
-      return raw.map(g => {
-        const id = g.id ?? g._id;
+      return raw.map((g, index) => {
+        const id = g.id ?? g._id ?? g.idGrupo ?? g.groupId ?? g.grupo_id;
+        console.log(`[listGroupsCatalog] Group ${index}:`, {
+          originalGroup: g,
+          extractedId: id,
+          hasId: !!id,
+        });
+
         const nombre = g.nombreGrupo ?? g.nombre ?? g.label ?? '';
         const descripcion = g.descripcion ?? g.description ?? '';
         const permisos = g.permisos ?? g.permissions ?? [];
@@ -436,22 +464,32 @@ export async function listGroupsCatalog(params = {}, token) {
   }
 }
 
-export async function createGroupCatalog(payload) {
+export async function createGroupCatalog(payload, token) {
   try {
     // payload: { nombreGrupo, descripcion, permisos: [id,...] }
-    const { data } = await api.post('/api/v1/admin/catalog/groups', payload);
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.post('/api/v1/admin/catalog/groups', payload, {
+      headers,
+    });
     return data;
   } catch (error) {
     throw error.response ? error.response.data : error;
   }
 }
 
-export async function updateGroupCatalog(id, payload) {
+export async function updateGroupCatalog(id, payload, token) {
   try {
-    const { data } = await api.put(
-      `/api/v1/admin/catalog/groups/${id}`,
-      payload
-    );
+    console.log('[updateGroupCatalog] ID received:', id, 'Type:', typeof id);
+
+    if (!id) {
+      throw new Error('ID del grupo es requerido para actualizar');
+    }
+
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const url = `/api/v1/admin/catalog/groups/${id}`;
+    console.log('[updateGroupCatalog] URL:', url);
+
+    const { data } = await api.put(url, payload, { headers });
     return data;
   } catch (error) {
     throw error.response ? error.response.data : error;
@@ -650,6 +688,20 @@ export async function addUserPermission(userId, idPermiso, token) {
   }
 }
 
+export async function updateUserPermissions(userId, permisos, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.put(
+      `/api/v1/admin/users/${userId}/permissions`,
+      { permisos },
+      { headers }
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
 export async function removeUserPermission(userId, permisoId, token) {
   try {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -688,6 +740,23 @@ export async function exportAccessHistory(params = {}, token) {
   } catch (error) {
     throw error.response ? error.response.data : error;
   }
+}
+
+// Descarga directa del archivo (evita lógica de crear link en la página)
+export async function exportAccessHistoryFile(
+  params = {},
+  filename = 'access-history',
+  format = 'csv',
+  token
+) {
+  const { downloadFile } = await import('./file');
+  const finalName = `${filename}.${format}`;
+  await downloadFile({
+    url: '/api/v1/admin/access-history/export',
+    params,
+    filename: finalName,
+    token,
+  });
 }
 
 export async function audit(params = {}, token) {
@@ -1105,22 +1174,31 @@ export async function listProvinces(params = {}, token) {
   }
 }
 
-export async function createProvince(payload) {
+export async function createProvince(payload, token) {
   try {
     const body = { nombreProvincia: payload.nombre, idPais: payload.idPais };
-    const { data } = await api.post('/api/v1/admin/catalog/provinces', body);
+    console.log('[createProvince] Payload being sent:', body);
+
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.post('/api/v1/admin/catalog/provinces', body, {
+      headers,
+    });
     return data;
   } catch (error) {
     throw error.response ? error.response.data : error;
   }
 }
 
-export async function updateProvince(id, payload) {
+export async function updateProvince(id, payload, token) {
   try {
     const body = { nombreProvincia: payload.nombre, idPais: payload.idPais };
+    console.log('[updateProvince] Payload being sent:', body);
+
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const { data } = await api.put(
       `/api/v1/admin/catalog/provinces/${id}`,
-      body
+      body,
+      { headers }
     );
     return data;
   } catch (error) {
@@ -1171,28 +1249,37 @@ export async function listLocalities(params = {}, token) {
   }
 }
 
-export async function createLocality(payload) {
+export async function createLocality(payload, token) {
   try {
     const body = {
       nombreLocalidad: payload.nombre,
       idProvincia: payload.idProvincia,
     };
-    const { data } = await api.post('/api/v1/admin/catalog/localities', body);
+    console.log('[createLocality] Payload being sent:', body);
+
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.post('/api/v1/admin/catalog/localities', body, {
+      headers,
+    });
     return data;
   } catch (error) {
     throw error.response ? error.response.data : error;
   }
 }
 
-export async function updateLocality(id, payload) {
+export async function updateLocality(id, payload, token) {
   try {
     const body = {
       nombreLocalidad: payload.nombre,
       idProvincia: payload.idProvincia,
     };
+    console.log('[updateLocality] Payload being sent:', body);
+
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const { data } = await api.put(
       `/api/v1/admin/catalog/localities/${id}`,
-      body
+      body,
+      { headers }
     );
     return data;
   } catch (error) {
@@ -1354,10 +1441,13 @@ export async function deactivateCareerState(id, nombreEstado, token) {
 export async function listCareersBase(params = {}, token) {
   try {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const { data } = await api.get('/api/v1/admin/catalog/careers', {
-      params,
-      headers,
-    });
+    const { data } = await api.get(
+      '/api/v1/admin/catalog/careers?includeInactive=1',
+      {
+        params,
+        headers,
+      }
+    );
 
     // backend might return an array or a wrapped object; normalize
     const raw = data && data.careers ? data.careers : data;
@@ -1398,25 +1488,73 @@ export async function listCareersBase(params = {}, token) {
   }
 }
 
-export async function createCareerBase(payload) {
+export async function createCareerBase(payload, token) {
   try {
-    // backend expects nombreCarrera and possibly idTipoCarrera
+    // backend expects nombreCarrera and possibly idTipoCarrera, fechaFin
     const body = { nombreCarrera: payload.nombre };
     if (payload && payload.idTipoCarrera)
       body.idTipoCarrera = payload.idTipoCarrera;
-    const { data } = await api.post('/api/v1/admin/catalog/careers', body);
+
+    // Always include fechaFin - either the date or "NULL" string to cancel/clear
+    if (
+      payload.fechaFin === 'NULL' ||
+      payload.fechaFin === '' ||
+      !payload.fechaFin
+    ) {
+      body.fechaFin = 'NULL';
+    } else {
+      body.fechaFin = payload.fechaFin;
+    }
+
+    console.log('[createCareerBase] Payload being sent:', body);
+    console.log(
+      '[createCareerBase] fechaFin processing: input=',
+      payload.fechaFin,
+      'output=',
+      body.fechaFin
+    );
+
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.post('/api/v1/admin/catalog/careers', body, {
+      headers,
+    });
     return data;
   } catch (error) {
     throw error.response ? error.response.data : error;
   }
 }
 
-export async function updateCareerBase(id, payload) {
+export async function updateCareerBase(id, payload, token) {
   try {
     const body = { nombreCarrera: payload.nombre };
     if (payload && payload.idTipoCarrera)
       body.idTipoCarrera = payload.idTipoCarrera;
-    const { data } = await api.put(`/api/v1/admin/catalog/careers/${id}`, body);
+
+    // Always include fechaFin - either the date or "NULL" string to cancel/clear existing date
+    if (
+      payload.fechaFin === 'NULL' ||
+      payload.fechaFin === '' ||
+      !payload.fechaFin
+    ) {
+      body.fechaFin = 'NULL';
+    } else {
+      body.fechaFin = payload.fechaFin;
+    }
+
+    console.log('[updateCareerBase] ID:', id, 'Payload being sent:', body);
+    console.log(
+      '[updateCareerBase] fechaFin value:',
+      payload.fechaFin,
+      'Sending:',
+      body.fechaFin
+    );
+
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.put(
+      `/api/v1/admin/catalog/careers/${id}`,
+      body,
+      { headers }
+    );
     return data;
   } catch (error) {
     throw error.response ? error.response.data : error;
@@ -1429,6 +1567,81 @@ export async function deactivateCareerBase(id, nombreCarrera, token) {
     const { data } = await api.delete(`/api/v1/admin/catalog/careers/${id}`, {
       headers,
       data: { nombreCarrera },
+    });
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+// Skills (Aptitudes)
+export async function listSkills(params = {}, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.get('/api/v1/admin/catalog/aptitudes', {
+      params,
+      headers,
+    });
+    let raw = data;
+    if (data && data.aptitudes) raw = data.aptitudes;
+    if (!raw) return [];
+    if (Array.isArray(raw)) {
+      return raw.map(item => ({
+        id: item.idAptitud ?? item.id ?? item._id,
+        nombre: item.nombreAptitud ?? item.nombre ?? item.name ?? '',
+        descripcion: item.descripcion ?? '',
+        activo: typeof item.activo !== 'undefined' ? item.activo : true,
+      }));
+    }
+    return [];
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function createSkill(payload, token) {
+  try {
+    const body = {
+      nombreAptitud: payload.nombre,
+      descripcion: payload.descripcion || '',
+    };
+    console.log('[createSkill] Payload being sent:', body);
+
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.post('/api/v1/admin/catalog/aptitudes', body, {
+      headers,
+    });
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function updateSkill(id, payload, token) {
+  try {
+    const body = {
+      nombreAptitud: payload.nombre,
+      descripcion: payload.descripcion || '',
+    };
+    console.log('[updateSkill] Payload being sent:', body);
+
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.put(
+      `/api/v1/admin/catalog/aptitudes/${id}`,
+      body,
+      { headers }
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function deactivateSkill(id, nombre, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.delete(`/api/v1/admin/catalog/aptitudes/${id}`, {
+      headers,
     });
     return data;
   } catch (error) {

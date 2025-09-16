@@ -6,13 +6,13 @@ import { Input } from '../../components/ui/Input';
 import {
   listAdminUsers,
   createAdminUser,
-  updateAdminUser,
+  updateUser,
   deactivateAdminUser,
-  listGroups,
+  listGroupsCatalog,
   listUserStates,
   userGroups,
-  blockAdminUser,
-  unblockAdminUser,
+  listGenders,
+  listLocalities,
 } from '../../services/admin';
 
 type UserItem = {
@@ -25,11 +25,13 @@ type UserItem = {
   idGrupo?: number | string | null;
   idEstadoUsuario?: number | string | null;
   estadoNombre?: string | null;
+  estado?: string | null;
   fechaFin?: string | null;
   groups?: Array<{ id: number | string; nombre: string }>;
 };
 
 export default function UsuariosPage() {
+  const token = localStorage.getItem('token');
   const [items, setItems] = React.useState<UserItem[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -39,11 +41,19 @@ export default function UsuariosPage() {
   const [nombre, setNombre] = React.useState('');
   const [apellido, setApellido] = React.useState('');
   const [email, setEmail] = React.useState('');
+  const [dni, setDni] = React.useState('');
+  const [fechaNac, setFechaNac] = React.useState('');
   const [rol, setRol] = React.useState('Usuario');
   const [groups, setGroups] = React.useState<
     Array<{ id: number | string; nombre: string }>
   >([]);
   const [states, setStates] = React.useState<
+    Array<{ id: number | string; nombre: string }>
+  >([]);
+  const [genders, setGenders] = React.useState<
+    Array<{ id: number | string; nombre: string }>
+  >([]);
+  const [localities, setLocalities] = React.useState<
     Array<{ id: number | string; nombre: string }>
   >([]);
   const [selectedGroup, setSelectedGroup] = React.useState<
@@ -55,16 +65,22 @@ export default function UsuariosPage() {
   const [selectedState, setSelectedState] = React.useState<
     number | string | null
   >(null);
+  const [selectedGender, setSelectedGender] = React.useState<
+    number | string | null
+  >(null);
+  const [selectedLocality, setSelectedLocality] = React.useState<
+    number | string | null
+  >(null);
   // no password required for admin-created users per API
 
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      const data = await listAdminUsers();
+      const data = await listAdminUsers({}, token || undefined);
       const users = Array.isArray(data) ? (data as UserItem[]) : [];
       // fetch groups for each user in parallel and attach normalized groups
       try {
-        const promises = users.map(u => userGroups(u.id));
+        const promises = users.map(u => userGroups(u.id, token || undefined));
         const results = await Promise.all(promises);
         const toObj = (v: unknown): Record<string, unknown> =>
           v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
@@ -97,24 +113,52 @@ export default function UsuariosPage() {
       }
       // also load groups and states
       try {
-        const g = await listGroups();
-        setGroups(Array.isArray(g) ? g : []);
-      } catch {
+        const g = await listGroupsCatalog(
+          { includeInactive: 1 },
+          token || undefined
+        );
+        console.log('[UsuariosPage] Groups loaded:', g);
+
+        // Map GroupCatalogDTO to expected format
+        const mappedGroups = Array.isArray(g)
+          ? g.map(group => ({
+              id: group.id,
+              nombre: group.nombreGrupo,
+            }))
+          : [];
+
+        setGroups(mappedGroups);
+      } catch (error) {
+        console.error('[UsuariosPage] Error loading groups:', error);
         setGroups([]);
       }
 
       try {
-        const s = await listUserStates();
+        const s = await listUserStates({}, token || undefined);
         setStates(Array.isArray(s) ? s : []);
       } catch {
         setStates([]);
+      }
+
+      try {
+        const g = await listGenders({}, token || undefined);
+        setGenders(Array.isArray(g) ? g : []);
+      } catch {
+        setGenders([]);
+      }
+
+      try {
+        const l = await listLocalities({}, token || undefined);
+        setLocalities(Array.isArray(l) ? l : []);
+      } catch {
+        setLocalities([]);
       }
     } catch {
       setError('No se pudieron cargar los usuarios');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [token]);
 
   React.useEffect(() => {
     load();
@@ -125,59 +169,100 @@ export default function UsuariosPage() {
     setNombre('');
     setApellido('');
     setEmail('');
+    setDni('');
+    setFechaNac('');
     setRol('Usuario');
     setSelectedGroup(null);
     setSelectedGroups([]);
     setSelectedState(null);
+    setSelectedGender(null);
+    setSelectedLocality(null);
     setShowModal(true);
   };
 
   const openEdit = (it: UserItem) => {
+    console.log('[UsuariosPage] Opening edit for user:', it);
+    console.log('[UsuariosPage] Available groups:', groups);
+    console.log('[UsuariosPage] User groups:', it.groups);
+
     setEditing(it);
     setNombre(it.nombre || '');
     setApellido(it.apellido || '');
     setEmail(it.email || '');
+    setDni(''); // DNI no se edita en modo edición
+    setFechaNac(''); // Fecha de nacimiento no se edita en modo edición
     setRol(it.rol || 'Usuario');
     setSelectedGroup(it.idGrupo ?? null);
     // preselect groups if available
     setSelectedGroups((it.groups || []).map(g => g.id));
     setSelectedState(it.idEstadoUsuario ?? null);
+    setSelectedGender(null); // Género no se edita en modo edición
+    setSelectedLocality(null); // Localidad no se edita en modo edición
     setShowModal(true);
   };
 
   const save = async () => {
     setError(null);
     try {
+      if (!selectedState) {
+        setError('Debe seleccionar un estado');
+        return;
+      }
       if (editing) {
-        const body: {
-          nombre: string;
-          apellido?: string;
-          rol?: string;
-          idGrupo?: number | string | null;
-          idGrupos?: Array<number | string>;
-          idEstadoUsuario?: number | string | null;
-        } = {
-          nombre,
-          apellido,
-          rol,
-          idGrupo:
-            selectedGroups.length > 0 ? selectedGroups[0] : selectedGroup,
-          idGrupos: selectedGroups,
-          idEstadoUsuario: selectedState,
-        };
-        await updateAdminUser(editing.id, body);
-      } else {
-        await createAdminUser({
+        await updateUser(editing.id, {
           nombre,
           apellido,
           email,
-          rol,
-          idGrupo:
-            selectedGroups.length > 0 ? selectedGroups[0] : selectedGroup,
-          idGrupos: selectedGroups,
+          grupos:
+            selectedGroups.length > 0
+              ? selectedGroups
+              : selectedGroup
+                ? [selectedGroup]
+                : [],
+          idEstado: selectedState,
           idEstadoUsuario: selectedState,
+          idGrupos: selectedGroups,
+          idGrupo: selectedGroup,
           estadoInicial: selectedState,
         });
+      } else {
+        // Validaciones adicionales para creación
+        if (!selectedGender) {
+          setError('Debe seleccionar un género');
+          return;
+        }
+        if (!selectedLocality) {
+          setError('Debe seleccionar una localidad');
+          return;
+        }
+        if (!dni.trim()) {
+          setError('Debe ingresar el DNI');
+          return;
+        }
+        if (!fechaNac) {
+          setError('Debe ingresar la fecha de nacimiento');
+          return;
+        }
+
+        await createAdminUser(
+          {
+            nombre,
+            apellido,
+            email,
+            correo: email,
+            dni,
+            fechaNac,
+            idGenero: selectedGender,
+            idLocalidad: selectedLocality,
+            estadoInicial: selectedState,
+            rol,
+            idGrupo:
+              selectedGroups.length > 0 ? selectedGroups[0] : selectedGroup,
+            idGrupos: selectedGroups,
+            idEstadoUsuario: selectedState,
+          },
+          token || undefined
+        );
       }
       setShowModal(false);
       load();
@@ -189,7 +274,7 @@ export default function UsuariosPage() {
   const remove = async (id: string | number, nombre?: string) => {
     setError(null);
     try {
-      await deactivateAdminUser(id, nombre);
+      await deactivateAdminUser(id, nombre, token || undefined);
       load();
     } catch {
       setError('No se pudo eliminar');
@@ -212,7 +297,8 @@ export default function UsuariosPage() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>Nombre y apellido</th>
+              <th>Nombre</th>
+              <th>Apellido</th>
               <th>Email</th>
               <th>Rol</th>
               <th>Estado</th>
@@ -223,6 +309,7 @@ export default function UsuariosPage() {
             {items.map(u => (
               <tr key={u.id}>
                 <td>{u.nombre}</td>
+                <td>{u.apellido}</td>
                 <td>{u.email}</td>
                 <td>
                   {u.groups && u.groups.length > 0
@@ -230,77 +317,36 @@ export default function UsuariosPage() {
                     : u.rol}
                 </td>
                 <td>
-                  {(() => {
-                    const rec = u as unknown as Record<string, unknown>;
-                    const f =
-                      rec['fechaFin'] ??
-                      rec['fecha_fin'] ??
-                      rec['fechaBaja'] ??
-                      rec['fecha_baja'] ??
-                      rec['endDate'] ??
-                      rec['end_date'] ??
-                      null;
-                    if (f && String(f).trim() !== '') return 'Baja';
-                    // blocked if activo === false
-                    if (u.activo === false) return 'Bloqueado';
-                    return 'Activo';
-                  })()}
+                  {u.estado ??
+                    u.estadoNombre ??
+                    (() => {
+                      const rec = u as unknown as Record<string, unknown>;
+                      const f =
+                        rec['fechaFin'] ??
+                        rec['fecha_fin'] ??
+                        rec['fechaBaja'] ??
+                        rec['fecha_baja'] ??
+                        rec['endDate'] ??
+                        rec['end_date'] ??
+                        null;
+                      if (f && String(f).trim() !== '') return 'Baja';
+                      if (u.activo === false) return 'Bloqueado';
+                      return 'Activo';
+                    })()}
                 </td>
                 <td>
                   <div className={styles.actions}>
                     <Button variant='outline' onClick={() => openEdit(u)}>
                       ✏️
                     </Button>
-                    <Button onClick={() => remove(u.id, u.nombre)}>🗑️</Button>
-                    {/* Determine blocked state more reliably: prefer explicit idEstadoUsuario or activo flag */}
-                    {(() => {
-                      // Backend mapping:
-                      // idEstadoUsuario === '1' => activo (desbloqueado) -> show closed padlock (🔒) to block
-                      // idEstadoUsuario === '2' => suspendido (bloqueado) -> show open padlock (🔓) to unblock
-                      const state =
-                        typeof u.idEstadoUsuario !== 'undefined' &&
-                        u.idEstadoUsuario !== null
-                          ? String(u.idEstadoUsuario)
-                          : u.activo === false
-                            ? '2'
-                            : '1';
-
-                      if (state === '1') {
-                        // user is active; show closed padlock to perform block
-                        return (
-                          <Button
-                            variant='outline'
-                            onClick={async () => {
-                              try {
-                                await blockAdminUser(u.id);
-                                load();
-                              } catch {
-                                setError('No se pudo bloquear al usuario');
-                              }
-                            }}
-                          >
-                            🔒
-                          </Button>
-                        );
+                    <Button
+                      onClick={() =>
+                        remove(u.id, `${u.nombre} ${u.apellido}`.trim())
                       }
-
-                      // state === '2' -> suspended: show open padlock to unblock
-                      return (
-                        <Button
-                          variant='outline'
-                          onClick={async () => {
-                            try {
-                              await unblockAdminUser(u.id);
-                              load();
-                            } catch {
-                              setError('No se pudo desbloquear al usuario');
-                            }
-                          }}
-                        >
-                          🔓
-                        </Button>
-                      );
-                    })()}
+                    >
+                      🗑️
+                    </Button>
+                    {/* Botones de bloquear/desbloquear eliminados según nueva API */}
                   </div>
                 </td>
               </tr>
@@ -313,12 +359,20 @@ export default function UsuariosPage() {
         <div className={styles.modalBackdrop}>
           <div className={styles.modal}>
             <h3>{editing ? `Editar usuario` : `Agregar usuario`}</h3>
-            <Input
-              label='Nombre y apellido'
-              fullWidth
-              value={nombre}
-              onChange={e => setNombre(e.target.value)}
-            />
+            <div style={{ display: 'flex', gap: 12 }}>
+              <Input
+                label='Nombre'
+                fullWidth
+                value={nombre}
+                onChange={e => setNombre(e.target.value)}
+              />
+              <Input
+                label='Apellido'
+                fullWidth
+                value={apellido}
+                onChange={e => setApellido(e.target.value)}
+              />
+            </div>
             <Input
               label='Email'
               fullWidth
@@ -326,6 +380,76 @@ export default function UsuariosPage() {
               onChange={e => setEmail(e.target.value)}
               disabled={!!editing}
             />
+
+            {!editing && (
+              <>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <Input
+                    label='DNI'
+                    fullWidth
+                    value={dni}
+                    onChange={e => setDni(e.target.value)}
+                  />
+                  <Input
+                    label='Fecha de Nacimiento'
+                    type='date'
+                    fullWidth
+                    value={fechaNac}
+                    onChange={e => setFechaNac(e.target.value)}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', marginBottom: 6 }}>
+                      Género *
+                    </label>
+                    <select
+                      value={selectedGender ?? ''}
+                      onChange={e => setSelectedGender(e.target.value || null)}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        borderRadius: 6,
+                        border: '1px solid #e6e6e6',
+                      }}
+                    >
+                      <option value=''>Seleccione género</option>
+                      {genders.map(g => (
+                        <option key={String(g.id)} value={String(g.id)}>
+                          {g.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', marginBottom: 6 }}>
+                      Localidad *
+                    </label>
+                    <select
+                      value={selectedLocality ?? ''}
+                      onChange={e =>
+                        setSelectedLocality(e.target.value || null)
+                      }
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        borderRadius: 6,
+                        border: '1px solid #e6e6e6',
+                      }}
+                    >
+                      <option value=''>Seleccione localidad</option>
+                      {localities.map(l => (
+                        <option key={String(l.id)} value={String(l.id)}>
+                          {l.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
             <label style={{ display: 'block', marginTop: 12 }}>Grupos</label>
             <div
               style={{
@@ -335,33 +459,39 @@ export default function UsuariosPage() {
                 marginTop: 6,
               }}
             >
-              {groups.map(g => {
-                const gid = String(g.id);
-                const checked = selectedGroups.map(String).includes(gid);
-                return (
-                  <label
-                    key={gid}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <input
-                      type='checkbox'
-                      checked={checked}
-                      onChange={() => {
-                        setSelectedGroups(prev =>
-                          prev.map(String).includes(gid)
-                            ? prev.filter(p => String(p) !== gid)
-                            : [...prev, g.id]
-                        );
-                      }}
-                    />
-                    {g.nombre}
-                  </label>
-                );
-              })}
+              {groups.length === 0 ? (
+                <div style={{ color: '#666', fontStyle: 'italic' }}>
+                  Cargando grupos...
+                </div>
+              ) : (
+                groups.map(g => {
+                  const gid = String(g.id);
+                  const checked = selectedGroups.map(String).includes(gid);
+                  return (
+                    <label
+                      key={gid}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <input
+                        type='checkbox'
+                        checked={checked}
+                        onChange={() => {
+                          setSelectedGroups(prev =>
+                            prev.map(String).includes(gid)
+                              ? prev.filter(p => String(p) !== gid)
+                              : [...prev, g.id]
+                          );
+                        }}
+                      />
+                      {g.nombre}
+                    </label>
+                  );
+                })
+              )}
             </div>
 
             <label style={{ display: 'block', marginTop: 12 }}>
-              Estado inicial
+              Estado del usuario
             </label>
             <select
               value={selectedState ?? ''}
@@ -374,13 +504,20 @@ export default function UsuariosPage() {
                 marginTop: 6,
               }}
             >
-              <option value=''>Activo</option>
+              {selectedState == null && (
+                <option value=''>Seleccione estado</option>
+              )}
               {states.map(s => (
                 <option key={String(s.id)} value={String(s.id)}>
                   {s.nombre}
                 </option>
               ))}
             </select>
+            {!selectedState && (
+              <div style={{ color: '#c00', fontSize: 12, marginTop: 4 }}>
+                Seleccione un estado obligatorio
+              </div>
+            )}
 
             {/* no password field required for admin-created users */}
 
@@ -388,7 +525,20 @@ export default function UsuariosPage() {
               <Button variant='outline' onClick={() => setShowModal(false)}>
                 Cancelar
               </Button>
-              <Button onClick={save} disabled={!nombre.trim() || !email.trim()}>
+              <Button
+                onClick={save}
+                disabled={
+                  !nombre.trim() ||
+                  !apellido.trim() ||
+                  !email.trim() ||
+                  !selectedState ||
+                  (!editing &&
+                    (!dni.trim() ||
+                      !fechaNac ||
+                      !selectedGender ||
+                      !selectedLocality))
+                }
+              >
                 Guardar
               </Button>
             </div>

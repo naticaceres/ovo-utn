@@ -54,23 +54,3 @@ export async function deleteCatalog(resource, id) {
     throw error.response ? error.response.data : error;
   }
 }
-
-export async function blockUser(id) {
-  try {
-    const { data } = await api.post(`/api/v1/admin/catalog/users/${id}/block`);
-    return data;
-  } catch (error) {
-    throw error.response ? error.response.data : error;
-  }
-}
-
-export async function unblockUser(id) {
-  try {
-    const { data } = await api.post(
-      `/api/v1/admin/catalog/users/${id}/unblock`
-    );
-    return data;
-  } catch (error) {
-    throw error.response ? error.response.data : error;
-  }
-}

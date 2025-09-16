@@ -101,7 +101,6 @@ export default function AdminCrud({
           <thead>
             <tr>
               <th>Nombre</th>
-              <th>Estado</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -109,21 +108,6 @@ export default function AdminCrud({
             {items.map(it => (
               <tr key={it.id}>
                 <td>{it.nombre}</td>
-                <td>
-                  {(() => {
-                    const rec = it as unknown as Record<string, unknown>;
-                    const f =
-                      rec['fechaFin'] ??
-                      rec['fecha_fin'] ??
-                      rec['fechaBaja'] ??
-                      rec['fecha_baja'] ??
-                      rec['endDate'] ??
-                      rec['end_date'] ??
-                      null;
-                    if (f && String(f).trim() !== '') return 'Baja';
-                    return it.activo ? 'Activo' : 'Inactivo';
-                  })()}
-                </td>
                 <td>
                   <div className={styles.actions}>
                     <Button variant='outline' onClick={() => openEdit(it)}>

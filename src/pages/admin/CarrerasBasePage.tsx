@@ -16,9 +16,11 @@ type Item = {
   nombre: string;
   activo?: boolean;
   idTipoCarrera?: number | string | null;
+  fechaFin?: string | null;
 };
 
 export default function CarrerasBasePage() {
+  const token = localStorage.getItem('token');
   const [items, setItems] = React.useState<Item[]>([]);
   const [types, setTypes] = React.useState<
     Array<{ id: number | string; nombre: string }>
@@ -31,38 +33,45 @@ export default function CarrerasBasePage() {
   const [selectedType, setSelectedType] = React.useState<number | string | ''>(
     ''
   );
+  const [fechaFin, setFechaFin] = React.useState<string>('');
 
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      const data = await listCareersBase();
+      const data = await listCareersBase({}, token || undefined);
       setItems(Array.isArray(data) ? data : []);
     } catch {
       setError('No se pudieron cargar las carreras');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [token]);
 
   const loadTypes = React.useCallback(async () => {
     try {
-      const data = await listCareerTypes();
-      // assume data is an array or wrapped; keep simple and safe
-      const toObj = (v: unknown): Record<string, unknown> =>
-        v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
-      const raw = Array.isArray(data)
-        ? data
-        : (toObj(data)['careerTypes'] ?? data);
-      const rawArr = Array.isArray(raw) ? raw : [];
-      const normalized = (rawArr || []).map((t: Record<string, unknown>) => ({
-        id: (t['id'] ?? t['idTipoCarrera'] ?? t['_id']) as string | number,
-        nombre: (t['nombre'] ?? t['nombreTipo'] ?? t['title'] ?? '') as string,
-      }));
-      setTypes(normalized);
-    } catch {
-      // ignore; types dropdown will be empty
+      const data = await listCareerTypes(
+        { includeInactive: 1 },
+        token || undefined
+      );
+      console.log('[CarrerasBasePage] Career types data:', data);
+
+      // The listCareerTypes function now returns normalized data
+      if (Array.isArray(data)) {
+        setTypes(
+          data.map(item => ({
+            id: item.id,
+            nombre: item.nombre,
+          }))
+        );
+      } else {
+        console.warn('[CarrerasBasePage] Expected array, got:', data);
+        setTypes([]);
+      }
+    } catch (error) {
+      console.error('[CarrerasBasePage] Error loading career types:', error);
+      setTypes([]);
     }
-  }, []);
+  }, [token]);
 
   React.useEffect(() => {
     load();
@@ -73,6 +82,7 @@ export default function CarrerasBasePage() {
     setEditing(null);
     setName('');
     setSelectedType('');
+    setFechaFin('');
     setShowModal(true);
   };
 
@@ -80,19 +90,32 @@ export default function CarrerasBasePage() {
     setEditing(it);
     setName(it.nombre || '');
     setSelectedType(it.idTipoCarrera ?? '');
+
+    // Handle fechaFin: if it's "NULL" or empty, set to empty string for the date input
+    if (it.fechaFin && it.fechaFin !== 'NULL') {
+      setFechaFin(it.fechaFin.split('T')[0]); // Convert to YYYY-MM-DD format for input
+    } else {
+      setFechaFin('');
+    }
+
     setShowModal(true);
   };
 
   const save = async () => {
     setError(null);
     try {
+      const payload = {
+        nombre: name,
+        idTipoCarrera: selectedType,
+        fechaFin: fechaFin, // Send the value as is: date, "NULL", or empty string
+      };
+
+      console.log('[CarrerasBasePage] Saving with payload:', payload);
+
       if (editing) {
-        await updateCareerBase(editing.id, {
-          nombre: name,
-          idTipoCarrera: selectedType,
-        });
+        await updateCareerBase(editing.id, payload, token || undefined);
       } else {
-        await createCareerBase({ nombre: name, idTipoCarrera: selectedType });
+        await createCareerBase(payload, token || undefined);
       }
       setShowModal(false);
       load();
@@ -104,7 +127,7 @@ export default function CarrerasBasePage() {
   const remove = async (id: number | string, nombre?: string) => {
     setError(null);
     try {
-      await deactivateCareerBase(id, nombre || '');
+      await deactivateCareerBase(id, nombre || '', token || undefined);
       load();
     } catch {
       setError('No se pudo eliminar');
@@ -142,17 +165,22 @@ export default function CarrerasBasePage() {
                 </td>
                 <td>
                   {(() => {
-                    const rec = it as unknown as Record<string, unknown>;
-                    const f =
-                      rec['fechaFin'] ??
-                      rec['fecha_fin'] ??
-                      rec['fechaBaja'] ??
-                      rec['fecha_baja'] ??
-                      rec['endDate'] ??
-                      rec['end_date'] ??
-                      null;
-                    if (f && String(f).trim() !== '') return 'Baja';
-                    return it.activo ? 'Activo' : 'Inactivo';
+                    // Check if career has an end date (fechaFin)
+                    const fechaFin = it.fechaFin;
+                    if (
+                      fechaFin &&
+                      fechaFin.trim() !== '' &&
+                      fechaFin !== 'NULL'
+                    ) {
+                      const endDate = new Date(fechaFin);
+                      const now = new Date();
+                      if (endDate <= now) {
+                        return `Baja (${endDate.toLocaleDateString()})`;
+                      } else {
+                        return `Programada baja (${endDate.toLocaleDateString()})`;
+                      }
+                    }
+                    return it.activo !== false ? 'Activo' : 'Inactivo';
                   })()}
                 </td>
                 <td>
@@ -172,7 +200,22 @@ export default function CarrerasBasePage() {
       {showModal && (
         <div className={styles.modalBackdrop}>
           <div className={styles.modal}>
-            <h3>{editing ? `Editar carrera` : `Agregar carrera`}</h3>
+            <h3>
+              {editing ? `Editar carrera` : `Agregar carrera`}
+              {editing && editing.fechaFin && (
+                <span
+                  style={{
+                    fontSize: '14px',
+                    color: '#e74c3c',
+                    fontWeight: 'normal',
+                    display: 'block',
+                    marginTop: '4px',
+                  }}
+                >
+                  ⚠️ Esta carrera tiene fecha de baja programada
+                </span>
+              )}
+            </h3>
             <Input
               label='Nombre'
               fullWidth
@@ -193,6 +236,62 @@ export default function CarrerasBasePage() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <label>Fecha de baja (opcional)</label>
+              <div
+                style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}
+              >
+                <input
+                  type='date'
+                  value={fechaFin === 'NULL' ? '' : fechaFin}
+                  onChange={e => setFechaFin(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: 8,
+                    marginTop: 6,
+                    backgroundColor: fechaFin === 'NULL' ? '#f8f9fa' : 'white',
+                  }}
+                  placeholder='Seleccionar fecha de baja'
+                />
+                <Button
+                  variant='outline'
+                  onClick={() => setFechaFin('NULL')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    height: 'fit-content',
+                    marginTop: 6,
+                  }}
+                >
+                  Cancelar baja
+                </Button>
+              </div>
+              <small
+                style={{
+                  color: '#666',
+                  fontSize: '12px',
+                  marginTop: 4,
+                  display: 'block',
+                }}
+              >
+                {fechaFin === 'NULL' ? (
+                  <span style={{ color: '#28a745', fontWeight: 'bold' }}>
+                    ✓ Baja cancelada - La carrera volverá a estar activa
+                  </span>
+                ) : (
+                  <>
+                    Si se especifica una fecha, la carrera se marcará como
+                    inactiva desde esa fecha.
+                    {fechaFin && fechaFin !== 'NULL' && (
+                      <span style={{ color: '#e74c3c', fontWeight: 'bold' }}>
+                        {' '}
+                        Usa "Cancelar baja" para reactivar la carrera.
+                      </span>
+                    )}
+                  </>
+                )}
+              </small>
             </div>
             <div className={styles.modalActions}>
               <Button variant='outline' onClick={() => setShowModal(false)}>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login as loginService } from '../../services/login';
-import { setAuthToken } from '../../context/api';
+import { setAuthToken, getApiErrorMessage } from '../../context/api';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
@@ -93,10 +93,7 @@ export function LoginPage() {
         navigate('/app/questionnaire');
       }
     } catch (err) {
-      setError(
-        'Error al iniciar sesión' +
-          (err instanceof Error ? `: ${err.message}` : '')
-      );
+      setError(getApiErrorMessage(err));
     } finally {
       setIsLoading(false);
     }

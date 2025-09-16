@@ -14,10 +14,10 @@ type Perm = {
   id: number | string;
   nombre: string;
   descripcion?: string;
-  activo?: boolean;
 };
 
 export default function PermisosPage() {
+  const token = localStorage.getItem('token');
   const [items, setItems] = React.useState<Perm[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -30,7 +30,7 @@ export default function PermisosPage() {
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      const data = await listPermissions();
+      const data = await listPermissions({}, token || undefined);
       // API may return an array or an object like { permissions: [...] } or { catalogPermissions: [...] }
       const raw = data as unknown as Record<string, unknown>;
       let arr: unknown[] = [];
@@ -52,28 +52,11 @@ export default function PermisosPage() {
           const idVal = obj['id'] ?? obj['idPermiso'] ?? obj['_id'] ?? '';
           const nombreVal = obj['nombrePermiso'] ?? obj['nombre'] ?? '';
           const descripcionVal = obj['descripcion'] ?? obj['description'] ?? '';
-          const activoVal =
-            typeof obj['activo'] !== 'undefined'
-              ? Boolean(obj['activo'])
-              : true;
-          const fechaFin = (obj['fechaFin'] ??
-            obj['fecha_fin'] ??
-            obj['fechaBaja'] ??
-            obj['fecha_baja'] ??
-            obj['fechaHasta'] ??
-            obj['fecha_hasta'] ??
-            obj['endDate'] ??
-            obj['end_date'] ??
-            '') as string;
-          const activo =
-            fechaFin && String(fechaFin).trim() !== '' ? false : activoVal;
           return {
             id: idVal as string,
             nombre: nombreVal as string,
             descripcion: descripcionVal as string,
-            activo: activo,
-            fechaFin: fechaFin,
-          } as Perm & { fechaFin?: string };
+          } as Perm;
         })
       );
     } catch {
@@ -81,7 +64,7 @@ export default function PermisosPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [token]);
 
   React.useEffect(() => {
     load();
@@ -122,7 +105,7 @@ export default function PermisosPage() {
   const remove = async (id: number | string, nombre?: string) => {
     setError(null);
     try {
-      await deactivatePermission(id, nombre);
+      await deactivatePermission(id, nombre, token || undefined);
       load();
     } catch {
       setError('No se pudo eliminar');
@@ -147,7 +130,6 @@ export default function PermisosPage() {
             <tr>
               <th>Nombre</th>
               <th>Descripción</th>
-              <th>Estado</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -156,23 +138,6 @@ export default function PermisosPage() {
               <tr key={it.id}>
                 <td>{it.nombre}</td>
                 <td>{it.descripcion}</td>
-                <td>
-                  {(() => {
-                    const rec = it as unknown as Record<string, unknown>;
-                    const f =
-                      rec['fechaFin'] ??
-                      rec['fecha_fin'] ??
-                      rec['fechaBaja'] ??
-                      rec['fecha_baja'] ??
-                      rec['fechaHasta'] ??
-                      rec['fecha_hasta'] ??
-                      rec['endDate'] ??
-                      rec['end_date'] ??
-                      '';
-                    if (f && String(f).trim() !== '') return 'Baja';
-                    return it.activo ? 'Activo' : 'Inactivo';
-                  })()}
-                </td>
                 <td>
                   <div className={styles.actions}>
                     <Button variant='outline' onClick={() => openEdit(it)}>

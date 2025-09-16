@@ -7,8 +7,7 @@ import {
   listAdminUsers,
   userPermissions,
   listPermissions,
-  addUserPermission,
-  removeUserPermission,
+  updateUserPermissions,
 } from '../../services/admin';
 
 type UserItem = {
@@ -28,25 +27,31 @@ type PermDTO = {
 };
 
 export default function UserPermissionsPage() {
+  const token = localStorage.getItem('token');
   const [users, setUsers] = React.useState<UserItem[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const [viewingUser, setViewingUser] = React.useState<UserItem | null>(null);
-  const [userPerms, setUserPerms] = React.useState<PermDTO[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_, setUserPerms] = React.useState<PermDTO[]>([]); // Used to initialize selectedPerms
+  const [selectedPerms, setSelectedPerms] = React.useState<
+    Set<string | number>
+  >(new Set());
   const [allPerms, setAllPerms] = React.useState<PermDTO[]>([]);
   const [search, setSearch] = React.useState('');
+  const [saving, setSaving] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await listAdminUsers();
+      const data = await listAdminUsers({}, token || undefined);
       const arr = Array.isArray(data) ? data : [];
       setUsers(arr);
       // preload permissions catalog
       try {
-        const perms = await listPermissions();
+        const perms = await listPermissions({}, token || undefined);
         const pArr = Array.isArray(perms) ? perms : [];
         setAllPerms(pArr as PermDTO[]);
       } catch {
@@ -57,7 +62,7 @@ export default function UserPermissionsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [token]);
 
   React.useEffect(() => {
     load();
@@ -66,8 +71,9 @@ export default function UserPermissionsPage() {
   const openView = async (u: UserItem) => {
     setViewingUser(u);
     setUserPerms([]);
+    setSelectedPerms(new Set());
     try {
-      const data = await userPermissions(u.id);
+      const data = await userPermissions(u.id, token || undefined);
       // normalize possible wrapped responses
       const arr = ((): PermDTO[] => {
         if (Array.isArray(data)) return data as PermDTO[];
@@ -78,24 +84,43 @@ export default function UserPermissionsPage() {
         return [];
       })();
       setUserPerms(arr);
+
+      // Initialize selected permissions with current user permissions
+      const currentPermIds = arr
+        .map(p => p.id ?? p.idPermiso ?? p._id)
+        .filter(id => id !== undefined);
+      setSelectedPerms(new Set(currentPermIds));
     } catch {
       setUserPerms([]);
       setError('No se pudieron cargar los permisos del usuario');
     }
   };
 
-  const togglePermission = async (permId: number | string) => {
+  const togglePermission = (permId: number | string) => {
+    const newSelected = new Set(selectedPerms);
+    if (newSelected.has(permId)) {
+      newSelected.delete(permId);
+    } else {
+      newSelected.add(permId);
+    }
+    setSelectedPerms(newSelected);
+  };
+
+  const savePermissions = async () => {
     if (!viewingUser) return;
+    setSaving(true);
     setError(null);
-    const has = userPerms.find(p => (p.id ?? p.idPermiso ?? p._id) === permId);
+
     try {
-      if (has) {
-        await removeUserPermission(viewingUser.id, permId);
-      } else {
-        await addUserPermission(viewingUser.id, permId);
-      }
-      // refresh list
-      const data = await userPermissions(viewingUser.id);
+      const permissionsArray = Array.from(selectedPerms);
+      await updateUserPermissions(
+        viewingUser.id,
+        permissionsArray,
+        token || undefined
+      );
+
+      // Refresh the user permissions after successful save
+      const data = await userPermissions(viewingUser.id, token || undefined);
       const arr = ((): PermDTO[] => {
         if (Array.isArray(data)) return data as PermDTO[];
         const asObj = data as unknown as Record<string, unknown>;
@@ -105,9 +130,19 @@ export default function UserPermissionsPage() {
         return [];
       })();
       setUserPerms(arr);
+
+      setViewingUser(null);
     } catch {
-      setError('No se pudo actualizar el permiso');
+      setError('No se pudieron guardar los permisos');
+    } finally {
+      setSaving(false);
     }
+  };
+
+  const cancelEdit = () => {
+    setViewingUser(null);
+    setSelectedPerms(new Set());
+    setError(null);
   };
 
   const filteredUsers = users.filter(u => {
@@ -127,7 +162,7 @@ export default function UserPermissionsPage() {
   });
 
   const userHas = (permId: number | string) => {
-    return userPerms.some(p => (p.id ?? p.idPermiso ?? p._id) === permId);
+    return selectedPerms.has(permId);
   };
 
   return (
@@ -214,10 +249,12 @@ export default function UserPermissionsPage() {
             </div>
 
             <div className={styles.modalActions}>
-              <Button variant='outline' onClick={() => setViewingUser(null)}>
+              <Button variant='outline' onClick={cancelEdit}>
                 Cancelar
               </Button>
-              <Button onClick={() => setViewingUser(null)}>Cerrar</Button>
+              <Button onClick={savePermissions} disabled={saving}>
+                {saving ? 'Guardando...' : 'Guardar'}
+              </Button>
             </div>
           </div>
         </div>

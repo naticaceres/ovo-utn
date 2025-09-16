@@ -3,7 +3,14 @@ import { BackButton } from '../../components/ui/BackButton';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import styles from './AccessHistoryPage.module.css';
-import { accessHistory, exportAccessHistory } from '../../services/admin';
+import {
+  accessHistory,
+  exportAccessHistoryFile,
+  listUsers,
+} from '../../services/admin';
+import { getApiErrorMessage } from '../../context/api';
+import { useToast } from '../../components/ui/toast/useToast';
+import type { BasicUserDTO } from '../../services/admin';
 
 type Entry = {
   fechaHora?: string;
@@ -13,7 +20,17 @@ type Entry = {
   estado?: string;
 };
 
+type SimpleUser = {
+  id: number | string;
+  nombre?: string;
+  apellido?: string;
+  mail?: string;
+  email?: string;
+  nombreCompleto?: string;
+};
+
 export default function AccessHistoryPage() {
+  const { showToast } = useToast();
   const [from, setFrom] = React.useState('');
   const [to, setTo] = React.useState('');
   const [userId, setUserId] = React.useState('');
@@ -22,7 +39,37 @@ export default function AccessHistoryPage() {
 
   const [loading, setLoading] = React.useState(false);
   const [rows, setRows] = React.useState<Entry[]>([]);
+
   const [error, setError] = React.useState<string | null>(null);
+
+  // listado de usuarios para el select
+  const [users, setUsers] = React.useState<SimpleUser[]>([]);
+  const [usersLoading, setUsersLoading] = React.useState(false);
+  const [usersError, setUsersError] = React.useState<string | null>(null);
+
+  const loadUsers = React.useCallback(async () => {
+    setUsersLoading(true);
+    setUsersError(null);
+    try {
+      const data = await listUsers();
+      const raw: BasicUserDTO[] = Array.isArray(data) ? data : [];
+      const mapped: SimpleUser[] = raw.map(u => ({
+        id: u.id,
+        nombre: u.nombre,
+        apellido: u.apellido,
+        mail: u.mail || u.email,
+        nombreCompleto: `${u.nombre || ''} ${u.apellido || ''}`.trim(),
+      }));
+      setUsers(mapped);
+    } catch (err) {
+      const msg = getApiErrorMessage(err) || 'No se pudieron cargar usuarios';
+      setUsersError(msg);
+      showToast(msg, { variant: 'error' });
+      setUsers([]);
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [showToast]);
 
   const fetch = React.useCallback(async () => {
     setLoading(true);
@@ -43,17 +90,19 @@ export default function AccessHistoryPage() {
         return [];
       })();
       setRows(raw);
-    } catch {
-      setError('No se pudo obtener el historial');
+    } catch (err) {
+      const msg = getApiErrorMessage(err) || 'No se pudo obtener el historial';
+      setError(msg);
+      showToast(msg, { variant: 'error' });
       setRows([]);
     } finally {
       setLoading(false);
     }
-  }, [from, to, userId, ip, estado]);
+  }, [from, to, userId, ip, estado, showToast]);
 
   React.useEffect(() => {
-    // optionally load a default range on mount
-  }, []);
+    loadUsers();
+  }, [loadUsers]);
 
   const onExport = async (format: 'pdf' | 'csv') => {
     try {
@@ -63,18 +112,12 @@ export default function AccessHistoryPage() {
       if (to) params.to = to;
       if (ip) params.ip = ip;
       if (estado) params.estado = estado;
-      const blob = await exportAccessHistory(params);
-      // exportAccessHistory returns a blob (responseType 'blob') according to service
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `access-history.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch {
-      setError('No se pudo exportar');
+      await exportAccessHistoryFile(params, 'access-history', format);
+      showToast('Exportación iniciada', { variant: 'success' });
+    } catch (err) {
+      const msg = getApiErrorMessage(err) || 'No se pudo exportar';
+      setError(msg);
+      showToast(msg, { variant: 'error' });
     }
   };
 
@@ -152,7 +195,9 @@ export default function AccessHistoryPage() {
       <div className={styles.header}>
         <h1>Historial de Accesos</h1>
         <div className={styles.toolbar}>
-          <Button onClick={() => fetch()}>Buscar</Button>
+          <Button onClick={() => fetch()} disabled={loading}>
+            Buscar
+          </Button>
         </div>
       </div>
 
@@ -169,29 +214,42 @@ export default function AccessHistoryPage() {
           value={to}
           onChange={e => setTo(e.target.value)}
         />
-        <Input
-          label='Usuario (id)'
-          placeholder='Buscar usuario'
-          value={userId}
-          onChange={e => setUserId(e.target.value)}
-        />
+        <div className={styles.fieldGroup}>
+          <label>Usuario</label>
+          <select
+            value={userId}
+            onChange={e => setUserId(e.target.value)}
+            className={styles.select}
+            disabled={usersLoading}
+          >
+            <option value=''>Todos</option>
+            {users.map(u => (
+              <option key={u.id} value={u.id}>
+                {u.nombreCompleto ||
+                  `${u.nombre || ''} ${u.apellido || ''}`.trim() ||
+                  u.mail ||
+                  u.email ||
+                  u.id}
+              </option>
+            ))}
+          </select>
+          {usersLoading && (
+            <div style={{ fontSize: 12 }}>Cargando usuarios...</div>
+          )}
+          {usersError && <div className={styles.error}>{usersError}</div>}
+        </div>
         <Input
           label='IP'
           placeholder='Buscar IP'
           value={ip}
           onChange={e => setIp(e.target.value)}
         />
-        <div>
-          <label style={{ display: 'block', marginBottom: 6 }}>Estado</label>
+        <div className={styles.fieldGroup}>
+          <label>Estado</label>
           <select
             value={estado}
             onChange={e => setEstado(e.target.value)}
-            style={{
-              width: '100%',
-              padding: 8,
-              borderRadius: 6,
-              border: '1px solid #e6e6e6',
-            }}
+            className={styles.select}
           >
             <option value=''>Todos</option>
             <option value='Exitoso'>Exitoso</option>

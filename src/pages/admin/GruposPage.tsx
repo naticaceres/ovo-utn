@@ -18,10 +18,10 @@ type Group = {
   permisos?: Array<
     number | string | { nombrePermiso?: string; nombre?: string }
   >;
-  activo?: boolean;
 };
 
 export default function GruposPage() {
+  const token = localStorage.getItem('token');
   const [items, setItems] = React.useState<Group[]>([]);
   const [perms, setPerms] = React.useState<
     Array<{ id: number | string; nombre: string }>
@@ -40,7 +40,10 @@ export default function GruposPage() {
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      const data = await listGroupsCatalog({ includeInactive: 1 });
+      const data = await listGroupsCatalog(
+        { includeInactive: 1 },
+        token || undefined
+      );
       const raw = data as unknown as Record<string, unknown>;
       const arr = Array.isArray(data)
         ? (data as unknown[])
@@ -50,28 +53,22 @@ export default function GruposPage() {
             ? (raw['data'] as unknown[])
             : [];
       setItems(
-        arr.map(g => {
+        arr.map((g, index) => {
           const obj = g as Record<string, unknown>;
-          // detect possible "fecha fin" fields coming from different backends
-          const fechaFin = (obj['fechaFin'] ??
-            obj['fecha_fin'] ??
-            obj['fechaBaja'] ??
-            obj['fecha_baja'] ??
-            obj['fechaHasta'] ??
-            obj['fecha_hasta'] ??
-            obj['endDate'] ??
-            obj['end_date'] ??
-            '') as string;
-          const activo =
-            // if fechaFin is present and non-empty, consider it deactivated (Baja)
-            fechaFin && String(fechaFin).trim() !== ''
-              ? false
-              : typeof obj['activo'] !== 'undefined'
-                ? Boolean(obj['activo'])
-                : true;
+          const id =
+            obj['id'] ??
+            obj['idGrupo'] ??
+            obj['groupId'] ??
+            obj['grupo_id'] ??
+            obj['_id'];
+
+          // Ensure we have a valid ID, otherwise log a warning and use index as fallback
+          if (!id && id !== 0) {
+            console.warn('[GruposPage] Group missing ID:', obj);
+          }
 
           return {
-            id: (obj['id'] ?? '') as number | string,
+            id: (id || `temp_${index}`) as number | string,
             nombreGrupo: (obj['nombreGrupo'] ??
               obj['nombre'] ??
               obj['label'] ??
@@ -82,15 +79,12 @@ export default function GruposPage() {
             permisos: (obj['permisos'] ?? obj['permissions'] ?? []) as Array<
               number | string | Record<string, unknown>
             >,
-            activo: activo,
-            // keep fechaFin for possible future use
-            fechaFin: fechaFin,
-          } as Group & { fechaFin?: string };
+          } as Group;
         })
       );
 
       // load permissions list for modal
-      const pData = await listPermissions();
+      const pData = await listPermissions({}, token || undefined);
       const rawP = pData as unknown as Record<string, unknown>;
       const parr = Array.isArray(pData)
         ? pData
@@ -113,7 +107,7 @@ export default function GruposPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [token]);
 
   React.useEffect(() => {
     load();
@@ -175,9 +169,25 @@ export default function GruposPage() {
       });
       let resp;
       if (editing) {
-        resp = await updateGroupCatalog(editing.id, body);
+        console.log(
+          '[GruposPage] Calling updateGroupCatalog with ID:',
+          editing.id,
+          'Type:',
+          typeof editing.id
+        );
+
+        // Validate that we have a proper ID
+        if (
+          !editing.id ||
+          editing.id === '' ||
+          editing.id.toString().startsWith('temp_')
+        ) {
+          throw new Error('No se puede editar un grupo sin ID válido');
+        }
+
+        resp = await updateGroupCatalog(editing.id, body, token || undefined);
       } else {
-        resp = await createGroupCatalog(body);
+        resp = await createGroupCatalog(body, token || undefined);
       }
       console.log('[GruposPage] save response:', resp);
       setShowModal(false);
@@ -196,7 +206,7 @@ export default function GruposPage() {
   const remove = async (id: number | string, nombreGrupo?: string) => {
     setError(null);
     try {
-      await deactivateGroupCatalog(id, nombreGrupo);
+      await deactivateGroupCatalog(id, nombreGrupo, token || undefined);
       load();
     } catch {
       setError('No se pudo eliminar');
@@ -222,7 +232,6 @@ export default function GruposPage() {
               <th>Nombre</th>
               <th>Descripción</th>
               <th>Permisos</th>
-              <th>Estado</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -237,23 +246,6 @@ export default function GruposPage() {
                       typeof p === 'object' ? (p.nombrePermiso ?? p.nombre) : p
                     )
                     .join(', ')}
-                </td>
-                <td>
-                  {(() => {
-                    const rec = it as unknown as Record<string, unknown>;
-                    const f =
-                      rec['fechaFin'] ??
-                      rec['fecha_fin'] ??
-                      rec['fechaBaja'] ??
-                      rec['fecha_baja'] ??
-                      rec['fechaHasta'] ??
-                      rec['fecha_hasta'] ??
-                      rec['endDate'] ??
-                      rec['end_date'] ??
-                      '';
-                    if (f && String(f).trim() !== '') return 'Baja';
-                    return it.activo ? 'Activo' : 'Inactivo';
-                  })()}
                 </td>
                 <td>
                   <div className={styles.actions}>

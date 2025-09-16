@@ -56,9 +56,9 @@ export default function CareerTypesPage() {
     setError(null);
     try {
       if (editing) {
-        await updateCareerType(editing.id, { nombre: name });
+        await updateCareerType(editing.id, { nombreTipoCarrera: name });
       } else {
-        await createCareerType({ nombre: name });
+        await createCareerType({ nombreTipoCarrera: name });
       }
       setShowModal(false);
       load();
