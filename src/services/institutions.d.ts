@@ -89,4 +89,22 @@ export function registerInstitution(
   body: Record<string, unknown>
 ): Promise<Record<string, unknown>>;
 
+// Catalog functions for institutions
+export interface ModalityDTO {
+  id: number | string;
+  nombre: string;
+}
+
+export interface CareerStateDTO {
+  id: number | string;
+  nombre: string;
+}
+
+export function getCareerModalities(
+  params?: Record<string, unknown>
+): Promise<ModalityDTO[]>;
+export function getCareerStates(
+  params?: Record<string, unknown>
+): Promise<CareerStateDTO[]>;
+
 export {};

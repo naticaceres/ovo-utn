@@ -5,6 +5,7 @@ export interface AuthUser {
   email: string;
   name: string;
   role: 'admin' | 'estudiante' | 'guest' | 'institucion';
+  groups?: string[]; // Agregamos los grupos del usuario
 }
 
 export interface AuthContextType {

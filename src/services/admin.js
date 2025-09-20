@@ -751,11 +751,16 @@ export async function exportAccessHistoryFile(
 ) {
   const { downloadFile } = await import('./file');
   const finalName = `${filename}.${format}`;
+
+  // Set expected content type based on format
+  const expectedContentType = format === 'pdf' ? 'application/pdf' : 'text/csv';
+
   await downloadFile({
     url: '/api/v1/admin/access-history/export',
-    params,
+    params: { ...params, format }, // Ensure format is passed to backend
     filename: finalName,
     token,
+    expectedContentType,
   });
 }
 

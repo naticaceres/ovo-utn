@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { BackButton } from '../../components/ui/BackButton';
 import styles from '../student/StudentHomePage.module.css';
 import { ICONS } from './AdminIcons';
 import { CATEGORIES } from './adminConfig';
@@ -24,6 +25,7 @@ export default function AdminCategoryPage() {
 
   return (
     <div className={styles.container}>
+      <BackButton />
       <header style={{ marginBottom: 20 }}>
         <h2>{category.title}</h2>
       </header>

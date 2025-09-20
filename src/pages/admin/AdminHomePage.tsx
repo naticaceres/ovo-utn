@@ -19,7 +19,6 @@ export default function AdminHomePage() {
         }}
       >
         {CATEGORIES.map(cat => (
-          //acaaaaa
           <button
             key={cat.id}
             type='button'

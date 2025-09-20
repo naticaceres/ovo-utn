@@ -264,7 +264,7 @@ export function SignupPage() {
               fullWidth
             />
             <div>
-              <label className={styles.selectLabel}>Género</label>
+              <label>Género</label>
               <select
                 className={styles.select}
                 value={idGenero}

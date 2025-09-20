@@ -9,10 +9,10 @@ import {
   createMyCareer,
   updateMyCareer,
   deleteMyCareer,
+  getCareerModalities,
+  getCareerStates,
 } from '../../services/institutions';
 import { listCareers } from '../../services/careers';
-import { listModalities } from '../../services/admin';
-import { listCareerStates } from '../../services/admin';
 
 type MyCareer = CareerDTO;
 
@@ -67,13 +67,77 @@ export default function MisCarrerasPage() {
     // load selects
     listCareers()
       .then(d => setCareers(Array.isArray(d) ? d : []))
-      .catch(() => {});
-    listModalities()
-      .then(d => setModalities(Array.isArray(d) ? d : []))
-      .catch(() => {});
-    listCareerStates()
-      .then(d => setStates(Array.isArray(d) ? d : []))
-      .catch(() => {});
+      .catch(err => {
+        console.error('Error loading careers:', err);
+      });
+
+    // Usar las nuevas funciones de instituciones para modalidades
+    getCareerModalities({ includeInactive: 1 })
+      .then(d => {
+        console.log('Modalities loaded:', d);
+        // Mapear a la estructura esperada basado en la respuesta real del endpoint
+        let modalitiesData: unknown[] = [];
+        if (Array.isArray(d)) {
+          modalitiesData = d;
+        } else if (d && typeof d === 'object' && 'careerModalities' in d) {
+          const response = d as { careerModalities: unknown[] };
+          if (Array.isArray(response.careerModalities)) {
+            modalitiesData = response.careerModalities;
+          }
+        }
+
+        const mappedModalities = modalitiesData.map((item: unknown) => {
+          const modality = item as Record<string, unknown>;
+          return {
+            id: String(
+              modality.idModalidadCarreraInstitucion ||
+                modality.id ||
+                modality.idModalidad ||
+                ''
+            ),
+            nombre: String(
+              modality.nombreModalidad || modality.nombre || 'Sin nombre'
+            ),
+          };
+        });
+        setModalities(mappedModalities);
+      })
+      .catch(err => {
+        console.error('Error loading modalities:', err);
+      });
+
+    // Usar las nuevas funciones de instituciones para estados
+    getCareerStates({ includeInactive: 1 })
+      .then(d => {
+        console.log('Career states loaded:', d);
+        // Mapear a la estructura esperada basado en la respuesta real del endpoint
+        let statesData: unknown[] = [];
+        if (Array.isArray(d)) {
+          statesData = d;
+        } else if (d && typeof d === 'object' && 'careerStates' in d) {
+          const response = d as { careerStates: unknown[] };
+          if (Array.isArray(response.careerStates)) {
+            statesData = response.careerStates;
+          }
+        }
+
+        const mappedStates = statesData.map((item: unknown) => {
+          const state = item as Record<string, unknown>;
+          return {
+            id: String(
+              state.idEstadoCarreraInstitucion ||
+                state.id ||
+                state.idEstado ||
+                ''
+            ),
+            nombre: String(state.nombreEstado || state.nombre || 'Sin nombre'),
+          };
+        });
+        setStates(mappedStates);
+      })
+      .catch(err => {
+        console.error('Error loading career states:', err);
+      });
   }, []);
 
   const openCreate = () => {

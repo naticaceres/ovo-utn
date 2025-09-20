@@ -19,7 +19,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (stored) {
             try {
               const parsed = JSON.parse(stored);
-              if (active) setUser(parsed);
+              if (active) {
+                // Debug: ver qué datos están llegando
+                console.log('Parsed user data from localStorage:', parsed);
+
+                // Extraer grupos del usuario
+                const groups = parsed.grupos || parsed.groups || [];
+
+                // Extraer el nombre con múltiples intentos
+                const name =
+                  parsed.name ||
+                  parsed.nombre ||
+                  parsed.firstName ||
+                  parsed.first_name ||
+                  parsed.fullName ||
+                  parsed.full_name ||
+                  parsed.displayName ||
+                  parsed.usuario?.nombre ||
+                  parsed.usuario?.name ||
+                  '';
+
+                const authUser: AuthUser = {
+                  id: parsed.id ?? parsed.userId ?? parsed._id ?? 0,
+                  email: parsed.email ?? parsed.correo ?? parsed.username ?? '',
+                  name: name,
+                  role: (parsed.role ??
+                    parsed.rol ??
+                    'estudiante') as AuthUser['role'],
+                  groups: Array.isArray(groups) ? groups : [],
+                };
+
+                console.log('Mapped AuthUser:', authUser);
+                setUser(authUser);
+              }
             } catch {
               /* ignore */
             }
@@ -28,14 +60,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             const { data } = await api.get('/api/v1/auth/me');
             if (active && data) {
+              // Debug: ver qué datos están llegando del API
+              console.log('API response data:', data);
+
+              // Extraer grupos del data si están disponibles
+              const groups = data.grupos || data.groups || [];
+
+              // Extraer el nombre con múltiples intentos
+              const name =
+                data.name ||
+                data.nombre ||
+                data.firstName ||
+                data.first_name ||
+                data.fullName ||
+                data.full_name ||
+                data.displayName ||
+                data.usuario?.nombre ||
+                data.usuario?.name ||
+                '';
+
               const authUser: AuthUser = {
                 id: data.id ?? data.userId ?? data._id ?? 0,
                 email: data.email ?? data.correo ?? data.username ?? '',
-                name: data.name ?? data.nombre ?? '',
+                name: name,
                 role: (data.role ??
                   data.rol ??
                   'estudiante') as AuthUser['role'],
+                groups: Array.isArray(groups) ? groups : [],
               };
+
+              console.log('Mapped AuthUser from API:', authUser);
               setUser(authUser);
               localStorage.setItem('user', JSON.stringify(authUser));
             }

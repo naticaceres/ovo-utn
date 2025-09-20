@@ -48,10 +48,9 @@ export function LoginPage() {
       }
 
       // Guardamos la respuesta (body) completa para usarla después
-      localStorage.setItem(
-        'user',
-        JSON.stringify((resp as unknown as { data?: Loose }).data || resp)
-      );
+      const fullUserData = (resp as unknown as { data?: Loose }).data || resp;
+      console.log('Login response - fullUserData:', fullUserData);
+      localStorage.setItem('user', JSON.stringify(fullUserData));
 
       const hasGroup = (name: string) => {
         const r: unknown = resp;

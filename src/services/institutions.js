@@ -212,3 +212,26 @@ export async function removeMyCareerAptitude(careerId, aptitudeId) {
     throw error.response ? error.response.data : error;
   }
 }
+
+// Catalog functions for institutions
+export async function getCareerModalities(params = {}) {
+  try {
+    const { data } = await api.get('/api/v1/admin/catalog/career-modalities', {
+      params,
+    });
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function getCareerStates(params = {}) {
+  try {
+    const { data } = await api.get('/api/v1/admin/catalog/career-states', {
+      params,
+    });
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}

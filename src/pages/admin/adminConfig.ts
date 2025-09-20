@@ -30,15 +30,15 @@ export const CATEGORIES: Category[] = [
       {
         title: 'Gestión de permisos',
         items: [
-          { id: 'permisos', label: 'ABM Permisos', icon: 'settings' },
+          { id: 'permisos', label: 'Gestionar Permisos', icon: 'settings' },
           {
             id: 'abm-grupos-usuarios',
-            label: 'ABM Grupos de Usuarios',
+            label: 'Gestionar Grupos de Usuarios',
             icon: 'users',
           },
           {
             id: 'abm-estados-usuario',
-            label: 'ABM Estados de Usuario',
+            label: 'Gestionar Estados de Usuario',
             icon: 'list',
           },
         ],
@@ -81,7 +81,7 @@ export const CATEGORIES: Category[] = [
         items: [
           {
             id: 'abm-config-backup',
-            label: 'ABM Configuraciones de Backup',
+            label: 'Gestionar Configuraciones de Backup',
             icon: 'settings',
           },
         ],
@@ -96,20 +96,24 @@ export const CATEGORIES: Category[] = [
       {
         title: 'Gestión de Carreras',
         items: [
-          { id: 'abm-carreras-base', label: 'ABM Carreras Base', icon: 'book' },
+          {
+            id: 'abm-carreras-base',
+            label: 'Gestionar Carreras Base',
+            icon: 'book',
+          },
           {
             id: 'abm-tipos-carrera',
-            label: 'ABM Tipos de Carrera',
+            label: 'Gestionar Tipos de Carrera',
             icon: 'list',
           },
           {
             id: 'abm-modalidades-carrera',
-            label: 'ABM Modalidades de Carrera',
+            label: 'Gestionar Modalidades de Carrera',
             icon: 'grid',
           },
           {
             id: 'abm-estados-carrera-inst',
-            label: 'ABM Estados de Carrera Institución',
+            label: 'Gestionar Estados de Carrera Institución',
             icon: 'clock',
           },
         ],
@@ -136,12 +140,12 @@ export const CATEGORIES: Category[] = [
         items: [
           {
             id: 'abm-tipos-institucion',
-            label: 'ABM Tipos de Institución',
+            label: 'Gestionar Tipos de Institución',
             icon: 'layers',
           },
           {
             id: 'abm-estados-institucion',
-            label: 'ABM Estados de Institución',
+            label: 'Gestionar Estados de Institución',
             icon: 'list',
           },
         ],
@@ -156,21 +160,29 @@ export const CATEGORIES: Category[] = [
       {
         title: 'Ubicación',
         items: [
-          { id: 'abm-paises', label: 'ABM Países', icon: 'grid' },
-          { id: 'abm-provincias', label: 'ABM Provincias', icon: 'grid' },
-          { id: 'abm-localidades', label: 'ABM Localidades', icon: 'grid' },
+          { id: 'abm-paises', label: 'Gestionar Países', icon: 'grid' },
+          { id: 'abm-provincias', label: 'Gestionar Provincias', icon: 'grid' },
+          {
+            id: 'abm-localidades',
+            label: 'Gestionar Localidades',
+            icon: 'grid',
+          },
         ],
       },
       {
         title: 'Clasificación',
         items: [
-          { id: 'abm-generos', label: 'ABM Géneros', icon: 'list' },
+          { id: 'abm-generos', label: 'Gestionar Géneros', icon: 'list' },
           {
             id: 'abm-tipos-acciones',
-            label: 'ABM Tipos de Acciones del sistema',
+            label: 'Gestionar Tipos de Acciones del sistema',
             icon: 'list',
           },
-          { id: 'abm-aptitudes', label: 'ABM Aptitudes', icon: 'activity' },
+          {
+            id: 'abm-aptitudes',
+            label: 'Gestionar Aptitudes',
+            icon: 'activity',
+          },
         ],
       },
     ],

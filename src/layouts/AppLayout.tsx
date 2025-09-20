@@ -1,3 +1,4 @@
+import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { AuthProvider } from '../context/AuthProvider';
 import { MainLayout } from '../components/layout/MainLayout';
@@ -6,19 +7,82 @@ import { useAuth } from '../context/use-auth';
 
 export function AppLayout() {
   const { user, logout } = useAuth();
+
+  // Debug temporal: mostrar datos del localStorage
+  React.useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      console.log('Raw localStorage user:', storedUser);
+      try {
+        const parsed = JSON.parse(storedUser);
+        console.log('Parsed localStorage user:', parsed);
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+      }
+    }
+  }, []);
+
+  // Función para obtener el nombre del grupo principal del usuario
+  const getUserGroupDisplay = () => {
+    if (!user?.groups || user.groups.length === 0) return null;
+
+    // Buscar el grupo más relevante (administrador tiene prioridad)
+    const groups = user.groups.map(g => g.toLowerCase());
+
+    if (groups.some(g => g.includes('administrador') || g.includes('admin'))) {
+      return 'Administrador';
+    }
+    if (
+      groups.some(g => g.includes('institucion') || g.includes('institución'))
+    ) {
+      return 'Institución';
+    }
+    if (groups.some(g => g.includes('estudiante'))) {
+      return 'Estudiante';
+    }
+
+    // Si no encuentra ninguno conocido, devuelve el primer grupo capitalizado
+    return user.groups[0].charAt(0).toUpperCase() + user.groups[0].slice(1);
+  };
+
+  // Función para verificar si el usuario es estudiante
+  const isStudent = () => {
+    if (!user) return false;
+
+    // Verificar por grupos primero (más confiable)
+    if (user.groups && user.groups.length > 0) {
+      const groups = user.groups.map(g => g.toLowerCase());
+      return groups.some(g => g.includes('estudiante'));
+    }
+
+    // Fallback por role
+    return user.role === 'estudiante';
+  };
+
+  // Función para obtener el nombre del usuario
+  const getUserName = () => {
+    if (!user) return '';
+
+    // Debug: vamos a ver qué datos tiene el usuario
+    console.log('User object:', user);
+
+    const name = user.name || user.email || 'Usuario';
+    console.log('Resolved name:', name);
+    return name;
+  };
+
   return (
     <MainLayout
       headerContent={
         <nav className={styles.nav}>
-          {user && user.role === 'estudiante' && (
+          {isStudent() && (
             <>
-              {' '}
               <Link to='/app/questionnaire' className={styles.navLink}>
                 Cuestionario
               </Link>
               <Link to='/app/results' className={styles.navLink}>
                 Resultados
-              </Link>{' '}
+              </Link>
             </>
           )}
           {!user && (
@@ -32,9 +96,15 @@ export function AppLayout() {
             </>
           )}
           {user && (
-            <Link to='/' className={styles.navLink} onClick={logout}>
-              Cerrar sesión
-            </Link>
+            <>
+              {getUserGroupDisplay() && (
+                <span className={styles.userInfo}>{getUserGroupDisplay()}</span>
+              )}
+              <span className={styles.userName}>👤 {getUserName()}</span>
+              <Link to='/' className={styles.navLink} onClick={logout}>
+                Cerrar sesión
+              </Link>
+            </>
           )}
         </nav>
       }
