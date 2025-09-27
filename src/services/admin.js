@@ -788,6 +788,28 @@ export async function exportAudit(params = {}, token) {
   }
 }
 
+// Nueva función unificada para audit que usa downloadFile
+export async function exportAuditFile(
+  params = {},
+  filename = 'audit',
+  format = 'csv',
+  token
+) {
+  const { downloadFile } = await import('./file');
+  const finalName = `${filename}.${format}`;
+
+  // Set expected content type based on format
+  const expectedContentType = format === 'pdf' ? 'application/pdf' : 'text/csv';
+
+  await downloadFile({
+    url: '/api/v1/admin/audit/export',
+    params: { ...params, format },
+    filename: finalName,
+    token,
+    expectedContentType,
+  });
+}
+
 export async function adminStatsSystem(params = {}, token) {
   try {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};

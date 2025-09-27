@@ -518,6 +518,13 @@ export function exportAudit(
   token?: string
 ): Promise<Blob>;
 
+export function exportAuditFile(
+  params?: Record<string, unknown>,
+  filename?: string,
+  format?: string,
+  token?: string
+): Promise<void>;
+
 // Simple users list for access history page
 export interface BasicUserDTO {
   id: number | string;
