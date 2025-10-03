@@ -67,10 +67,28 @@ export async function listInstitutionRequests(params = {}, token) {
       params,
       headers,
     });
-    // expect an array or wrapped object
-    const raw = data && data.requests ? data.requests : data;
+    // La respuesta puede tener estructura { solicitudes: [...] } o { requests: [...] } o directamente un array
+    let raw = data;
+    if (data && data.solicitudes) {
+      raw = data.solicitudes;
+    } else if (data && data.requests) {
+      raw = data.requests;
+    }
+
     if (!raw) return [];
-    if (Array.isArray(raw)) return raw;
+    if (Array.isArray(raw)) {
+      // Mapear los datos para que coincidan con la estructura esperada
+      return raw.map(item => ({
+        id: item.idInstitucion ?? item.id ?? '',
+        nombre: item.nombre ?? '',
+        tipo: item.tipoId ?? item.tipo ?? '',
+        localizacion: item.localizacion ?? 'N/D',
+        estado: item.estado ?? 'PENDIENTE',
+        email: item.email ?? '',
+        fechaSolicitud: item.fechaSolicitud ?? '',
+        tipoId: item.tipoId,
+      }));
+    }
     return [];
   } catch (error) {
     throw error.response ? error.response.data : error;
