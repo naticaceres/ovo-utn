@@ -18,15 +18,6 @@ export async function getInstitution(id) {
   }
 }
 
-export async function getRegistrationOptions() {
-  try {
-    const { data } = await api.get('/api/v1/institutions/registration/options');
-    return data;
-  } catch (error) {
-    throw error.response ? error.response.data : error;
-  }
-}
-
 export async function registerInstitution(payload) {
   try {
     const { data } = await api.post(
