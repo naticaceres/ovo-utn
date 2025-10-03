@@ -14,7 +14,7 @@
   box-shadow: var(--shadow-lg);
   padding: var(--spacing-3xl);
   width: 100%;
-  max-width: 520px;
+  max-width: 700px;
 }
 
 .title {
@@ -51,4 +51,71 @@
   padding: 0.5rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
+}
+
+/* Modal styles */
+.modalOverlay {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  width: 90%;
+  max-width: 900px;
+  box-shadow: var(--shadow-xl);
+}
+
+.modalContent {
+  display: flex;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-md);
+}
+
+.modalHalf {
+  flex: 1 1 50%;
+  max-height: 60vh;
+  overflow: auto;
+  padding-right: var(--spacing-sm);
+}
+
+.legalScroll {
+  max-height: 52vh;
+  overflow-y: auto;
+  padding-right: var(--spacing-sm);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.btnPrimary {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.btnSecondary {
+  background: transparent;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  padding: 0.5rem 0.8rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
 }

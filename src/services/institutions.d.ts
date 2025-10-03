@@ -83,8 +83,6 @@ export type RegistrationOptions = {
   localityList?: Array<{ id: number | string; nombre: string }>;
 };
 
-export function getRegistrationOptions(): Promise<RegistrationOptions>;
-
 export function registerInstitution(
   body: Record<string, unknown>
 ): Promise<Record<string, unknown>>;
