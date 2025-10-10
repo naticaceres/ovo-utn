@@ -218,10 +218,14 @@ export async function getCareerModalities(params = {}) {
 
 export async function getCareerStates(params = {}) {
   try {
-    const { data } = await api.get('/api/v1/admin/catalog/career-states', {
-      params,
-    });
-    return data;
+    const { data } = await api.get(
+      '/api/v1/admin/catalog/career-institution-statuses',
+      {
+        params,
+      }
+    );
+    // Extraer el array careerInstitutionStatuses de la respuesta
+    return data.careerInstitutionStatuses || data;
   } catch (error) {
     throw error.response ? error.response.data : error;
   }

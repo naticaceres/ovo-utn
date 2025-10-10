@@ -94,8 +94,9 @@ export interface ModalityDTO {
 }
 
 export interface CareerStateDTO {
-  id: number | string;
-  nombre: string;
+  idEstadoCarreraInstitucion: number;
+  nombreEstadoCarreraInstitucion: string;
+  fechaFin: string | null;
 }
 
 export function getCareerModalities(
