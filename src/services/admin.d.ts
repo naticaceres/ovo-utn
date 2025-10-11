@@ -292,6 +292,11 @@ export function approveInstitutionRequest(
 ): Promise<boolean>;
 export function rejectInstitutionRequest(
   id: number | string,
+  justificacion: string,
+  token?: string
+): Promise<boolean>;
+export function deactivateInstitution(
+  id: number | string,
   token?: string
 ): Promise<boolean>;
 

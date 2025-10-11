@@ -42,4 +42,77 @@
   padding: 16px;
   border-radius: 8px;
   min-width: 320px;
+  max-width: 500px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #e6e6e6;
+  border-radius: 4px;
+  min-height: 100px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.table th:nth-child(7),
+.table td:nth-child(7) {
+  max-width: 200px;
+  word-wrap: break-word;
+}
+
+.justificationCell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rejectedBadge {
+  background-color: #f8d7da !important;
+  color: #721c24 !important;
+}
+
+.actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.actions button:disabled:hover {
+  opacity: 0.6;
+}
+
+.filterInfo {
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #666;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.filterInfo span {
+  font-weight: 500;
+}
+
+.deactivateButton {
+  background-color: #dc3545 !important;
+  color: white !important;
+  border: none !important;
+}
+
+.deactivateButton:hover:not(:disabled) {
+  background-color: #c82333 !important;
+}
+
+.statusInactive {
+  background-color: #f8d7da !important;
+  color: #721c24 !important;
 }

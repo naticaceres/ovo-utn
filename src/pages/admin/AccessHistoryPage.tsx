@@ -222,7 +222,7 @@ export default function AccessHistoryPage() {
             className={styles.select}
             disabled={usersLoading}
           >
-            <option value=''>Todos</option>
+            <option value=''>Seleccione</option>
             {users.map(u => (
               <option key={u.id} value={u.id}>
                 {u.nombreCompleto ||

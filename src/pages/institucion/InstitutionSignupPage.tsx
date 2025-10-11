@@ -14,6 +14,7 @@ import {
 } from '../../services/admin.js';
 import { TermsContent } from '../legal/TerminosYCondicionesPage';
 import { PrivacyContent } from '../legal/PoliticasDePrivacidadPage';
+import { useToast } from '../../components/ui/toast/useToast';
 
 type Option = { id: number | string; nombre: string };
 
@@ -52,6 +53,7 @@ export default function InstitutionSignupPage() {
   const [localitiesError, setLocalitiesError] = useState<string | null>(null);
 
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   // modal: 0 closed, 1 terms, 2 privacy
   const [modalStage, setModalStage] = useState<number>(0);
@@ -288,11 +290,10 @@ export default function InstitutionSignupPage() {
       await registerInstitution(body);
       setModalStage(0);
 
-      // Mostrar mensaje de confirmación
-      alert(
-        'Solicitud enviada exitosamente.\n\n' +
-          'Un administrador revisará su solicitud y le llegará la respuesta a su email de contacto.\n\n' +
-          'Gracias por su interés en registrar su institución.'
+      // Mostrar mensaje de confirmación con toast
+      showToast(
+        'Solicitud enviada exitosamente. Un administrador revisará su solicitud y le llegará la respuesta a su email de contacto. Gracias por su interés en registrar su institución.',
+        { variant: 'success', ttl: 8000 }
       );
 
       // Redirigir al home del sistema

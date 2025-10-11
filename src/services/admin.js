@@ -87,6 +87,7 @@ export async function listInstitutionRequests(params = {}, token) {
         email: item.email ?? '',
         fechaSolicitud: item.fechaSolicitud ?? '',
         tipoId: item.tipoId,
+        justificacion: item.justificacion ?? null,
       }));
     }
     return [];
@@ -109,11 +110,25 @@ export async function approveInstitutionRequest(id, token) {
   }
 }
 
-export async function rejectInstitutionRequest(id, token) {
+export async function rejectInstitutionRequest(id, justificacion, token) {
   try {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const { data } = await api.post(
       `/api/v1/admin/institutions/requests/${id}/reject`,
+      { justificacion },
+      { headers }
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function deactivateInstitution(id, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.post(
+      `/api/v1/admin/institutions/${id}/deactivate`,
       {},
       { headers }
     );
