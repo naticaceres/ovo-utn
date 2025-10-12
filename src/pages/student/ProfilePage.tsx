@@ -48,9 +48,33 @@ export default function ProfilePage() {
       .then(profile => {
         if (!mounted) return;
         const p = profile as UserProfile;
+
+        // Procesar la fecha para el input date (formato YYYY-MM-DD)
+        let processedDate = p.fechaNacimiento || '';
+        if (processedDate) {
+          // Si ya está en formato YYYY-MM-DD, mantenerlo
+          if (/^\d{4}-\d{2}-\d{2}$/.test(processedDate)) {
+            // Ya está en el formato correcto para input date, no hacer nada
+          } else {
+            // Si viene en otro formato, intentar convertir
+            try {
+              const date = new Date(processedDate);
+              if (!isNaN(date.getTime())) {
+                // Convertir a formato YYYY-MM-DD para el input date
+                const year = date.getFullYear();
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const day = date.getDate().toString().padStart(2, '0');
+                processedDate = `${year}-${month}-${day}`;
+              }
+            } catch {
+              // Si hay error, mantener el valor original
+            }
+          }
+        }
+
         setNombre(p.nombre || '');
         setApellido(p.apellido || '');
-        setFechaNacimiento(p.fechaNacimiento || '');
+        setFechaNacimiento(processedDate);
         setDni(p.dni != null ? String(p.dni) : '');
         setEmail(p.email || '');
       })
@@ -176,10 +200,31 @@ export default function ProfilePage() {
                 <b>Fecha de nacimiento:</b>{' '}
                 {fechaNacimiento
                   ? (() => {
-                      const parts = fechaNacimiento.split('-');
-                      return parts.length === 3
-                        ? `${parts[2]}/${parts[1]}/${parts[0]}`
-                        : fechaNacimiento;
+                      // Si está en formato YYYY-MM-DD, convertir directamente
+                      if (/^\d{4}-\d{2}-\d{2}$/.test(fechaNacimiento)) {
+                        const parts = fechaNacimiento.split('-');
+                        return `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
+                      }
+
+                      // Si no, intentar parsear como Date
+                      try {
+                        const date = new Date(fechaNacimiento);
+                        if (!isNaN(date.getTime())) {
+                          const day = date
+                            .getDate()
+                            .toString()
+                            .padStart(2, '0');
+                          const month = (date.getMonth() + 1)
+                            .toString()
+                            .padStart(2, '0');
+                          const year = date.getFullYear();
+                          return `${day}/${month}/${year}`;
+                        }
+                      } catch {
+                        // Si hay error, mostrar la fecha original
+                      }
+
+                      return fechaNacimiento;
                     })()
                   : ''}
               </p>

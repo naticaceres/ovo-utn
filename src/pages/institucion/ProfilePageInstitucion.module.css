@@ -17,6 +17,48 @@
   max-width: 900px;
 }
 
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-xl);
+  color: var(--color-primary-dark);
+  margin: 0;
+}
+
+.editLink {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: var(--font-size-base);
+  transition: color var(--transition-normal);
+}
+
+.editLink:hover {
+  color: var(--color-primary-dark);
+}
+
+.userData {
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-normal);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.errorMessage {
+  color: var(--color-accent-2);
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+}
+
 .title {
   font-size: var(--font-size-2xl);
   margin: 0 0 8px 0;

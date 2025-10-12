@@ -11,12 +11,14 @@ import {
 
 interface Carrera {
   id?: number | string;
+  idCarrera?: number | string;
   nombre: string;
   instituciones?: string[];
 }
 
 interface Institution {
   id?: number | string;
+  idInstitucion?: number | string;
   nombre?: string;
 }
 
@@ -37,7 +39,18 @@ export default function ConsultarCarrerasPage() {
     listCareers()
       .then(data => {
         if (!mounted) return;
-        setCarreras(Array.isArray(data) ? data : []);
+        console.log('Carreras recibidas del backend:', data);
+
+        const carrerasArray = Array.isArray(data) ? data : [];
+        console.log('Carreras procesadas:', carrerasArray);
+
+        // Log de la primera carrera para ver su estructura
+        if (carrerasArray.length > 0) {
+          console.log('Estructura de la primera carrera:', carrerasArray[0]);
+          console.log('Campos disponibles:', Object.keys(carrerasArray[0]));
+        }
+
+        setCarreras(carrerasArray);
       })
       .catch(() => setError('No se pudieron cargar las carreras'))
       .finally(() => {
@@ -54,7 +67,16 @@ export default function ConsultarCarrerasPage() {
       if (!query) return;
       setLoading(true);
       searchCareers(query)
-        .then(data => setCarreras(Array.isArray(data) ? data : []))
+        .then(data => {
+          console.log('Resultados de búsqueda:', data);
+          const carrerasArray = Array.isArray(data) ? data : [];
+
+          if (carrerasArray.length > 0) {
+            console.log('Primera carrera de búsqueda:', carrerasArray[0]);
+          }
+
+          setCarreras(carrerasArray);
+        })
         .catch(() => setError('Error al buscar'))
         .finally(() => setLoading(false));
     }, 300);
@@ -78,6 +100,7 @@ export default function ConsultarCarrerasPage() {
             onChange={e => {
               setQuery(e.target.value);
               setSelectedCarrera(null);
+              setInstitutions([]); // También limpiar instituciones
             }}
             className={styles.input}
           />
@@ -90,19 +113,59 @@ export default function ConsultarCarrerasPage() {
           )}
           {carreras.map(c => (
             <li
-              key={c.id || c.nombre}
+              key={c.id || c.idCarrera || c.nombre}
               className={
-                selectedCarrera === (c.id || c.nombre)
+                selectedCarrera === (c.id || c.idCarrera || c.nombre)
                   ? styles.selected
                   : styles.carreraItem
               }
               onClick={async () => {
-                setSelectedCarrera(c.id || c.nombre);
+                console.log('Carrera seleccionada:', c);
+                console.log('Todos los campos de la carrera:', Object.keys(c));
+
+                // Buscar el ID de la carrera con múltiples nombres posibles
+                const carreraId = c.id || c.idCarrera || c.nombre;
+
+                console.log('ID de carrera encontrado:', carreraId);
+                console.log('Nombre de carrera:', c.nombre);
+
+                if (!carreraId) {
+                  console.error('No se encontró ID de carrera válido');
+                  setError('Error: La carrera no tiene un ID válido');
+                  return;
+                }
+
+                setSelectedCarrera(carreraId);
                 setInstitutions([]);
+                setError(null);
+
                 try {
-                  const inst = await getCareerInstitutions(c.id || c.nombre);
-                  setInstitutions(Array.isArray(inst) ? inst : []);
-                } catch {
+                  console.log(
+                    'Buscando instituciones para carrera ID:',
+                    carreraId
+                  );
+
+                  const inst = await getCareerInstitutions(carreraId);
+                  console.log('Instituciones recibidas:', inst);
+
+                  // Verificar que las instituciones tengan IDs
+                  const institutionsWithIds = Array.isArray(inst)
+                    ? inst.map((institution, index) => {
+                        console.log('Institución:', institution);
+                        return {
+                          ...institution,
+                          id:
+                            institution.id ||
+                            institution.idInstitucion ||
+                            index,
+                        };
+                      })
+                    : [];
+
+                  console.log('Instituciones procesadas:', institutionsWithIds);
+                  setInstitutions(institutionsWithIds);
+                } catch (err) {
+                  console.error('Error al cargar instituciones:', err);
                   setError('No se pudieron cargar las instituciones');
                 }
               }}
@@ -124,7 +187,31 @@ export default function ConsultarCarrerasPage() {
                 <li
                   key={inst.id || String(inst.nombre)}
                   style={{ cursor: 'pointer', color: 'var(--color-primary)' }}
-                  onClick={() => navigate('/app/detalle-carrera')}
+                  onClick={() => {
+                    const carreraId = selectedCarrera; // Ya es el ID numérico
+                    const institucionId = inst.id || inst.idInstitucion;
+
+                    console.log('Navegando a detalle:', {
+                      carreraId,
+                      institucionId,
+                    });
+                    console.log('Institución completa:', inst);
+
+                    if (!carreraId || !institucionId) {
+                      console.error('Faltan IDs para navegar:', {
+                        carreraId,
+                        institucionId,
+                      });
+                      setError(
+                        'Error: No se pueden obtener los identificadores necesarios'
+                      );
+                      return;
+                    }
+
+                    navigate(
+                      `/app/student/carrera-institucion/${carreraId}/${institucionId}`
+                    );
+                  }}
                 >
                   {inst.nombre || String(inst)}
                 </li>

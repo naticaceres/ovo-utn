@@ -4,15 +4,17 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { api, getApiErrorMessage } from '../../context/api';
 import { useAuth } from '../../context/use-auth';
+import { useParams } from 'react-router-dom';
 
 type Institucion = {
   id: number;
   nombre: string;
-  descripcion?: string;
+  descripcion?: string | null;
   tipo?: string;
   ubicacion?: string;
   carrerasDisponibles?: number;
   carreras?: string[];
+  carrerasRaw?: Record<string, unknown>[];
   // Campos adicionales del endpoint
   sigla?: string;
   sitioWeb?: string;
@@ -26,26 +28,29 @@ export default function DetalleInstitucionPage() {
   const [institucion, setInstitucion] = useState<Institucion | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { id: routeId } = useParams<{ id?: string }>();
 
   useEffect(() => {
     async function fetchInstitucion() {
-      console.log('Current user:', user);
-
-      if (!user) {
-        setError('Usuario no autenticado');
-        return;
-      }
+      console.log('Current user:', user, 'routeId:', routeId);
 
       setLoading(true);
       setError(null);
 
       try {
-        // Asumimos que el usuario de tipo 'institucion' tiene el id de la institución
-        //cuando creemos un usuario institucion aca poner el id user.id
-        const id = 1;
+        // Prefer route param id when present (student is viewing another institution)
+        const institutionId =
+          routeId ??
+          (user && user.id !== undefined ? String(user.id) : undefined);
 
-        console.log('Fetching institution with id:', id);
-        const { data } = await api.get(`/api/v1/institutions/${id}`);
+        if (!institutionId) {
+          setError('No hay identificador de institución disponible');
+          setLoading(false);
+          return;
+        }
+
+        console.log('Fetching institution with id:', institutionId);
+        const { data } = await api.get(`/api/v1/institutions/${institutionId}`);
         console.log('API Response:', data);
 
         // Validar que la respuesta tenga la estructura esperada
@@ -53,25 +58,52 @@ export default function DetalleInstitucionPage() {
           throw new Error('No se recibieron datos del servidor');
         }
 
-        // El endpoint devuelve { institution: {...}, carreras: [] }
-        const inst = data.institution;
-        if (!inst) {
+        // El endpoint puede devolver varias formas:
+        // - { id, ... , carreras: [...] }
+        // - { institucion: { id, ... }, carreras: [...] }
+        // - { institution: { id, ... }, carreras: [...] }
+        // Normalizamos para siempre trabajar con `inst` y `carreras`.
+        let inst: Record<string, unknown> = data as Record<string, unknown>;
+        if (data && typeof data === 'object') {
+          if (data['institucion']) inst = data['institucion'];
+          else if (data['institution']) inst = data['institution'];
+          else if (data['data']) inst = data['data'];
+        }
+
+        if (!inst || !(inst.id || inst.idInstitucion)) {
           throw new Error('No se encontraron datos de la institución');
         }
 
-        const carreras = data.carreras || [];
+        // Extraer carreras: pueden venir en root.carreras o en inst.carreras
+        const carreras = Array.isArray(data?.carreras)
+          ? data.carreras
+          : Array.isArray(inst?.carreras)
+            ? inst.carreras
+            : [];
         console.log('Institution data:', inst);
         console.log('Careers data:', carreras);
 
+        const get = (key: string) =>
+          inst && (inst as Record<string, unknown>)[key]
+            ? (inst as Record<string, unknown>)[key]
+            : undefined;
+
         setInstitucion({
-          id: inst.id || 0,
-          nombre: inst.nombre || 'Sin nombre',
-          descripcion: inst.direccion || 'Sin descripción',
-          tipo: inst.tipo || 'Universitaria',
-          sigla: inst.sigla || '',
-          sitioWeb: inst.sitioWeb || '',
-          telefono: inst.telefono || '',
-          mail: inst.mail || '',
+          id: Number(get('id') || get('idInstitucion') || 0),
+          nombre: String(
+            get('nombre') || get('nombreInstitucion') || 'Sin nombre'
+          ),
+          descripcion:
+            get('descripcion') !== undefined
+              ? (get('descripcion') as string | null)
+              : get('direccion')
+                ? String(get('direccion'))
+                : null,
+          tipo: String(get('tipo') || 'Universitaria'),
+          sigla: String(get('sigla') || ''),
+          sitioWeb: String(get('sitioWeb') || ''),
+          telefono: String(get('telefono') || ''),
+          mail: String(get('mail') || ''),
           ubicacion: (() => {
             try {
               if (inst.ubicacion && typeof inst.ubicacion === 'object') {
@@ -111,6 +143,9 @@ export default function DetalleInstitucionPage() {
               return `Carrera ${index + 1}`;
             }
           }),
+          carrerasRaw: Array.isArray(carreras)
+            ? (carreras as Record<string, unknown>[])
+            : [],
         });
       } catch (err) {
         console.error('Error fetching institution:', err);
@@ -122,7 +157,7 @@ export default function DetalleInstitucionPage() {
     }
 
     fetchInstitucion();
-  }, [user]);
+  }, [user, routeId]);
 
   if (loading) {
     return (
@@ -214,12 +249,18 @@ export default function DetalleInstitucionPage() {
             <b>Carreras disponibles:</b> {institucion.carrerasDisponibles}
           </p>
         </div>
-        <button
-          className={styles.editBtn}
-          onClick={() => navigate(`/app/institucion/profile`)}
-        >
-          Editar institución
-        </button>
+        {/* Only allow editing when logged user is an institution user and owns this institution */}
+        {user &&
+          user.role === 'institucion' &&
+          institucion &&
+          Number(user.id) === Number(institucion.id) && (
+            <button
+              className={styles.editBtn}
+              onClick={() => navigate(`/app/institucion/profile`)}
+            >
+              Editar institución
+            </button>
+          )}
       </div>
       <div className={styles.card}>
         <h2 className={styles.sectionTitle}>Carreras disponibles</h2>
@@ -229,11 +270,39 @@ export default function DetalleInstitucionPage() {
               {carrera}
               <button
                 className={styles.verBtn}
-                onClick={() =>
-                  navigate('/app/detalle-carrera', {
-                    state: { carreraName: carrera },
-                  })
-                }
+                onClick={() => {
+                  // Try to get career id from carrerasRaw if available
+                  const raw =
+                    institucion.carrerasRaw && institucion.carrerasRaw[index];
+                  let careerId: string | number | undefined;
+                  if (raw && typeof raw === 'object') {
+                    careerId = (raw as Record<string, unknown>)['idCarrera'] as
+                      | string
+                      | number
+                      | undefined;
+                    if (!careerId)
+                      careerId = (raw as Record<string, unknown>)['id'] as
+                        | string
+                        | number
+                        | undefined;
+                    if (!careerId)
+                      careerId = (raw as Record<string, unknown>)[
+                        'idCarreraInstitucion'
+                      ] as string | number | undefined;
+                  }
+
+                  const institutionId = institucion.id;
+                  if (careerId && institutionId) {
+                    navigate(
+                      `/app/student/carrera-institucion/${careerId}/${institutionId}`
+                    );
+                  } else {
+                    // Fallback: go to carrera detail or show message
+                    navigate('/app/detalle-carrera', {
+                      state: { carreraName: carrera },
+                    });
+                  }
+                }}
               >
                 &rarr; Ver Carrera
               </button>

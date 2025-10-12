@@ -32,6 +32,7 @@ import ConsultarInstitucionPage from '../pages/institucion/ConsultarInstitucionP
 import MisCarrerasPage from '../pages/institucion/MisCarrerasPage';
 import EstadisticasPage from '../pages/student/EstadisticasPage';
 import FavoriteCareersPage from '../pages/student/FavoriteCareersPage';
+import DetalleCarreraInstitucionPage from '../pages/student/DetalleCarreraInstitucionPage';
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,10 @@ const router = createBrowserRouter([
       { path: 'results', element: <ResultsPage /> },
       { path: 'student', element: <StudentHomePage /> },
       { path: 'student/favorites', element: <FavoriteCareersPage /> },
+      {
+        path: 'student/carrera-institucion/:careerId/:institutionId',
+        element: <DetalleCarreraInstitucionPage />,
+      },
       { path: 'careers', element: <ConsultarCarrerasPage /> },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'statistics', element: <EstadisticasPage /> },
@@ -83,6 +88,7 @@ const router = createBrowserRouter([
       { path: 'institucion/profile', element: <ProfilePageInstitucion /> },
       { path: 'institucion/mis-carreras', element: <MisCarrerasPage /> },
       { path: 'detalle-carrera', element: <DetalleCarreraPage /> },
+      { path: 'detalle-institucion/:id', element: <DetalleInstitucionPage /> },
       { path: 'detalle-institucion', element: <DetalleInstitucionPage /> },
       { path: 'consultar-institucion', element: <ConsultarInstitucionPage /> },
     ],
