@@ -67,10 +67,29 @@ export async function listInstitutionRequests(params = {}, token) {
       params,
       headers,
     });
-    // expect an array or wrapped object
-    const raw = data && data.requests ? data.requests : data;
+    // La respuesta puede tener estructura { solicitudes: [...] } o { requests: [...] } o directamente un array
+    let raw = data;
+    if (data && data.solicitudes) {
+      raw = data.solicitudes;
+    } else if (data && data.requests) {
+      raw = data.requests;
+    }
+
     if (!raw) return [];
-    if (Array.isArray(raw)) return raw;
+    if (Array.isArray(raw)) {
+      // Mapear los datos para que coincidan con la estructura esperada
+      return raw.map(item => ({
+        id: item.idInstitucion ?? item.id ?? '',
+        nombre: item.nombre ?? '',
+        tipo: item.tipoId ?? item.tipo ?? '',
+        localizacion: item.localizacion ?? 'N/D',
+        estado: item.estado ?? 'PENDIENTE',
+        email: item.email ?? '',
+        fechaSolicitud: item.fechaSolicitud ?? '',
+        tipoId: item.tipoId,
+        justificacion: item.justificacion ?? null,
+      }));
+    }
     return [];
   } catch (error) {
     throw error.response ? error.response.data : error;
@@ -91,11 +110,25 @@ export async function approveInstitutionRequest(id, token) {
   }
 }
 
-export async function rejectInstitutionRequest(id, token) {
+export async function rejectInstitutionRequest(id, justificacion, token) {
   try {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const { data } = await api.post(
       `/api/v1/admin/institutions/requests/${id}/reject`,
+      { justificacion },
+      { headers }
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function deactivateInstitution(id, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.post(
+      `/api/v1/admin/institutions/${id}/deactivate`,
       {},
       { headers }
     );
@@ -786,6 +819,28 @@ export async function exportAudit(params = {}, token) {
   } catch (error) {
     throw error.response ? error.response.data : error;
   }
+}
+
+// Nueva función unificada para audit que usa downloadFile
+export async function exportAuditFile(
+  params = {},
+  filename = 'audit',
+  format = 'csv',
+  token
+) {
+  const { downloadFile } = await import('./file');
+  const finalName = `${filename}.${format}`;
+
+  // Set expected content type based on format
+  const expectedContentType = format === 'pdf' ? 'application/pdf' : 'text/csv';
+
+  await downloadFile({
+    url: '/api/v1/admin/audit/export',
+    params: { ...params, format },
+    filename: finalName,
+    token,
+    expectedContentType,
+  });
 }
 
 export async function adminStatsSystem(params = {}, token) {

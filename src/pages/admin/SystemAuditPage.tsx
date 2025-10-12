@@ -3,7 +3,7 @@ import { BackButton } from '../../components/ui/BackButton';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import styles from './SystemAuditPage.module.css';
-import { audit, exportAudit } from '../../services/admin';
+import { audit, exportAuditFile } from '../../services/admin';
 
 type AuditEntry = {
   fechaHora?: string;
@@ -59,15 +59,7 @@ export default function SystemAuditPage() {
       if (to) params.to = to;
       if (modulo) params.modulo = modulo;
       if (tipoAccion) params.tipoAccion = tipoAccion;
-      const blob = await exportAudit(params);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `audit.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      await exportAuditFile(params, 'audit', format);
     } catch {
       setError('No se pudo exportar');
     }

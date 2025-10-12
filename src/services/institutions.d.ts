@@ -20,6 +20,15 @@ export interface CareerDTO {
   activo?: boolean;
 }
 
+export function listInstitutions(
+  params?: Record<string, unknown>
+): Promise<unknown>;
+export function getInstitution(id: number | string): Promise<unknown>;
+export function getMyInstitution(): Promise<unknown>;
+export function registerInstitution(
+  body: Record<string, unknown>
+): Promise<Record<string, unknown>>;
+
 export function getMyCareers(): Promise<CareerDTO[]>;
 export function getMyCareer(id: number | string): Promise<CareerDTO>;
 export function createMyCareer(payload: unknown): Promise<unknown>;
@@ -83,8 +92,6 @@ export type RegistrationOptions = {
   localityList?: Array<{ id: number | string; nombre: string }>;
 };
 
-export function getRegistrationOptions(): Promise<RegistrationOptions>;
-
 export function registerInstitution(
   body: Record<string, unknown>
 ): Promise<Record<string, unknown>>;
@@ -96,8 +103,9 @@ export interface ModalityDTO {
 }
 
 export interface CareerStateDTO {
-  id: number | string;
-  nombre: string;
+  idEstadoCarreraInstitucion: number;
+  nombreEstadoCarreraInstitucion: string;
+  fechaFin: string | null;
 }
 
 export function getCareerModalities(

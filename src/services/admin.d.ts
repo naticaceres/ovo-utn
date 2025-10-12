@@ -292,6 +292,11 @@ export function approveInstitutionRequest(
 ): Promise<boolean>;
 export function rejectInstitutionRequest(
   id: number | string,
+  justificacion: string,
+  token?: string
+): Promise<boolean>;
+export function deactivateInstitution(
+  id: number | string,
   token?: string
 ): Promise<boolean>;
 
@@ -517,6 +522,13 @@ export function exportAudit(
   params?: Record<string, unknown>,
   token?: string
 ): Promise<Blob>;
+
+export function exportAuditFile(
+  params?: Record<string, unknown>,
+  filename?: string,
+  format?: string,
+  token?: string
+): Promise<void>;
 
 // Simple users list for access history page
 export interface BasicUserDTO {

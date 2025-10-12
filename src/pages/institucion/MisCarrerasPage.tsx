@@ -14,7 +14,20 @@ import {
 } from '../../services/institutions';
 import { listCareers } from '../../services/careers';
 
-type MyCareer = CareerDTO;
+type MyCareer = CareerDTO & {
+  idCarreraInstitucion?: number;
+  idCarreraBase?: number; // ← Nuevo campo agregado por la API
+  estado?: string;
+  modalidad?: string;
+  editPath?: string;
+  deletePath?: string;
+  titulo?: string;
+  // Campos adicionales que pueden venir de la API
+  cantidadMaterias?: number;
+  duracionCarrera?: number;
+  horasCursado?: number;
+  observaciones?: string;
+};
 
 export default function MisCarrerasPage() {
   const [items, setItems] = useState<CareerDTO[]>([]);
@@ -26,7 +39,13 @@ export default function MisCarrerasPage() {
   const [modalError, setModalError] = useState<string | null>(null);
 
   const [careers, setCareers] = useState<
-    Array<{ id: number | string; nombre: string }>
+    Array<{
+      id?: number | string;
+      idCarrera?: number | string;
+      nombre: string;
+      cantidadInstituciones?: number;
+      institucionesPath?: string;
+    }>
   >([]);
   const [modalities, setModalities] = useState<
     Array<{ id: number | string; nombre: string }>
@@ -53,7 +72,15 @@ export default function MisCarrerasPage() {
     setError(null);
     try {
       const data = await getMyCareers();
-      setItems(Array.isArray(data) ? data : []);
+      // Extraer el array carreras de la respuesta
+      const response = data as { carreras?: MyCareer[] } | MyCareer[];
+      const careersArray =
+        response && 'carreras' in response && response.carreras
+          ? response.carreras
+          : Array.isArray(data)
+            ? data
+            : [];
+      setItems(careersArray);
     } catch (err) {
       console.error(err);
       setError('No se pudieron cargar las carreras');
@@ -130,7 +157,12 @@ export default function MisCarrerasPage() {
                 state.idEstado ||
                 ''
             ),
-            nombre: String(state.nombreEstado || state.nombre || 'Sin nombre'),
+            nombre: String(
+              state.nombreEstadoCarreraInstitucion ||
+                state.nombreEstado ||
+                state.nombre ||
+                'Sin nombre'
+            ),
           };
         });
         setStates(mappedStates);
@@ -154,23 +186,69 @@ export default function MisCarrerasPage() {
 
   const openEdit = (it: MyCareer) => {
     setEditing(it);
-    // ensure we set string values for selects
-    setIdCarrera(String(it.idCarrera ?? it.id ?? it.careerId ?? ''));
-    setIdModalidad(String(it.idModalidad ?? it.idModalidadCarrera ?? ''));
+    console.log('=== DATOS DE EDICIÓN ===');
+    console.log('Carrera completa:', it);
+
+    // ✅ Ahora la API devuelve idCarreraBase - usamos ese valor directamente
+    console.log('ID Carrera Base:', it.idCarreraBase);
+    setIdCarrera(it.idCarreraBase ? String(it.idCarreraBase) : '');
+
+    // Para modalidad, necesitamos encontrar el ID que corresponde al nombre
+    const modalityMatch = modalities.find(m => m.nombre === it.modalidad);
+    console.log(
+      'Modalidad buscada:',
+      it.modalidad,
+      'Encontrada:',
+      modalityMatch
+    );
+    setIdModalidad(modalityMatch ? String(modalityMatch.id) : '');
+
+    // Para estado, necesitamos encontrar el ID que corresponde al nombre
+    const stateMatch = states.find(s => s.nombre === it.estado);
+    console.log('Estado buscado:', it.estado, 'Encontrado:', stateMatch);
+    setIdEstado(stateMatch ? String(stateMatch.id) : '');
+
+    // Formatear fechas si vienen en formato ISO
+    const formatearFecha = (fecha: string | null | undefined) => {
+      if (!fecha || fecha === 'null' || fecha === null) return '';
+      // Si viene en formato "2025-09-14 22:05:14", extraer solo la fecha
+      if (typeof fecha === 'string' && fecha.includes(' ')) {
+        return fecha.split(' ')[0];
+      }
+      return String(fecha);
+    };
+
+    // Campos que vienen directamente de la API
+    const fechaInicio = formatearFecha(it.fechaInicio);
+    const fechaFin = formatearFecha(it.fechaFin);
+    console.log('Fechas:', {
+      fechaInicio: it.fechaInicio,
+      fechaFin: it.fechaFin,
+      procesadas: { fechaInicio, fechaFin },
+    });
+    console.log('Campos numéricos:', {
+      cantidadMaterias: it.cantidadMaterias,
+      duracionCarrera: it.duracionCarrera,
+      horasCursado: it.horasCursado,
+      montoCuota: it.montoCuota,
+    });
+    console.log('Campos de texto:', {
+      nombre: it.nombre,
+      titulo: it.titulo,
+      observaciones: it.observaciones,
+    });
+
+    // Todos los campos ahora vienen de la API ✅
+    setFechaInicio(fechaInicio);
+    setFechaFin(fechaFin);
+    setMontoCuota((it.montoCuota ?? '') as number | '');
+    setNombreCarreraInput(String(it.nombre ?? ''));
+    setTituloCarreraInput(String(it.titulo ?? ''));
     setObservaciones(String(it.observaciones ?? ''));
-    setFechaInicio(String(it.fechaInicio ?? ''));
-    setFechaFin(String(it.fechaFin ?? ''));
-    setIdEstado(String(it.idEstado ?? ''));
     setCantidadMaterias((it.cantidadMaterias ?? '') as number | '');
     setDuracionCarrera((it.duracionCarrera ?? '') as number | '');
     setHorasCursado((it.horasCursado ?? '') as number | '');
-    setMontoCuota((it.montoCuota ?? '') as number | '');
-    setNombreCarreraInput(
-      String(it.nombreCarrera ?? it.nombre ?? it.tituloCarrera ?? '')
-    );
-    setTituloCarreraInput(
-      String(it.tituloCarrera ?? it.titulo ?? it.nombre ?? '')
-    );
+
     setShowModal(true);
   };
 
@@ -211,14 +289,19 @@ export default function MisCarrerasPage() {
 
     // derive nombre/título from selected career
     const selectedCareer = careers.find(
-      c => String(c.id) === String(idCarrera)
+      c => String(c.idCarrera || c.id) === String(idCarrera)
     );
 
-    // if id values are numeric strings, send numbers; otherwise send strings
-    const parseMaybeNumber = (v: string) => {
-      if (v == null || v === '') return null;
+    // Parse numeric IDs - ensure they are valid numbers
+    const parseRequiredNumber = (v: string, fieldName: string) => {
+      if (v == null || v === '') {
+        throw new Error(`${fieldName} es requerido`);
+      }
       const n = Number(v);
-      return Number.isNaN(n) ? v : n;
+      if (Number.isNaN(n)) {
+        throw new Error(`${fieldName} debe ser un número válido`);
+      }
+      return n;
     };
 
     // helper to produce YYYY-MM-DD for payload
@@ -242,47 +325,65 @@ export default function MisCarrerasPage() {
       return null;
     };
 
-    const payload: Record<string, unknown> = {
-      idCarrera: parseMaybeNumber(idCarrera),
-      idModalidad: parseMaybeNumber(idModalidad),
-      idEstado: parseMaybeNumber(idEstado),
-      // prefer explicitly entered inputs, fallback to career data
-      tituloCarrera: tituloCarreraInput
-        ? tituloCarreraInput
-        : (((selectedCareer as unknown as { titulo?: string })?.titulo as
-            | string
-            | undefined) ??
-          selectedCareer?.nombre ??
-          null),
-      nombreCarrera: nombreCarreraInput
-        ? nombreCarreraInput
-        : (selectedCareer?.nombre ??
-          ((selectedCareer as unknown as { titulo?: string })?.titulo as
-            | string
-            | undefined) ??
-          null),
-      cantidadMaterias: Number(cantidadMaterias),
-      duracionCarrera: Number(duracionCarrera),
-      horasCursado: Number(horasCursado),
-      montoCuota: Number(montoCuota),
-      observaciones: observaciones || null,
-      fechaInicio: formatDateForPayload(fechaInicio),
-      fechaFin: formatDateForPayload(fechaFin) || '',
-    };
-
+    // Validar que los IDs requeridos sean números válidos
     try {
-      if (editing && (editing.id || editing.idCarrera)) {
-        const id = editing.id ?? editing.idCarrera;
-        await updateMyCareer(id as string | number, payload);
-      } else {
-        await createMyCareer(payload);
+      const validIdCarrera = parseRequiredNumber(idCarrera, 'Carrera base');
+      const validIdModalidad = parseRequiredNumber(idModalidad, 'Modalidad');
+      const validIdEstado = parseRequiredNumber(idEstado, 'Estado');
+
+      const payload: Record<string, unknown> = {
+        idCarrera: validIdCarrera,
+        idModalidad: validIdModalidad,
+        idEstado: validIdEstado,
+        // prefer explicitly entered inputs, fallback to career data
+        tituloCarrera: tituloCarreraInput
+          ? tituloCarreraInput
+          : (((selectedCareer as unknown as { titulo?: string })?.titulo as
+              | string
+              | undefined) ??
+            selectedCareer?.nombre ??
+            null),
+        nombreCarrera: nombreCarreraInput
+          ? nombreCarreraInput
+          : (selectedCareer?.nombre ??
+            ((selectedCareer as unknown as { titulo?: string })?.titulo as
+              | string
+              | undefined) ??
+            null),
+        cantidadMaterias: Number(cantidadMaterias),
+        duracionCarrera: Number(duracionCarrera),
+        horasCursado: Number(horasCursado),
+        montoCuota: Number(montoCuota),
+        observaciones: observaciones || null,
+        fechaInicio: formatDateForPayload(fechaInicio),
+        fechaFin: formatDateForPayload(fechaFin) || '',
+      };
+
+      try {
+        if (
+          editing &&
+          (editing.id || editing.idCarrera || editing.idCarreraInstitucion)
+        ) {
+          const id =
+            editing.id ?? editing.idCarrera ?? editing.idCarreraInstitucion;
+          await updateMyCareer(id as string | number, payload);
+        } else {
+          await createMyCareer(payload);
+        }
+        await load();
+        setShowModal(false);
+      } catch (e) {
+        console.error(e);
+        setModalError('Error al guardar la carrera');
+        setError('Error al guardar la carrera');
       }
-      await load();
-      setShowModal(false);
-    } catch (e) {
-      console.error(e);
-      setModalError('Error al guardar la carrera');
-      setError('Error al guardar la carrera');
+    } catch (validationError) {
+      console.error(validationError);
+      setModalError(
+        validationError instanceof Error
+          ? validationError.message
+          : 'Error de validación'
+      );
     }
   };
 
@@ -320,41 +421,56 @@ export default function MisCarrerasPage() {
             </tr>
           </thead>
           <tbody>
-            {items.map(it => (
-              <tr key={it.id ?? it.idCarrera ?? JSON.stringify(it)}>
-                <td>{it.nombreCarrera ?? it.nombre ?? it.tituloCarrera}</td>
-                <td>{it.tituloCarrera ?? it.titulo}</td>
-                <td>
-                  {(() => {
-                    const f = it.fechaFin ?? null;
-                    if (f && String(f).trim() !== '') return 'Baja';
-                    return it.activo ? 'Activo' : 'Inactivo';
-                  })()}
-                </td>
-                <td>
-                  <div className={styles.actions}>
-                    <Button variant='outline' onClick={() => openEdit(it)}>
-                      ✏️
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        const idToRemove = (it.id ?? it.idCarrera) as
-                          | string
-                          | number
-                          | undefined;
-                        if (!idToRemove) {
-                          setError('Id de carrera inválido');
-                          return;
-                        }
-                        remove(idToRemove);
-                      }}
-                    >
-                      🗑️
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {items.map(it => {
+              const item = it as MyCareer;
+              return (
+                <tr
+                  key={
+                    item.id ??
+                    item.idCarrera ??
+                    item.idCarreraInstitucion ??
+                    JSON.stringify(item)
+                  }
+                >
+                  <td>
+                    {item.nombre ?? item.nombreCarrera ?? item.tituloCarrera}
+                  </td>
+                  <td>{item.titulo ?? item.tituloCarrera}</td>
+                  <td>
+                    {item.estado ||
+                      (() => {
+                        const f = item.fechaFin ?? null;
+                        if (f && String(f).trim() !== '') return 'Baja';
+                        return item.activo ? 'Activo' : 'Inactivo';
+                      })()}
+                  </td>
+                  <td>
+                    <div className={styles.actions}>
+                      <Button variant='outline' onClick={() => openEdit(item)}>
+                        ✏️
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          const idToRemove = (item.id ??
+                            item.idCarrera ??
+                            item.idCarreraInstitucion) as
+                            | string
+                            | number
+                            | undefined;
+                          if (!idToRemove) {
+                            setError('Id de carrera inválido');
+                            return;
+                          }
+                          remove(idToRemove);
+                        }}
+                      >
+                        🗑️
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}
@@ -373,11 +489,19 @@ export default function MisCarrerasPage() {
                   style={{ width: '100%', padding: 8, marginBottom: 12 }}
                 >
                   <option value=''>-- Seleccionar --</option>
-                  {careers.map(c => (
-                    <option key={String(c.id)} value={c.id}>
-                      {c.nombre}
-                    </option>
-                  ))}
+                  {careers
+                    .filter(c => {
+                      const careerId = c.idCarrera || c.id;
+                      return careerId && !isNaN(Number(careerId));
+                    })
+                    .map(c => {
+                      const careerId = c.idCarrera || c.id;
+                      return (
+                        <option key={String(careerId)} value={careerId}>
+                          {c.nombre}
+                        </option>
+                      );
+                    })}
                 </select>
               </div>
               <div>
@@ -388,11 +512,13 @@ export default function MisCarrerasPage() {
                   style={{ width: '100%', padding: 8, marginBottom: 12 }}
                 >
                   <option value=''>-- Seleccionar --</option>
-                  {modalities.map(m => (
-                    <option key={String(m.id)} value={m.id}>
-                      {m.nombre}
-                    </option>
-                  ))}
+                  {modalities
+                    .filter(m => m.id && !isNaN(Number(m.id)))
+                    .map(m => (
+                      <option key={String(m.id)} value={m.id}>
+                        {m.nombre}
+                      </option>
+                    ))}
                 </select>
               </div>
             </div>
@@ -404,11 +530,13 @@ export default function MisCarrerasPage() {
               style={{ width: '100%', padding: 8, marginBottom: 12 }}
             >
               <option value=''>-- Seleccionar --</option>
-              {states.map(s => (
-                <option key={String(s.id)} value={s.id}>
-                  {s.nombre}
-                </option>
-              ))}
+              {states
+                .filter(s => s.id && !isNaN(Number(s.id)))
+                .map(s => (
+                  <option key={String(s.id)} value={s.id}>
+                    {s.nombre}
+                  </option>
+                ))}
             </select>
 
             <div className={styles.twoColRow}>

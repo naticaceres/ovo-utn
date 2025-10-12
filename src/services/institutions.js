@@ -18,15 +18,6 @@ export async function getInstitution(id) {
   }
 }
 
-export async function getRegistrationOptions() {
-  try {
-    const { data } = await api.get('/api/v1/institutions/registration/options');
-    return data;
-  } catch (error) {
-    throw error.response ? error.response.data : error;
-  }
-}
-
 export async function registerInstitution(payload) {
   try {
     const { data } = await api.post(
@@ -227,10 +218,14 @@ export async function getCareerModalities(params = {}) {
 
 export async function getCareerStates(params = {}) {
   try {
-    const { data } = await api.get('/api/v1/admin/catalog/career-states', {
-      params,
-    });
-    return data;
+    const { data } = await api.get(
+      '/api/v1/admin/catalog/career-institution-statuses',
+      {
+        params,
+      }
+    );
+    // Extraer el array careerInstitutionStatuses de la respuesta
+    return data.careerInstitutionStatuses || data;
   } catch (error) {
     throw error.response ? error.response.data : error;
   }
