@@ -508,7 +508,7 @@ export default function MisCarrerasPage() {
       if (Array.isArray(data)) list = data;
       else if (data && typeof data === 'object') {
         const d = data as Record<string, unknown>;
-        const candidate = d.materials ?? d.items ?? d.data ?? d;
+        const candidate = d.materiales ?? d.materials ?? d.items ?? d.data ?? d;
         if (Array.isArray(candidate)) list = candidate;
       }
 
@@ -599,19 +599,22 @@ export default function MisCarrerasPage() {
       setMatError('Id de carrera inválido');
       return;
     }
-    if (!m.id && m.id !== 0) {
+    if (m.id === undefined || m.id === null || m.id === '') {
+      console.error('Material ID inválido:', { material: m, id: m.id });
       setMatError('Id de material inválido');
       return;
     }
     try {
+      console.log('Eliminando material:', { careerId, materialId: m.id });
       await deleteMyCareerMaterial(
         careerId as number | string,
         m.id as number | string
       );
       await loadMaterialsForCareer(matCareer);
+      showToast('Material eliminado correctamente', { variant: 'success' });
     } catch (err) {
       console.error('Error deleting material', err);
-      setMatError('No se pudo eliminar el material');
+      setMatError(formatError(err, 'No se pudo eliminar el material'));
     }
   };
 
@@ -657,7 +660,12 @@ export default function MisCarrerasPage() {
 
       const mapped = list.map((it: unknown) => {
         const obj = it as Record<string, unknown>;
-        const rawId = obj.id ?? obj.idFaq ?? obj.idPregunta ?? undefined;
+        const rawId =
+          obj.id ??
+          obj.idFaq ??
+          obj.idPregunta ??
+          obj.idPreguntaFrecuente ??
+          undefined;
         const id = rawId == null ? undefined : String(rawId);
         return {
           id,
@@ -733,19 +741,26 @@ export default function MisCarrerasPage() {
       setFaqError('Id de carrera inválido');
       return;
     }
-    if (!f.id && f.id !== 0) {
+    if (f.id === undefined || f.id === null || f.id === '') {
+      console.error('FAQ ID inválido:', { faq: f, id: f.id });
       setFaqError('Id de faq inválido');
       return;
     }
     try {
+      console.log('Eliminando FAQ:', { careerId, faqId: f.id });
       await deleteMyCareerFaq(
         careerId as number | string,
         f.id as number | string
       );
       await loadFaqsForCareer(faqCareer);
+      showToast('Pregunta frecuente eliminada correctamente', {
+        variant: 'success',
+      });
     } catch (err) {
       console.error('Error deleting faq', err);
-      setFaqError('No se pudo eliminar la pregunta frecuente');
+      setFaqError(
+        formatError(err, 'No se pudo eliminar la pregunta frecuente')
+      );
     }
   };
 
@@ -1028,7 +1043,7 @@ export default function MisCarrerasPage() {
               <div className={styles.error}>{faqError}</div>
             ) : (
               <div>
-                <table style={{ width: '100%', marginBottom: 12 }}>
+                <table className={styles.table}>
                   <thead>
                     <tr>
                       <th>Pregunta</th>
@@ -1046,7 +1061,7 @@ export default function MisCarrerasPage() {
                           {f.respuesta}
                         </td>
                         <td>
-                          <div style={{ display: 'flex', gap: 8 }}>
+                          <div className={styles.actions}>
                             <Button
                               variant='outline'
                               onClick={() => startEditFaq(f)}
@@ -1114,10 +1129,11 @@ export default function MisCarrerasPage() {
               <div className={styles.error}>{matError}</div>
             ) : (
               <div>
-                <table style={{ width: '100%', marginBottom: 12 }}>
+                <table className={styles.table}>
                   <thead>
                     <tr>
                       <th>Título</th>
+                      <th>Descripción</th>
                       <th>Fecha</th>
                       <th>Acciones</th>
                     </tr>
@@ -1125,12 +1141,15 @@ export default function MisCarrerasPage() {
                   <tbody>
                     {materials.map(m => (
                       <tr key={String(m.id ?? JSON.stringify(m))}>
-                        <td style={{ maxWidth: 400, wordBreak: 'break-word' }}>
+                        <td style={{ maxWidth: 300, wordBreak: 'break-word' }}>
                           {m.titulo}
+                        </td>
+                        <td style={{ maxWidth: 350, wordBreak: 'break-word' }}>
+                          {m.descripcion || '-'}
                         </td>
                         <td>{m.fecha ? String(m.fecha).split('T')[0] : ''}</td>
                         <td>
-                          <div style={{ display: 'flex', gap: 8 }}>
+                          <div className={styles.actions}>
                             <Button
                               variant='outline'
                               onClick={() => startEditMat(m)}
@@ -1167,15 +1186,6 @@ export default function MisCarrerasPage() {
                     value={matEnlace}
                     onChange={e => setMatEnlace(e.target.value)}
                     fullWidth
-                  />
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label>Archivo adjunto</label>
-                  <input
-                    type='file'
-                    onChange={() => {
-                      /* Upload via FormData not implemented; backend may require multipart form */
-                    }}
                   />
                 </div>
 
