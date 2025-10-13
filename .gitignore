@@ -22,3 +22,8 @@ dist-ssr
 *.sw?
 ENDPOINTS.md
 *.rar
+
+# amplify
+.amplify
+amplify_outputs*
+amplifyconfiguration*
