@@ -30,6 +30,7 @@ import DetalleCarreraPage from '../pages/institucion/DetalleCarreraPage';
 import DetalleInstitucionPage from '../pages/institucion/DetalleInstitucionPage';
 import ConsultarInstitucionPage from '../pages/institucion/ConsultarInstitucionPage';
 import MisCarrerasPage from '../pages/institucion/MisCarrerasPage';
+import InstitucionEstadisticas from '../pages/institucion/InstitucionEstadisticas';
 import EstadisticasPage from '../pages/student/EstadisticasPage';
 import FavoriteCareersPage from '../pages/student/FavoriteCareersPage';
 import DetalleCarreraInstitucionPage from '../pages/student/DetalleCarreraInstitucionPage';
@@ -86,6 +87,10 @@ const router = createBrowserRouter([
       { path: 'admin/:categoryId/:itemId', element: <AdminItemPage /> },
       { path: 'institucion', element: <InstitucionHomePage /> },
       { path: 'institucion/profile', element: <ProfilePageInstitucion /> },
+      {
+        path: 'institucion/estadisticas',
+        element: <InstitucionEstadisticas />,
+      },
       { path: 'institucion/mis-carreras', element: <MisCarrerasPage /> },
       { path: 'detalle-carrera', element: <DetalleCarreraPage /> },
       { path: 'detalle-institucion/:id', element: <DetalleInstitucionPage /> },

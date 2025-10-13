@@ -15,7 +15,7 @@ export default function InstitucionHomePage() {
         </div>
         <div
           className={styles.gridItem}
-          onClick={() => navigate('/app/estadisticas')}
+          onClick={() => navigate('/app/institucion/estadisticas')}
         >
           <span className={styles.icon}>📊</span>
           <span className={styles.label}>Ver Estadísticas</span>
@@ -29,7 +29,7 @@ export default function InstitucionHomePage() {
         </div>
         <div
           className={styles.gridItem}
-          onClick={() => navigate('/app/detalle-institucion')}
+          onClick={() => navigate('/app/institucion/estadisticas')}
         >
           <span className={styles.icon}>🏫</span>
           <span className={styles.label}>Ver Institución</span>

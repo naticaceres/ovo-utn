@@ -230,3 +230,74 @@ export async function getCareerStates(params = {}) {
     throw error.response ? error.response.data : error;
   }
 }
+
+// Institution statistics endpoints
+export async function getInstitutionStatsGeneral(params = {}) {
+  try {
+    const { data } = await api.get('/api/v1/institucion/stats/general', {
+      params,
+    });
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function exportInstitutionStatsGeneral(
+  params = {},
+  format = 'pdf'
+) {
+  try {
+    const res = await api.get('/api/v1/institucion/stats/general/export', {
+      params: { ...params, format },
+      responseType: 'blob',
+    });
+    return res.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function getInstitutionStatsCareers(params = {}) {
+  try {
+    const { data } = await api.get('/api/v1/institucion/stats/carreras', {
+      params,
+    });
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function getInstitutionStatsCareer(careerId, params = {}) {
+  try {
+    const { data } = await api.get(
+      `/api/v1/institucion/stats/carrera/${careerId}`,
+      {
+        params,
+      }
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function exportInstitutionStatsCareer(
+  careerId,
+  params = {},
+  format = 'pdf'
+) {
+  try {
+    const res = await api.get(
+      `/api/v1/institucion/stats/carrera/${careerId}/export`,
+      {
+        params: { ...params, format },
+        responseType: 'blob',
+      }
+    );
+    return res.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}

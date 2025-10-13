@@ -115,4 +115,24 @@ export function getCareerStates(
   params?: Record<string, unknown>
 ): Promise<CareerStateDTO[]>;
 
+export function getInstitutionStatsGeneral(
+  params?: Record<string, unknown>
+): Promise<unknown>;
+export function exportInstitutionStatsGeneral(
+  params?: Record<string, unknown>,
+  format?: string
+): Promise<unknown>;
+export function getInstitutionStatsCareers(
+  params?: Record<string, unknown>
+): Promise<unknown>;
+export function getInstitutionStatsCareer(
+  careerId: number | string,
+  params?: Record<string, unknown>
+): Promise<unknown>;
+export function exportInstitutionStatsCareer(
+  careerId: number | string,
+  params?: Record<string, unknown>,
+  format?: string
+): Promise<unknown>;
+
 export {};

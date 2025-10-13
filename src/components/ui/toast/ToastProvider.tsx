@@ -15,7 +15,12 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
       const variant = options?.variant || 'info';
       const ttl = options?.ttl ?? 5000;
       const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      setToasts(prev => [...prev, { id, message, variant, ttl }]);
+      setToasts(prev => {
+        // avoid adding duplicate toasts with same message+variant
+        if (prev.some(t => t.message === message && t.variant === variant))
+          return prev;
+        return [...prev, { id, message, variant, ttl }];
+      });
       setTimeout(() => {
         setToasts(prev => prev.filter(t => t.id !== id));
       }, ttl);

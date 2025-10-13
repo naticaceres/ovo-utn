@@ -4,6 +4,7 @@ import styles from './MisCarrerasPage.module.css';
 import { BackButton } from '../../components/ui/BackButton';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { useToast } from '../../components/ui/toast/useToast';
 import {
   getMyCareers,
   createMyCareer,
@@ -11,6 +12,14 @@ import {
   deleteMyCareer,
   getCareerModalities,
   getCareerStates,
+  getMyCareerFaqs,
+  createMyCareerFaq,
+  updateMyCareerFaq,
+  deleteMyCareerFaq,
+  getMyCareerMaterials,
+  createMyCareerMaterial,
+  updateMyCareerMaterial,
+  deleteMyCareerMaterial,
 } from '../../services/institutions';
 import { listCareers } from '../../services/careers';
 
@@ -30,6 +39,31 @@ type MyCareer = CareerDTO & {
 };
 
 export default function MisCarrerasPage() {
+  const { showToast } = useToast();
+
+  const formatError = (err: unknown, fallback = 'Ocurrió un error') => {
+    if (!err) return fallback;
+    try {
+      // Try axios-style response
+      if (typeof err === 'object' && err !== null) {
+        const obj = err as Record<string, unknown>;
+        const resp = obj['response'] as Record<string, unknown> | undefined;
+        if (resp && resp['data']) {
+          const d = resp['data'];
+          if (typeof d === 'string') return d;
+          if (typeof d === 'object' && d !== null) {
+            const dd = d as Record<string, unknown>;
+            if (dd['message']) return String(dd['message']);
+            if (dd['error']) return String(dd['error']);
+          }
+        }
+        if (obj['message']) return String(obj['message']);
+      }
+      return typeof err === 'object' ? JSON.stringify(err) : String(err);
+    } catch {
+      return fallback;
+    }
+  };
   const [items, setItems] = useState<CareerDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -398,6 +432,323 @@ export default function MisCarrerasPage() {
     }
   };
 
+  // FAQ modal & actions
+  const [showFaqModal, setShowFaqModal] = useState(false);
+  const [faqCareer, setFaqCareer] = useState<MyCareer | null>(null);
+  const [faqs, setFaqs] = useState<
+    Array<{ id?: number | string; pregunta: string; respuesta: string }>
+  >([]);
+  const [faqLoading, setFaqLoading] = useState(false);
+  const [faqError, setFaqError] = useState<string | null>(null);
+  const [faqEditing, setFaqEditing] = useState<{
+    id?: number | string;
+    pregunta: string;
+    respuesta: string;
+  } | null>(null);
+  const [faqPregunta, setFaqPregunta] = useState('');
+  const [faqRespuesta, setFaqRespuesta] = useState('');
+
+  // Materials (multimedia) modal & actions
+  const [showMatModal, setShowMatModal] = useState(false);
+  const [matCareer, setMatCareer] = useState<MyCareer | null>(null);
+  const [materials, setMaterials] = useState<
+    Array<{
+      id?: string | number;
+      titulo?: string;
+      descripcion?: string;
+      enlace?: string;
+      fecha?: string;
+    }>
+  >([]);
+  const [matLoading, setMatLoading] = useState(false);
+  const [matError, setMatError] = useState<string | null>(null);
+  const [matEditing, setMatEditing] = useState<{
+    id?: string | number;
+    titulo?: string;
+    descripcion?: string;
+    enlace?: string;
+  } | null>(null);
+  const [matTitulo, setMatTitulo] = useState('');
+  const [matDescripcion, setMatDescripcion] = useState('');
+  const [matEnlace, setMatEnlace] = useState('');
+
+  const openMatModal = async (career: MyCareer) => {
+    setMatError(null);
+    setMatEditing(null);
+    setMatTitulo('');
+    setMatDescripcion('');
+    setMatEnlace('');
+    try {
+      await loadMaterialsForCareer(career);
+      setMatCareer(career);
+      setShowMatModal(true);
+    } catch (err: unknown) {
+      console.error('Error al listar materiales antes de abrir modal', err);
+      showToast(formatError(err, 'No se pudieron cargar los materiales'), {
+        variant: 'error',
+      });
+    }
+  };
+
+  const loadMaterialsForCareer = async (career: MyCareer) => {
+    setMatLoading(true);
+    setMatError(null);
+    const careerId =
+      career.id ?? career.idCarrera ?? career.idCarreraInstitucion;
+    if (!careerId) {
+      setMatError('Id de carrera inválido');
+      setMatLoading(false);
+      return;
+    }
+    try {
+      const data: unknown = await getMyCareerMaterials(
+        careerId as number | string
+      );
+      let list: unknown[] = [];
+      if (Array.isArray(data)) list = data;
+      else if (data && typeof data === 'object') {
+        const d = data as Record<string, unknown>;
+        const candidate = d.materials ?? d.items ?? d.data ?? d;
+        if (Array.isArray(candidate)) list = candidate;
+      }
+
+      const mapped = list.map((it: unknown) => {
+        const obj = it as Record<string, unknown>;
+        const rawId =
+          obj.id ?? obj.idMaterial ?? obj.idMaterialCarrera ?? undefined;
+        const id = rawId == null ? undefined : String(rawId);
+        return {
+          id,
+          titulo: String(obj.titulo ?? obj.title ?? ''),
+          descripcion: String(obj.descripcion ?? obj.description ?? ''),
+          enlace: String(obj.enlace ?? obj.link ?? ''),
+          fecha: String(obj.fecha ?? obj.createdAt ?? ''),
+        };
+      });
+      setMaterials(mapped);
+    } catch (err: unknown) {
+      console.error('Error loading materials', err);
+      showToast(formatError(err, 'No se pudieron cargar los materiales'), {
+        variant: 'error',
+      });
+      // propagate error so callers can decide whether to open modal
+      throw err;
+    } finally {
+      setMatLoading(false);
+    }
+  };
+
+  const startEditMat = (m: {
+    id?: string | number;
+    titulo?: string;
+    descripcion?: string;
+    enlace?: string;
+  }) => {
+    setMatEditing(m);
+    setMatTitulo(m.titulo ?? '');
+    setMatDescripcion(m.descripcion ?? '');
+    setMatEnlace(m.enlace ?? '');
+  };
+
+  const saveMat = async () => {
+    if (!matCareer) return;
+    const careerId =
+      matCareer.id ?? matCareer.idCarrera ?? matCareer.idCarreraInstitucion;
+    if (!careerId) {
+      setMatError('Id de carrera inválido');
+      return;
+    }
+    if (!matTitulo) {
+      setMatError('Debe completar el título');
+      return;
+    }
+    setMatError(null);
+    try {
+      // If file upload is required by backend, this should be FormData. For now we send JSON with link/description/title.
+      const payload: Record<string, unknown> = {
+        titulo: matTitulo,
+        descripcion: matDescripcion || null,
+        enlace: matEnlace || null,
+      };
+
+      if (matEditing && (matEditing.id || matEditing.id === 0)) {
+        await updateMyCareerMaterial(
+          careerId as number | string,
+          matEditing.id as number | string,
+          payload
+        );
+      } else {
+        await createMyCareerMaterial(careerId as number | string, payload);
+      }
+      await loadMaterialsForCareer(matCareer);
+      setMatEditing(null);
+      setMatTitulo('');
+      setMatDescripcion('');
+      setMatEnlace('');
+    } catch (err) {
+      console.error('Error saving material', err);
+      setMatError('Error al guardar el material');
+    }
+  };
+
+  const removeMat = async (m: { id?: string | number }) => {
+    if (!matCareer) return;
+    const careerId =
+      matCareer.id ?? matCareer.idCarrera ?? matCareer.idCarreraInstitucion;
+    if (!careerId) {
+      setMatError('Id de carrera inválido');
+      return;
+    }
+    if (!m.id && m.id !== 0) {
+      setMatError('Id de material inválido');
+      return;
+    }
+    try {
+      await deleteMyCareerMaterial(
+        careerId as number | string,
+        m.id as number | string
+      );
+      await loadMaterialsForCareer(matCareer);
+    } catch (err) {
+      console.error('Error deleting material', err);
+      setMatError('No se pudo eliminar el material');
+    }
+  };
+
+  const openFaqModal = async (career: MyCareer) => {
+    // Try to load faqs first; if it fails, show a page-level error and don't open modal
+    setFaqError(null);
+    setFaqEditing(null);
+    setFaqPregunta('');
+    setFaqRespuesta('');
+    try {
+      await loadFaqsForCareer(career);
+      setFaqCareer(career);
+      setShowFaqModal(true);
+    } catch (err: unknown) {
+      console.error('Error al listar FAQs antes de abrir modal', err);
+      showToast(
+        formatError(err, 'No se pudieron cargar las preguntas frecuentes'),
+        { variant: 'error' }
+      );
+    }
+  };
+
+  const loadFaqsForCareer = async (career: MyCareer) => {
+    setFaqLoading(true);
+    setFaqError(null);
+    const careerId =
+      career.id ?? career.idCarrera ?? career.idCarreraInstitucion;
+    if (!careerId) {
+      setFaqError('Id de carrera inválido');
+      setFaqLoading(false);
+      return;
+    }
+    try {
+      const data: unknown = await getMyCareerFaqs(careerId as number | string);
+      // the API may return an array or an object with a property containing the array
+      let list: unknown[] = [];
+      if (Array.isArray(data)) list = data;
+      else if (data && typeof data === 'object') {
+        const d = data as Record<string, unknown>;
+        const candidate = d.faqs ?? d.FAQs ?? d.items ?? d;
+        if (Array.isArray(candidate)) list = candidate;
+      }
+
+      const mapped = list.map((it: unknown) => {
+        const obj = it as Record<string, unknown>;
+        const rawId = obj.id ?? obj.idFaq ?? obj.idPregunta ?? undefined;
+        const id = rawId == null ? undefined : String(rawId);
+        return {
+          id,
+          pregunta: String(obj.pregunta ?? obj.question ?? ''),
+          respuesta: String(obj.respuesta ?? obj.answer ?? ''),
+        };
+      });
+      setFaqs(mapped);
+    } catch (err: unknown) {
+      console.error('Error loading faqs', err);
+      showToast(
+        formatError(err, 'No se pudieron cargar las preguntas frecuentes'),
+        { variant: 'error' }
+      );
+      // propagate error so callers can decide whether to open modal
+      throw err;
+    } finally {
+      setFaqLoading(false);
+    }
+  };
+
+  const startEditFaq = (f: {
+    id?: number | string;
+    pregunta: string;
+    respuesta: string;
+  }) => {
+    setFaqEditing(f);
+    setFaqPregunta(f.pregunta || '');
+    setFaqRespuesta(f.respuesta || '');
+  };
+
+  const saveFaq = async () => {
+    if (!faqCareer) return;
+    const careerId =
+      faqCareer.id ?? faqCareer.idCarrera ?? faqCareer.idCarreraInstitucion;
+    if (!careerId) {
+      setFaqError('Id de carrera inválido');
+      return;
+    }
+    if (!faqPregunta || !faqRespuesta) {
+      setFaqError('Debe completar pregunta y respuesta');
+      return;
+    }
+    setFaqError(null);
+    try {
+      if (faqEditing && (faqEditing.id || faqEditing.id === 0)) {
+        await updateMyCareerFaq(
+          careerId as number | string,
+          faqEditing.id as number | string,
+          { pregunta: faqPregunta, respuesta: faqRespuesta }
+        );
+      } else {
+        await createMyCareerFaq(careerId as number | string, {
+          pregunta: faqPregunta,
+          respuesta: faqRespuesta,
+        });
+      }
+      await loadFaqsForCareer(faqCareer);
+      setFaqEditing(null);
+      setFaqPregunta('');
+      setFaqRespuesta('');
+    } catch (err) {
+      console.error('Error saving faq', err);
+      setFaqError('Error al guardar la pregunta frecuente');
+    }
+  };
+
+  const removeFaq = async (f: { id?: number | string }) => {
+    if (!faqCareer) return;
+    const careerId =
+      faqCareer.id ?? faqCareer.idCarrera ?? faqCareer.idCarreraInstitucion;
+    if (!careerId) {
+      setFaqError('Id de carrera inválido');
+      return;
+    }
+    if (!f.id && f.id !== 0) {
+      setFaqError('Id de faq inválido');
+      return;
+    }
+    try {
+      await deleteMyCareerFaq(
+        careerId as number | string,
+        f.id as number | string
+      );
+      await loadFaqsForCareer(faqCareer);
+    } catch (err) {
+      console.error('Error deleting faq', err);
+      setFaqError('No se pudo eliminar la pregunta frecuente');
+    }
+  };
+
   return (
     <div className={styles.container}>
       <BackButton />
@@ -448,6 +799,22 @@ export default function MisCarrerasPage() {
                     <div className={styles.actions}>
                       <Button variant='outline' onClick={() => openEdit(item)}>
                         ✏️
+                      </Button>
+                      <Button
+                        variant='outline'
+                        onClick={() => {
+                          openFaqModal(item);
+                        }}
+                      >
+                        ❓
+                      </Button>
+                      <Button
+                        variant='outline'
+                        onClick={() => {
+                          openMatModal(item);
+                        }}
+                      >
+                        📎
                       </Button>
                       <Button
                         onClick={() => {
@@ -646,6 +1013,199 @@ export default function MisCarrerasPage() {
               </Button>
               <Button onClick={save}>Guardar</Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showFaqModal && faqCareer && (
+        <div className={styles.modalBackdrop}>
+          <div className={styles.modal}>
+            <h3>Preguntas frecuentes - {faqCareer.nombre}</h3>
+
+            {faqLoading ? (
+              <div>Cargando...</div>
+            ) : faqError ? (
+              <div className={styles.error}>{faqError}</div>
+            ) : (
+              <div>
+                <table style={{ width: '100%', marginBottom: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>Pregunta</th>
+                      <th>Respuesta</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {faqs.map(f => (
+                      <tr key={String(f.id ?? JSON.stringify(f))}>
+                        <td style={{ maxWidth: 300, wordBreak: 'break-word' }}>
+                          {f.pregunta}
+                        </td>
+                        <td style={{ maxWidth: 400, wordBreak: 'break-word' }}>
+                          {f.respuesta}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <Button
+                              variant='outline'
+                              onClick={() => startEditFaq(f)}
+                            >
+                              ✏️
+                            </Button>
+                            <Button onClick={() => removeFaq(f)}>🗑️</Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <label>Pregunta</label>
+                <Input
+                  value={faqPregunta}
+                  onChange={e => setFaqPregunta(e.target.value)}
+                  fullWidth
+                />
+                <label>Respuesta</label>
+                <Input
+                  value={faqRespuesta}
+                  onChange={e => setFaqRespuesta(e.target.value)}
+                  fullWidth
+                />
+                {faqError && (
+                  <div
+                    style={{
+                      color: 'var(--error-color, #d9534f)',
+                      marginTop: 8,
+                    }}
+                  >
+                    {faqError}
+                  </div>
+                )}
+
+                <div className={styles.modalActions} style={{ marginTop: 12 }}>
+                  <Button
+                    variant='outline'
+                    onClick={() => {
+                      setShowFaqModal(false);
+                      setFaqCareer(null);
+                    }}
+                  >
+                    Cerrar
+                  </Button>
+                  <Button onClick={saveFaq}>
+                    {faqEditing ? 'Actualizar' : 'Agregar'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {showMatModal && matCareer && (
+        <div className={styles.modalBackdrop}>
+          <div className={styles.modal}>
+            <h3>Materiales - {matCareer.nombre}</h3>
+
+            {matLoading ? (
+              <div>Cargando...</div>
+            ) : matError ? (
+              <div className={styles.error}>{matError}</div>
+            ) : (
+              <div>
+                <table style={{ width: '100%', marginBottom: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>Título</th>
+                      <th>Fecha</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {materials.map(m => (
+                      <tr key={String(m.id ?? JSON.stringify(m))}>
+                        <td style={{ maxWidth: 400, wordBreak: 'break-word' }}>
+                          {m.titulo}
+                        </td>
+                        <td>{m.fecha ? String(m.fecha).split('T')[0] : ''}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <Button
+                              variant='outline'
+                              onClick={() => startEditMat(m)}
+                            >
+                              ✏️
+                            </Button>
+                            <Button onClick={() => removeMat(m)}>🗑️</Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <div style={{ marginBottom: 8 }}>
+                  <label>Título *</label>
+                  <Input
+                    value={matTitulo}
+                    onChange={e => setMatTitulo(e.target.value)}
+                    fullWidth
+                  />
+                </div>
+                <div style={{ marginBottom: 8 }}>
+                  <label>Descripción</label>
+                  <Input
+                    value={matDescripcion}
+                    onChange={e => setMatDescripcion(e.target.value)}
+                    fullWidth
+                  />
+                </div>
+                <div style={{ marginBottom: 8 }}>
+                  <label>Enlace</label>
+                  <Input
+                    value={matEnlace}
+                    onChange={e => setMatEnlace(e.target.value)}
+                    fullWidth
+                  />
+                </div>
+                <div style={{ marginBottom: 8 }}>
+                  <label>Archivo adjunto</label>
+                  <input
+                    type='file'
+                    onChange={() => {
+                      /* Upload via FormData not implemented; backend may require multipart form */
+                    }}
+                  />
+                </div>
+
+                {matError && (
+                  <div
+                    style={{
+                      color: 'var(--error-color, #d9534f)',
+                      marginTop: 8,
+                    }}
+                  >
+                    {matError}
+                  </div>
+                )}
+
+                <div className={styles.modalActions} style={{ marginTop: 12 }}>
+                  <Button
+                    variant='outline'
+                    onClick={() => {
+                      setShowMatModal(false);
+                      setMatCareer(null);
+                    }}
+                  >
+                    Cerrar
+                  </Button>
+                  <Button onClick={saveMat}>
+                    {matEditing ? 'Actualizar' : 'Agregar'}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

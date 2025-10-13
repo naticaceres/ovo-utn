@@ -59,15 +59,7 @@ export default function ConsultarInstitucionPage() {
                     `Institución ${idx}`
                 ),
                 sede: String(it['sigla'] || it['sede'] || it['nombre'] || ''),
-                // Keep the raw descripcion value (may be null); store as-is
-                descripcion: Object.prototype.hasOwnProperty.call(
-                  it,
-                  'descripcion'
-                )
-                  ? (it['descripcion'] as string | null)
-                  : it['detailPath']
-                    ? String(it['detailPath'])
-                    : '',
+
                 carreras: Number(it['cantidadCarreras'] || it['carreras'] || 0),
                 ubicacion,
                 tipo: String(tipoInstitucion || ''),
