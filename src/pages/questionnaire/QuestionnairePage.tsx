@@ -232,9 +232,6 @@ export function QuestionnairePage() {
             >
               Sí, empezar el test
             </Button>
-            <Button variant='secondary' size='lg' className={styles.infoButton}>
-              Necesito más información
-            </Button>
           </div>
         </div>
 
