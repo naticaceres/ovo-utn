@@ -55,3 +55,51 @@
   gap: 0.5rem;
   align-items: center;
 }
+
+.textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: inherit;
+  resize: vertical;
+  margin: 0.5rem 0;
+}
+
+.select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: inherit;
+  background: white;
+  margin: 0.5rem 0;
+}
+
+.loading {
+  padding: 1rem;
+  text-align: center;
+  color: #666;
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+}
+
+.filters label {
+  font-weight: 500;
+  color: #495057;
+  min-width: fit-content;
+}
+
+.filters select {
+  margin: 0;
+  min-width: 200px;
+}
