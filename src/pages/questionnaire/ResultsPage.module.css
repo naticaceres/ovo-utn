@@ -71,6 +71,19 @@
 .aptitudeIcon {
   font-size: 2.5rem;
   margin-bottom: var(--spacing-md);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--spacing-md) auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all var(--transition-normal);
+}
+
+.aptitudeItem:hover .aptitudeIcon {
+  transform: scale(1.1);
 }
 
 .aptitudeItem h3 {
