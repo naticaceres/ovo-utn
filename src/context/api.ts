@@ -214,3 +214,43 @@ export function getApiErrorMessage(err: unknown): string {
   return 'Error desconocido';
 }
 // Nota: las llamadas a carreras ahora están en src/services/careers.js
+
+export type ChatResponse = {
+  chatbot_response: string;
+  chat_id: string;
+  status: string; // e.g. "Waiting for Q2", "FINISHED"
+  full_history: string[];
+  final_scores?: Record<string, number>;
+};
+
+export async function sendChatMessage(
+  userId: string,
+  prompt: string,
+  chatId: string
+): Promise<ChatResponse> {
+  const body = {
+    UserID: userId,
+    prompt,
+    ChatID: chatId,
+  };
+
+  const res = await fetch(
+    'https://wid84vod2j.execute-api.us-east-2.amazonaws.com/prod/chat',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    const error = new Error(
+      `Chat proxy error: ${res.status} ${text}`
+    ) as Error & { status: number };
+    // Add status code to error object for easier checking
+    error.status = res.status;
+    throw error;
+  }
+  const data = await res.json();
+  return data as ChatResponse;
+}

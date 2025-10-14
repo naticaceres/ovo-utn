@@ -1,11 +1,17 @@
 import { createContext } from 'react';
 
 export interface AuthUser {
-  id: number;
-  email: string;
-  name: string;
-  role: 'admin' | 'estudiante' | 'guest' | 'institucion';
-  groups?: string[]; // Agregamos los grupos del usuario
+  grupos: string[];
+  permisos: string[];
+  usuario: {
+    apellido: string;
+    dni: number;
+    fechaNac: string;
+    id: number;
+    idGenero: number;
+    mail: string;
+    nombre: string;
+  };
 }
 
 export interface AuthContextType {

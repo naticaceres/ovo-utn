@@ -15,7 +15,21 @@ export default defineConfig({
     }),
   ],
   server: {
-    // Permitir acceso desde el dominio indicado (error: Blocked request. This host ...)
-    allowedHosts: ['ovotest.mooo.com'],
+    allowedHosts: [
+      'ovotest.mooo.com',
+      'wid84vod2j.execute-api.us-east-2.amazonaws.com',
+    ],
+    proxy: {
+      '/api/chat': {
+        target: 'https://wid84vod2j.execute-api.us-east-2.amazonaws.com/prod',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/api\/chat/, '/chat'),
+        configure: proxy => {
+          proxy.on('error', err => {
+            console.log('Proxy error:', err);
+          });
+        },
+      },
+    },
   },
 });
