@@ -125,7 +125,7 @@ export function QuestionnairePage() {
     setHasStarted(true);
     const user = localStorage.getItem('user');
     const authUser: AuthUser = user ? JSON.parse(user) : null;
-    const userId = authUser.usuario.id;
+    const userId = authUser?.usuario?.id ?? 0;
 
     // Crear nuevo chat_id para la sesión
     const initialChatId = `sesion-${Date.now()}`;
@@ -152,7 +152,7 @@ export function QuestionnairePage() {
     setInput('');
     const user = localStorage.getItem('user');
     const authUser: AuthUser = user ? JSON.parse(user) : null;
-    const userId = authUser.usuario.id;
+    const userId = authUser?.usuario?.id ?? 0;
     // enviar al backend
     const cid = chatId || `sesion-${Date.now()}`;
     if (!chatId) {
