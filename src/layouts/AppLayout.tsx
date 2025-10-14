@@ -24,10 +24,10 @@ export function AppLayout() {
 
   // Función para obtener el nombre del grupo principal del usuario
   const getUserGroupDisplay = () => {
-    if (!user?.groups || user.groups.length === 0) return null;
+    if (!user?.grupos || user.grupos.length === 0) return null;
 
     // Buscar el grupo más relevante (administrador tiene prioridad)
-    const groups = user.groups.map(g => g.toLowerCase());
+    const groups = user.grupos.map(g => g.toLowerCase());
 
     if (groups.some(g => g.includes('administrador') || g.includes('admin'))) {
       return 'Administrador';
@@ -42,7 +42,7 @@ export function AppLayout() {
     }
 
     // Si no encuentra ninguno conocido, devuelve el primer grupo capitalizado
-    return user.groups[0].charAt(0).toUpperCase() + user.groups[0].slice(1);
+    return user.grupos[0].charAt(0).toUpperCase() + user.grupos[0].slice(1);
   };
 
   // Función para verificar si el usuario es estudiante
@@ -50,13 +50,12 @@ export function AppLayout() {
     if (!user) return false;
 
     // Verificar por grupos primero (más confiable)
-    if (user.groups && user.groups.length > 0) {
-      const groups = user.groups.map(g => g.toLowerCase());
-      return groups.some(g => g.includes('estudiante'));
+    if (user.grupos && user.grupos.length > 0) {
+      const groups = user.grupos.map((g: string) => g.toLowerCase());
+      return groups.some((g: string) => g.includes('estudiante'));
     }
 
-    // Fallback por role
-    return user.role === 'estudiante';
+    return false;
   };
 
   // Función para obtener el nombre del usuario
@@ -66,7 +65,7 @@ export function AppLayout() {
     // Debug: vamos a ver qué datos tiene el usuario
     console.log('User object:', user);
 
-    const name = user.name || user.email || 'Usuario';
+    const name = user.usuario.nombre || user.usuario.mail || 'Usuario';
     console.log('Resolved name:', name);
     return name;
   };

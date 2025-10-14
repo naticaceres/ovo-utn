@@ -63,6 +63,10 @@ const router = createBrowserRouter([
       { path: 'student', element: <StudentHomePage /> },
       { path: 'student/favorites', element: <FavoriteCareersPage /> },
       {
+        path: 'student/carrera-detalle/:carreraInstitucionId',
+        element: <DetalleCarreraInstitucionPage />,
+      },
+      {
         path: 'student/carrera-institucion/:careerId/:institutionId',
         element: <DetalleCarreraInstitucionPage />,
       },

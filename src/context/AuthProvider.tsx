@@ -23,7 +23,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 // Debug: ver qué datos están llegando
                 console.log('Parsed user data from localStorage:', parsed);
 
-                const authUser: AuthUser = parsed as AuthUser;
+                // Asegurar que tiene la estructura correcta
+                const authUser: AuthUser = {
+                  grupos: parsed.grupos || [],
+                  permisos: parsed.permisos || [],
+                  usuario: parsed.usuario || {},
+                };
 
                 console.log('Mapped AuthUser:', authUser);
                 setUser(authUser);
@@ -39,7 +44,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               // Debug: ver qué datos están llegando del API
               console.log('API response data:', data);
 
-              const authUser: AuthUser = data as AuthUser;
+              // La API devuelve la estructura correcta directamente
+              const authUser: AuthUser = {
+                grupos: data.grupos || [],
+                permisos: data.permisos || [],
+                usuario: data.usuario || {},
+              };
 
               console.log('Mapped AuthUser from API:', authUser);
               setUser(authUser);

@@ -7,10 +7,10 @@ import { setCareerInterest } from '../../services/careers';
 import { useNavigate } from 'react-router-dom';
 
 interface Carrera {
-  id: number | string;
-  nombre: string;
-  // otros campos opcionales según respuesta:
-  instituciones?: string[];
+  id?: number | string;
+  idCarreraInstitucion: number;
+  nombreCarreraInstitucion: string;
+  nombreInstitucion: string;
 }
 
 export default function FavoriteCareersPage() {
@@ -27,9 +27,11 @@ export default function FavoriteCareersPage() {
     setError(null);
     try {
       const data = await getInterests();
+      console.log('Datos de intereses recibidos:', data);
       // esperar que data sea array de carreras
       setCarreras(Array.isArray(data) ? data : []);
-    } catch {
+    } catch (err) {
+      console.error('Error al cargar intereses:', err);
       setError('No se pudieron cargar las carreras favoritas');
     } finally {
       setLoading(false);
@@ -52,7 +54,9 @@ export default function FavoriteCareersPage() {
         await setCareerInterest(id);
       }
       // actualizar UI localmente
-      setCarreras(prev => prev.filter(c => String(c.id) !== String(id)));
+      setCarreras(prev =>
+        prev.filter(c => String(c.idCarreraInstitucion) !== String(id))
+      );
     } catch {
       setError('No se pudo quitar el interés. Intente de nuevo.');
     } finally {
@@ -69,32 +73,40 @@ export default function FavoriteCareersPage() {
         <div>Cargando...</div>
       ) : error ? (
         <div className={styles.error}>{error}</div>
-      ) : carreras.length === 0 ? (
+      ) : !carreras || carreras.length === 0 ? (
         <div className={styles.empty}>
-          No tenés carreras marcadas. <br />
+          <p>No tenés carreras marcadas como de interés.</p>
           <Button
             variant='outline'
             onClick={() => navigate('/app/student/carreras')}
           >
-            Ir a buscar carreras
+            Explorar carreras
           </Button>
         </div>
       ) : (
         <ul className={styles.list}>
           {carreras.map(c => (
-            <li key={c.id} className={styles.item}>
+            <li key={c.idCarreraInstitucion} className={styles.item}>
               <div>
-                <div className={styles.name}>{c.nombre}</div>
-                {c.instituciones && c.instituciones.length > 0 && (
-                  <div className={styles.sub}>{c.instituciones.join(', ')}</div>
-                )}
+                <div className={styles.name}>{c.nombreCarreraInstitucion}</div>
+                <div className={styles.sub}>{c.nombreInstitucion}</div>
               </div>
               <div className={styles.actions}>
                 <Button
+                  variant='primary'
+                  onClick={() =>
+                    navigate(
+                      `/app/student/carrera-detalle/${c.idCarreraInstitucion}`
+                    )
+                  }
+                >
+                  Ver detalles
+                </Button>
+                <Button
                   variant='outline'
-                  onClick={() => handleUnmark(c.id)}
-                  disabled={processingId === c.id}
-                  isLoading={processingId === c.id}
+                  onClick={() => handleUnmark(c.idCarreraInstitucion)}
+                  disabled={processingId === c.idCarreraInstitucion}
+                  isLoading={processingId === c.idCarreraInstitucion}
                 >
                   Quitar interés
                 </Button>

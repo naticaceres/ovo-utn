@@ -23,35 +23,30 @@ export function GlobalHeader({ children }: GlobalHeaderProps) {
     if (!user) return '/'; // Usuario no logueado va a la página principal
 
     // Verificar grupos del usuario
-    if (user.groups && user.groups.length > 0) {
-      const groups = user.groups.map(g => g.toLowerCase());
+    if (user.grupos && user.grupos.length > 0) {
+      const groups = user.grupos.map((g: string) => g.toLowerCase());
 
       if (
-        groups.some(g => g.includes('administrador') || g.includes('admin'))
+        groups.some(
+          (g: string) => g.includes('administrador') || g.includes('admin')
+        )
       ) {
         return '/app/admin';
       }
       if (
-        groups.some(g => g.includes('institucion') || g.includes('institución'))
+        groups.some(
+          (g: string) => g.includes('institucion') || g.includes('institución')
+        )
       ) {
         return '/app/institucion';
       }
-      if (groups.some(g => g.includes('estudiante'))) {
+      if (groups.some((g: string) => g.includes('estudiante'))) {
         return '/app/student';
       }
     }
 
-    // Fallback basado en el role si no tiene grupos
-    switch (user.role) {
-      case 'admin':
-        return '/app/admin';
-      case 'institucion':
-        return '/app/institucion';
-      case 'estudiante':
-        return '/app/student';
-      default:
-        return '/';
-    }
+    // Si no se encuentra ningún grupo conocido, ir al home por defecto
+    return '/';
   };
 
   return (

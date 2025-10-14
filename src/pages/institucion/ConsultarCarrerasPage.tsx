@@ -3,223 +3,185 @@ import { useState, useEffect } from 'react';
 import styles from './ConsultarCarrerasPage.module.css';
 import { BackButton } from '../../components/ui/BackButton';
 import { useNavigate } from 'react-router-dom';
-import {
-  listCareers,
-  searchCareers,
-  getCareerInstitutions,
-} from '../../services/careers';
+import { api } from '../../context/api';
 
-interface Carrera {
-  id?: number | string;
-  idCarrera?: number | string;
-  nombre: string;
-  instituciones?: string[];
+interface CarreraInstitucion {
+  idCarreraInstitucion: number;
+  nombreCarrera: string;
+  nombreInstitucion: string;
+  modalidad: string;
+  montoCuota: number;
+  tituloCarrera: string;
+  urlLogo: string;
+  detailPath: string;
+  meInteresaPath: string;
 }
 
-interface Institution {
-  id?: number | string;
-  idInstitucion?: number | string;
-  nombre?: string;
+// Función para obtener todas las carreras con instituciones
+async function getAllCarrerasInstituciones() {
+  try {
+    // Primero obtenemos la lista de carreras
+    const carrerasResponse = await api.get('/api/v1/careers');
+    const carreras = Array.isArray(carrerasResponse.data)
+      ? carrerasResponse.data
+      : [];
+
+    // Luego obtenemos las instituciones para cada carrera
+    const allCarrerasInstituciones: CarreraInstitucion[] = [];
+
+    for (const carrera of carreras) {
+      try {
+        const carreraId = carrera.id || carrera.idCarrera;
+        if (carreraId) {
+          const instResponse = await api.get(
+            `/api/v1/careers/${carreraId}/institutions`
+          );
+          const instituciones = Array.isArray(instResponse.data)
+            ? instResponse.data
+            : [];
+          allCarrerasInstituciones.push(...instituciones);
+        }
+      } catch (error) {
+        console.warn(
+          `Error al obtener instituciones para carrera ${carrera.id}:`,
+          error
+        );
+      }
+    }
+
+    return allCarrerasInstituciones;
+  } catch (error) {
+    console.error('Error al obtener carreras-instituciones:', error);
+    throw error;
+  }
 }
 
 export default function ConsultarCarrerasPage() {
   const [query, setQuery] = useState('');
-  const [selectedCarrera, setSelectedCarrera] = useState<
-    number | string | null
-  >(null);
-  const [carreras, setCarreras] = useState<Carrera[]>([]);
+  const [carrerasInstituciones, setCarrerasInstituciones] = useState<
+    CarreraInstitucion[]
+  >([]);
+  const [filteredCarrerasInstituciones, setFilteredCarrerasInstituciones] =
+    useState<CarreraInstitucion[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [institutions, setInstitutions] = useState<Institution[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    listCareers()
+
+    getAllCarrerasInstituciones()
       .then(data => {
         if (!mounted) return;
-        console.log('Carreras recibidas del backend:', data);
-
-        const carrerasArray = Array.isArray(data) ? data : [];
-        console.log('Carreras procesadas:', carrerasArray);
-
-        // Log de la primera carrera para ver su estructura
-        if (carrerasArray.length > 0) {
-          console.log('Estructura de la primera carrera:', carrerasArray[0]);
-          console.log('Campos disponibles:', Object.keys(carrerasArray[0]));
-        }
-
-        setCarreras(carrerasArray);
+        console.log('Carreras-Instituciones recibidas:', data);
+        setCarrerasInstituciones(data);
+        setFilteredCarrerasInstituciones(data);
       })
       .catch(() => setError('No se pudieron cargar las carreras'))
       .finally(() => {
         if (!mounted) return;
         setLoading(false);
       });
+
     return () => {
       mounted = false;
     };
   }, []);
 
   useEffect(() => {
-    const id = setTimeout(() => {
-      if (!query) return;
-      setLoading(true);
-      searchCareers(query)
-        .then(data => {
-          console.log('Resultados de búsqueda:', data);
-          const carrerasArray = Array.isArray(data) ? data : [];
-
-          if (carrerasArray.length > 0) {
-            console.log('Primera carrera de búsqueda:', carrerasArray[0]);
-          }
-
-          setCarreras(carrerasArray);
-        })
-        .catch(() => setError('Error al buscar'))
-        .finally(() => setLoading(false));
-    }, 300);
-    return () => clearTimeout(id);
-  }, [query]);
+    if (!query) {
+      setFilteredCarrerasInstituciones(carrerasInstituciones);
+    } else {
+      const filtered = carrerasInstituciones.filter(
+        carreraInst =>
+          carreraInst.nombreCarrera
+            .toLowerCase()
+            .includes(query.toLowerCase()) ||
+          carreraInst.nombreInstitucion
+            .toLowerCase()
+            .includes(query.toLowerCase())
+      );
+      setFilteredCarrerasInstituciones(filtered);
+    }
+  }, [query, carrerasInstituciones]);
   return (
     <div className={styles.container}>
       <BackButton />
       <div className={styles.header}>
         <h1 className={styles.title}>Catálogo de Carreras</h1>
       </div>
+
       <div className={styles.searchCard}>
-        <h2 className={styles.sectionTitle}>Carreras</h2>
+        <h2 className={styles.sectionTitle}>Carreras e Instituciones</h2>
         <div className={styles.searchBox}>
           <span className={styles.searchIcon}>🔍</span>
-
           <input
             type='text'
-            placeholder='Buscar carrera...'
+            placeholder='Buscar por carrera o institución...'
             value={query}
-            onChange={e => {
-              setQuery(e.target.value);
-              setSelectedCarrera(null);
-              setInstitutions([]); // También limpiar instituciones
-            }}
+            onChange={e => setQuery(e.target.value)}
             className={styles.input}
           />
         </div>
 
-        <ul className={styles.carreraList}>
-          {loading && <li className={styles.noResult}>Cargando...</li>}
-          {!loading && carreras.length === 0 && (
-            <li className={styles.noResult}>No se encontraron carreras</li>
-          )}
-          {carreras.map(c => (
-            <li
-              key={c.id || c.idCarrera || c.nombre}
-              className={
-                selectedCarrera === (c.id || c.idCarrera || c.nombre)
-                  ? styles.selected
-                  : styles.carreraItem
-              }
-              onClick={async () => {
-                console.log('Carrera seleccionada:', c);
-                console.log('Todos los campos de la carrera:', Object.keys(c));
+        {loading && (
+          <div className={styles.noResult}>
+            Cargando carreras e instituciones...
+          </div>
+        )}
 
-                // Buscar el ID de la carrera con múltiples nombres posibles
-                const carreraId = c.id || c.idCarrera || c.nombre;
+        {!loading && filteredCarrerasInstituciones.length === 0 && (
+          <div className={styles.noResult}>No se encontraron carreras</div>
+        )}
 
-                console.log('ID de carrera encontrado:', carreraId);
-                console.log('Nombre de carrera:', c.nombre);
+        {!loading && filteredCarrerasInstituciones.length > 0 && (
+          <ul className={styles.institutions}>
+            {filteredCarrerasInstituciones.map(carreraInst => (
+              <li
+                key={carreraInst.idCarreraInstitucion}
+                className={styles.institutionItem}
+                onClick={() => {
+                  console.log('Navegando a detalle:', carreraInst);
 
-                if (!carreraId) {
-                  console.error('No se encontró ID de carrera válido');
-                  setError('Error: La carrera no tiene un ID válido');
-                  return;
-                }
+                  // Extraer los IDs del detailPath
+                  // detailPath tiene formato: "/api/v1/careers/1/institutions/1"
+                  const pathParts = carreraInst.detailPath.split('/');
+                  const carreraId = pathParts[pathParts.length - 3]; // careers/ID/institutions
+                  const institucionId = pathParts[pathParts.length - 1]; // institutions/ID
 
-                setSelectedCarrera(carreraId);
-                setInstitutions([]);
-                setError(null);
+                  console.log('IDs extraídos:', { carreraId, institucionId });
 
-                try {
-                  console.log(
-                    'Buscando instituciones para carrera ID:',
-                    carreraId
+                  navigate(
+                    `/app/student/carrera-institucion/${carreraId}/${institucionId}`
                   );
-
-                  const inst = await getCareerInstitutions(carreraId);
-                  console.log('Instituciones recibidas:', inst);
-
-                  // Verificar que las instituciones tengan IDs
-                  const institutionsWithIds = Array.isArray(inst)
-                    ? inst.map((institution, index) => {
-                        console.log('Institución:', institution);
-                        return {
-                          ...institution,
-                          id:
-                            institution.id ||
-                            institution.idInstitucion ||
-                            index,
-                        };
-                      })
-                    : [];
-
-                  console.log('Instituciones procesadas:', institutionsWithIds);
-                  setInstitutions(institutionsWithIds);
-                } catch (err) {
-                  console.error('Error al cargar instituciones:', err);
-                  setError('No se pudieron cargar las instituciones');
-                }
-              }}
-              style={{ cursor: 'pointer', color: 'var(--color-primary)' }}
-            >
-              {c.nombre}
-            </li>
-          ))}
-        </ul>
+                }}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className={styles.institutionContent}>
+                  <div className={styles.institutionHeader}>
+                    <h4 className={styles.institutionName}>
+                      {carreraInst.nombreCarrera}
+                    </h4>
+                    <span className={styles.modalidad}>
+                      {carreraInst.modalidad}
+                    </span>
+                  </div>
+                  <div className={styles.institutionDetails}>
+                    <span className={styles.titulo}>
+                      📍 {carreraInst.nombreInstitucion}
+                    </span>
+                    <span className={styles.cuota}>
+                      Cuota: ${carreraInst.montoCuota}
+                    </span>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
-      {selectedCarrera && (
-        <div className={styles.card}>
-          <h2 className={styles.sectionTitle}>Instituciones</h2>
-          {institutions.length === 0 ? (
-            <div>No se encontraron instituciones</div>
-          ) : (
-            <ul className={styles.institutions}>
-              {institutions.map(inst => (
-                <li
-                  key={inst.id || String(inst.nombre)}
-                  style={{ cursor: 'pointer', color: 'var(--color-primary)' }}
-                  onClick={() => {
-                    const carreraId = selectedCarrera; // Ya es el ID numérico
-                    const institucionId = inst.id || inst.idInstitucion;
 
-                    console.log('Navegando a detalle:', {
-                      carreraId,
-                      institucionId,
-                    });
-                    console.log('Institución completa:', inst);
-
-                    if (!carreraId || !institucionId) {
-                      console.error('Faltan IDs para navegar:', {
-                        carreraId,
-                        institucionId,
-                      });
-                      setError(
-                        'Error: No se pueden obtener los identificadores necesarios'
-                      );
-                      return;
-                    }
-
-                    navigate(
-                      `/app/student/carrera-institucion/${carreraId}/${institucionId}`
-                    );
-                  }}
-                >
-                  {inst.nombre || String(inst)}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
       {error && (
         <div style={{ color: 'var(--color-accent-2)', marginTop: 12 }}>
           {error}

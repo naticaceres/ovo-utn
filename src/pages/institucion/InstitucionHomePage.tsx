@@ -32,8 +32,9 @@ export default function InstitucionHomePage() {
         <div
           className={styles.gridItem}
           onClick={() =>
-            user && user.role === 'institucion'
-              ? navigate(`/app/detalle-institucion/${user.id}`)
+            user &&
+            user.grupos?.some(g => g.toLowerCase().includes('institucion'))
+              ? navigate(`/app/detalle-institucion/${user.usuario.id}`)
               : navigate('/app/detalle-institucion')
           }
         >

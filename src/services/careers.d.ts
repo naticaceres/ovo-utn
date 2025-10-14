@@ -15,5 +15,8 @@ export function getCareerInstitution(
   careerId: string | number,
   institutionId: string | number
 ): Promise<unknown>;
+export function getCareerInstitutionById(
+  carreraInstitucionId: string | number
+): Promise<unknown>;
 export function getCareer(careerId: string | number): Promise<Carrera>;
 export function setCareerInterest(careerId: string | number): Promise<unknown>;

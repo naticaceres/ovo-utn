@@ -41,7 +41,9 @@ export default function DetalleInstitucionPage() {
         // Prefer route param id when present (student is viewing another institution)
         const institutionId =
           routeId ??
-          (user && user.id !== undefined ? String(user.id) : undefined);
+          (user && user.usuario?.id !== undefined
+            ? String(user.usuario.id)
+            : undefined);
 
         if (!institutionId) {
           setError('No hay identificador de institución disponible');
@@ -251,9 +253,9 @@ export default function DetalleInstitucionPage() {
         </div>
         {/* Only allow editing when logged user is an institution user and owns this institution */}
         {user &&
-          user.role === 'institucion' &&
+          user.grupos?.some(g => g.toLowerCase().includes('institucion')) &&
           institucion &&
-          Number(user.id) === Number(institucion.id) && (
+          Number(user.usuario.id) === Number(institucion.id) && (
             <button
               className={styles.editBtn}
               onClick={() => navigate(`/app/institucion/profile`)}

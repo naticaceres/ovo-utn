@@ -3,22 +3,30 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styles from './DetalleCarreraInstitucionPage.module.css';
 import { BackButton } from '../../components/ui/BackButton';
 import { Button } from '../../components/ui/Button';
-import { getCareerInstitution } from '../../services/careers';
+import {
+  getCareerInstitution,
+  getCareerInstitutionById,
+} from '../../services/careers';
 import { getInterests, addInterest, removeInterest } from '../../services/user';
 import { useToast } from '../../components/ui/toast/useToast';
 
-interface CarreraInstitucion {
-  id: number;
-  duracion: number;
-  horasCursado: number;
-  modalidad: string;
-  montoCuota: number;
-  nombreCarrera: string;
-  observaciones: string;
-  tituloCarrera: string;
-  institucion: {
+interface CarreraInstitucionResponse {
+  acciones: {
+    meInteresaPath: string;
+  };
+  carreraInstitucion: {
+    duracion: number;
+    horasCursado: number;
     id: number;
+    modalidad: string;
+    montoCuota: number;
+    nombreCarrera: string;
+    observaciones: string;
+    tituloCarrera: string;
+  };
+  institucion: {
     direccion: string;
+    id: number;
     mail: string;
     nombre: string;
     sigla: string;
@@ -26,14 +34,24 @@ interface CarreraInstitucion {
     telefono: string;
     urlLogo: string;
   };
-  multimedia: unknown[];
+  multimedia: Array<{
+    idContenidoMultimedia: number;
+    titulo: string;
+    descripcion: string;
+    enlace: string;
+  }>;
+  preguntasFrecuentes: Array<{
+    idPreguntaFrecuente: number;
+    nombrePregunta: string;
+    respuesta: string;
+  }>;
 }
 
 export default function DetalleCarreraInstitucionPage() {
-  const { careerId, institutionId } = useParams();
+  const { careerId, institutionId, carreraInstitucionId } = useParams();
   const navigate = useNavigate();
   const [carreraInstitucion, setCarreraInstitucion] =
-    useState<CarreraInstitucion | null>(null);
+    useState<CarreraInstitucionResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [interestId, setInterestId] = useState<number | null>(null);
@@ -42,7 +60,8 @@ export default function DetalleCarreraInstitucionPage() {
 
   useEffect(() => {
     async function fetchCarreraInstitucion() {
-      if (!careerId || !institutionId) {
+      // Verificar si tenemos carreraInstitucionId (ruta nueva) o careerId + institutionId (ruta antigua)
+      if (!carreraInstitucionId && (!careerId || !institutionId)) {
         setError('Parámetros faltantes');
         setLoading(false);
         return;
@@ -51,70 +70,54 @@ export default function DetalleCarreraInstitucionPage() {
       try {
         setLoading(true);
         setError(null);
-        console.log('Obteniendo detalle carrera-institución:', {
-          careerId,
-          institutionId,
-        });
 
-        const data = await getCareerInstitution(careerId, institutionId);
-        console.log('Datos recibidos:', data);
-
-        // Normalizar respuestas que pueden venir envueltas
-        // Algunos endpoints devuelven: { carreraInstitucion: {...}, institucion: {...}, multimedia: [...] }
-        // Otros devuelven directamente el objeto de detalle.
-        let normalized: Record<string, unknown> = {};
-        if (data && typeof data === 'object') {
-          const d = data as Record<string, unknown>;
-          if (
-            d['carreraInstitucion'] &&
-            typeof d['carreraInstitucion'] === 'object'
-          ) {
-            normalized = {
-              ...(d['carreraInstitucion'] as Record<string, unknown>),
-            };
-            // Attach institucion object if present
-            if (d['institucion'] && typeof d['institucion'] === 'object')
-              normalized.institucion = d['institucion'];
-            else if (!normalized.institucion) normalized.institucion = {};
-          } else {
-            normalized = d;
-          }
+        let data;
+        if (carreraInstitucionId) {
+          console.log(
+            'Obteniendo detalle por ID carrera-institución:',
+            carreraInstitucionId
+          );
+          data = await getCareerInstitutionById(carreraInstitucionId);
+        } else {
+          console.log('Obteniendo detalle carrera-institución:', {
+            careerId,
+            institutionId,
+          });
+          data = await getCareerInstitution(careerId!, institutionId!);
         }
 
-        setCarreraInstitucion(normalized as unknown as CarreraInstitucion);
+        console.log('Datos recibidos:', data);
+
+        // La nueva API devuelve directamente la estructura esperada
+        setCarreraInstitucion(data as CarreraInstitucionResponse);
 
         // Check if current user has this carreraInstitucion as interest
         try {
           const interests = await getInterests();
-          // interests may be an array or an object with a `data` field
-          const list = Array.isArray(interests)
-            ? (interests as unknown as Record<string, unknown>[])
-            : Array.isArray(
-                  (interests as unknown as Record<string, unknown>)?.data
-                )
-              ? ((interests as unknown as Record<string, unknown>)[
-                  'data'
-                ] as Record<string, unknown>[])
-              : [];
-          const normIdCandidates = [
-            (normalized as Record<string, unknown>)['id'],
-            (normalized as Record<string, unknown>)['idCarreraInstitucion'],
-            (normalized as Record<string, unknown>)['idCarrera'],
-          ].filter(Boolean);
+          const list = Array.isArray(interests) ? interests : [];
 
-          const found = (list as Record<string, unknown>[]).find(it => {
-            try {
-              const val =
-                (it as Record<string, unknown>)['idCarreraInstitucion'] ??
-                (it as Record<string, unknown>)['id'];
-              return normIdCandidates.some(c => String(c) === String(val));
-            } catch {
-              return false;
-            }
+          // Buscar por idCarreraInstitucion
+          const carreraInstId = (data as CarreraInstitucionResponse)
+            .carreraInstitucion.id;
+
+          console.log('Buscando interés para carrera ID:', carreraInstId);
+          console.log('Lista de intereses del usuario:', list);
+
+          const found = list.find((interest: Record<string, unknown>) => {
+            const interestCarreraId = interest.idCarreraInstitucion;
+            console.log('Comparando:', carreraInstId, 'con', interestCarreraId);
+            return Number(interestCarreraId) === Number(carreraInstId);
           });
+
+          console.log('Interés encontrado:', found);
+
           if (found) {
-            const f = found as Record<string, unknown>;
-            setInterestId((f['id'] as number) || (f['_id'] as number) || null);
+            const foundId = found.id || found._id || null;
+            console.log('Estableciendo interestId:', foundId);
+            setInterestId(foundId as number);
+          } else {
+            console.log('No se encontró interés, estableciendo null');
+            setInterestId(null);
           }
         } catch (e) {
           console.warn('No se pudieron cargar intereses del usuario', e);
@@ -128,7 +131,7 @@ export default function DetalleCarreraInstitucionPage() {
     }
 
     fetchCarreraInstitucion();
-  }, [careerId, institutionId]);
+  }, [careerId, institutionId, carreraInstitucionId]);
 
   if (loading) {
     return (
@@ -167,7 +170,7 @@ export default function DetalleCarreraInstitucionPage() {
     );
   }
 
-  const { institucion } = carreraInstitucion;
+  const { institucion, carreraInstitucion: carreraInfo } = carreraInstitucion;
 
   return (
     <div className={styles.container}>
@@ -176,7 +179,7 @@ export default function DetalleCarreraInstitucionPage() {
       <div className={styles.card}>
         <div className={styles.header}>
           <h1 className={styles.title}>
-            {carreraInstitucion.nombreCarrera} - {institucion.sigla}
+            {carreraInfo.nombreCarrera} - {institucion.sigla}
           </h1>
         </div>
 
@@ -184,9 +187,9 @@ export default function DetalleCarreraInstitucionPage() {
           <h2 className={styles.sectionTitle}>Información de la Carrera</h2>
           <div className={styles.infoGrid}>
             <div className={styles.infoItem}>
-              <span className={styles.label}>Cantidad de Materias:</span>
+              <span className={styles.label}>Duración:</span>
               <span className={styles.value}>
-                {carreraInstitucion.duracion || 'No especificado'}
+                {carreraInfo.duracion || 'No especificado'} años
               </span>
             </div>
             <div className={styles.infoItem}>
@@ -195,33 +198,25 @@ export default function DetalleCarreraInstitucionPage() {
             </div>
             <div className={styles.infoItem}>
               <span className={styles.label}>Horas de Cursado:</span>
-              <span className={styles.value}>
-                {carreraInstitucion.horasCursado}
-              </span>
+              <span className={styles.value}>{carreraInfo.horasCursado}</span>
             </div>
             <div className={styles.infoItem}>
               <span className={styles.label}>Monto de Cuota:</span>
-              <span className={styles.value}>
-                ${carreraInstitucion.montoCuota}
-              </span>
+              <span className={styles.value}>${carreraInfo.montoCuota}</span>
             </div>
             <div className={styles.infoItem}>
               <span className={styles.label}>Título de la Carrera:</span>
-              <span className={styles.value}>
-                {carreraInstitucion.tituloCarrera}
-              </span>
+              <span className={styles.value}>{carreraInfo.tituloCarrera}</span>
             </div>
             <div className={styles.infoItem}>
               <span className={styles.label}>Observaciones:</span>
               <span className={styles.value}>
-                {carreraInstitucion.observaciones || 'Sin observaciones'}
+                {carreraInfo.observaciones || 'Sin observaciones'}
               </span>
             </div>
             <div className={styles.infoItem}>
               <span className={styles.label}>Modalidad:</span>
-              <span className={styles.value}>
-                {carreraInstitucion.modalidad}
-              </span>
+              <span className={styles.value}>{carreraInfo.modalidad}</span>
             </div>
           </div>
         </div>
@@ -269,10 +264,23 @@ export default function DetalleCarreraInstitucionPage() {
           {carreraInstitucion.multimedia &&
           carreraInstitucion.multimedia.length > 0 ? (
             <div className={styles.multimedia}>
-              {carreraInstitucion.multimedia.map((_, index) => (
-                <div key={index} className={styles.multimediaItem}>
-                  {/* Aquí se pueden agregar diferentes tipos de multimedia */}
-                  <p>Contenido multimedia {index + 1}</p>
+              {carreraInstitucion.multimedia.map(item => (
+                <div
+                  key={item.idContenidoMultimedia}
+                  className={styles.multimediaItem}
+                >
+                  <h4 className={styles.multimediaTitle}>{item.titulo}</h4>
+                  <p className={styles.multimediaDescription}>
+                    {item.descripcion}
+                  </p>
+                  <a
+                    href={item.enlace}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className={styles.link}
+                  >
+                    Ver contenido
+                  </a>
                 </div>
               ))}
             </div>
@@ -286,9 +294,21 @@ export default function DetalleCarreraInstitucionPage() {
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Preguntas Frecuentes:</h2>
           <div className={styles.faqSection}>
-            <p className={styles.noContent}>
-              No hay preguntas frecuentes disponibles
-            </p>
+            {carreraInstitucion.preguntasFrecuentes &&
+            carreraInstitucion.preguntasFrecuentes.length > 0 ? (
+              <div className={styles.faqList}>
+                {carreraInstitucion.preguntasFrecuentes.map(faq => (
+                  <div key={faq.idPreguntaFrecuente} className={styles.faqItem}>
+                    <h4 className={styles.faqQuestion}>{faq.nombrePregunta}</h4>
+                    <p className={styles.faqAnswer}>{faq.respuesta}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className={styles.noContent}>
+                No hay preguntas frecuentes disponibles
+              </p>
+            )}
           </div>
         </div>
 
@@ -297,30 +317,39 @@ export default function DetalleCarreraInstitucionPage() {
             variant='primary'
             onClick={async () => {
               if (!carreraInstitucion) return;
-              // Determine id of carreraInstitucion
-              const cif = carreraInstitucion as unknown as Record<
-                string,
-                unknown
-              >;
-              const cid =
-                cif['id'] ?? cif['idCarreraInstitucion'] ?? cif['idCarrera'];
-              if (!cid) return;
+
+              const carreraInstId = carreraInfo.id;
+              if (!carreraInstId) return;
+
               setInterestLoading(true);
               try {
                 if (interestId) {
                   // remove
+                  console.log('Removiendo interés con ID:', interestId);
                   await removeInterest(interestId);
                   setInterestId(null);
                   showToast('Interés eliminado', { variant: 'success' });
                 } else {
-                  const res = await addInterest({ idCarreraInstitucion: cid });
+                  console.log(
+                    'Agregando interés para carrera ID:',
+                    carreraInstId
+                  );
+                  const res = await addInterest({
+                    idCarreraInstitucion: carreraInstId,
+                  });
+                  console.log('Respuesta al agregar interés:', res);
+
                   const r = res as unknown as Record<string, unknown>;
                   const newId = r['id'] ?? r['_id'] ?? r['insertedId'] ?? null;
+
+                  console.log('Nuevo ID de interés:', newId);
+
                   if (
                     newId &&
                     (typeof newId === 'string' || typeof newId === 'number')
                   ) {
                     setInterestId(Number(newId));
+                    console.log('InterestId actualizado a:', Number(newId));
                   }
                   showToast('Interés agregado', { variant: 'success' });
                 }
@@ -332,24 +361,30 @@ export default function DetalleCarreraInstitucionPage() {
               }
             }}
           >
-            {interestLoading
-              ? '...'
-              : interestId
-                ? 'Quitar interés'
-                : 'Me interesa'}
+            {(() => {
+              const buttonText = interestLoading
+                ? '...'
+                : interestId
+                  ? 'Quitar interés'
+                  : 'Me interesa';
+              console.log(
+                'Estado del botón - interestId:',
+                interestId,
+                'texto:',
+                buttonText
+              );
+              return buttonText;
+            })()}
           </Button>
           <Button
             variant='outline'
             onClick={() => {
-              let instId: string | number | undefined;
-              if (institucion && typeof institucion === 'object') {
-                const r = institucion as Record<string, unknown>;
-                instId =
-                  (r['id'] as string | number | undefined) ||
-                  (r['idInstitucion'] as string | number | undefined);
+              const instId = institucion.id;
+              if (instId) {
+                navigate(`/app/detalle-institucion/${instId}`);
+              } else if (institutionId) {
+                navigate(`/app/detalle-institucion/${institutionId}`);
               }
-              if (instId) navigate(`/app/detalle-institucion/${instId}`);
-              else navigate(`/app/detalle-institucion/${institutionId}`);
             }}
           >
             Ver Institución
