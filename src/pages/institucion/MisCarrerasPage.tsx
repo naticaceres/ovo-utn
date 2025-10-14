@@ -447,6 +447,7 @@ export default function MisCarrerasPage() {
   } | null>(null);
   const [faqPregunta, setFaqPregunta] = useState('');
   const [faqRespuesta, setFaqRespuesta] = useState('');
+  const [showFaqEditModal, setShowFaqEditModal] = useState(false);
 
   // Materials (multimedia) modal & actions
   const [showMatModal, setShowMatModal] = useState(false);
@@ -471,6 +472,7 @@ export default function MisCarrerasPage() {
   const [matTitulo, setMatTitulo] = useState('');
   const [matDescripcion, setMatDescripcion] = useState('');
   const [matEnlace, setMatEnlace] = useState('');
+  const [showMatEditModal, setShowMatEditModal] = useState(false);
 
   const openMatModal = async (career: MyCareer) => {
     setMatError(null);
@@ -548,6 +550,7 @@ export default function MisCarrerasPage() {
     setMatTitulo(m.titulo ?? '');
     setMatDescripcion(m.descripcion ?? '');
     setMatEnlace(m.enlace ?? '');
+    setShowMatEditModal(true);
   };
 
   const saveMat = async () => {
@@ -571,23 +574,57 @@ export default function MisCarrerasPage() {
         enlace: matEnlace || null,
       };
 
+      let resp: unknown = null;
       if (matEditing && (matEditing.id || matEditing.id === 0)) {
-        await updateMyCareerMaterial(
+        resp = await updateMyCareerMaterial(
           careerId as number | string,
           matEditing.id as number | string,
           payload
         );
       } else {
-        await createMyCareerMaterial(careerId as number | string, payload);
+        resp = await createMyCareerMaterial(
+          careerId as number | string,
+          payload
+        );
       }
+
       await loadMaterialsForCareer(matCareer);
       setMatEditing(null);
       setMatTitulo('');
       setMatDescripcion('');
       setMatEnlace('');
+      setShowMatEditModal(false);
+
+      // show toast based on response message or fallback
+      const extractMessage = (r: unknown) => {
+        try {
+          if (!r) return null;
+          if (typeof r === 'string') return r;
+          if (typeof r === 'object' && r !== null) {
+            const o = r as Record<string, unknown>;
+            if (o.message) return String(o.message);
+            if (o.msg) return String(o.msg);
+            if (o.data && typeof o.data === 'object' && o.data !== null) {
+              const d = o.data as Record<string, unknown>;
+              if (d.message) return String(d.message);
+            }
+          }
+        } catch {
+          // Handle error
+        }
+        return null;
+      };
+      const okMsg =
+        extractMessage(resp) ||
+        (matEditing
+          ? 'Contenido actualizado correctamente'
+          : 'Contenido agregado correctamente');
+      showToast(okMsg, { variant: 'success' });
     } catch (err) {
       console.error('Error saving material', err);
-      setMatError('Error al guardar el material');
+      const msg = formatError(err, 'Error al guardar el material');
+      setMatError(msg);
+      showToast(msg, { variant: 'error' });
     }
   };
 
@@ -606,15 +643,23 @@ export default function MisCarrerasPage() {
     }
     try {
       console.log('Eliminando material:', { careerId, materialId: m.id });
-      await deleteMyCareerMaterial(
+      const resp = await deleteMyCareerMaterial(
         careerId as number | string,
         m.id as number | string
       );
       await loadMaterialsForCareer(matCareer);
-      showToast('Material eliminado correctamente', { variant: 'success' });
+      const okMsg =
+        resp &&
+        typeof resp === 'object' &&
+        (resp as Record<string, unknown>).message
+          ? String((resp as Record<string, unknown>).message)
+          : 'Material eliminado correctamente';
+      showToast(okMsg, { variant: 'success' });
     } catch (err) {
       console.error('Error deleting material', err);
-      setMatError(formatError(err, 'No se pudo eliminar el material'));
+      const msg = formatError(err, 'No se pudo eliminar el material');
+      setMatError(msg);
+      showToast(msg, { variant: 'error' });
     }
   };
 
@@ -692,9 +737,11 @@ export default function MisCarrerasPage() {
     pregunta: string;
     respuesta: string;
   }) => {
+    // open the edit modal with values prefilled
     setFaqEditing(f);
     setFaqPregunta(f.pregunta || '');
     setFaqRespuesta(f.respuesta || '');
+    setShowFaqEditModal(true);
   };
 
   const saveFaq = async () => {
@@ -711,25 +758,61 @@ export default function MisCarrerasPage() {
     }
     setFaqError(null);
     try {
+      // attempt create or update and show toast messages based on response
+      let resp: unknown = null;
       if (faqEditing && (faqEditing.id || faqEditing.id === 0)) {
-        await updateMyCareerFaq(
+        resp = await updateMyCareerFaq(
           careerId as number | string,
           faqEditing.id as number | string,
           { pregunta: faqPregunta, respuesta: faqRespuesta }
         );
       } else {
-        await createMyCareerFaq(careerId as number | string, {
+        resp = await createMyCareerFaq(careerId as number | string, {
           pregunta: faqPregunta,
           respuesta: faqRespuesta,
         });
       }
+
+      // reload list
       await loadFaqsForCareer(faqCareer);
+
+      // extract possible message from response
+      const extractMessage = (r: unknown) => {
+        try {
+          if (!r) return null;
+          if (typeof r === 'string') return r;
+          if (typeof r === 'object' && r !== null) {
+            const o = r as Record<string, unknown>;
+            if (o.message) return String(o.message);
+            if (o.msg) return String(o.msg);
+            if (o.data && typeof o.data === 'object' && o.data !== null) {
+              const d = o.data as Record<string, unknown>;
+              if (d.message) return String(d.message);
+            }
+          }
+          return null;
+        } catch {
+          return null;
+        }
+      };
+
+      const okMsg =
+        extractMessage(resp) ||
+        (faqEditing
+          ? 'Pregunta frecuente actualizada correctamente'
+          : 'Pregunta frecuente agregada correctamente');
+      showToast(okMsg, { variant: 'success' });
+
+      // reset edit modal state
       setFaqEditing(null);
       setFaqPregunta('');
       setFaqRespuesta('');
+      setShowFaqEditModal(false);
     } catch (err) {
       console.error('Error saving faq', err);
-      setFaqError('Error al guardar la pregunta frecuente');
+      const msg = formatError(err, 'Error al guardar la pregunta frecuente');
+      setFaqError(msg);
+      showToast(msg, { variant: 'error' });
     }
   };
 
@@ -748,19 +831,23 @@ export default function MisCarrerasPage() {
     }
     try {
       console.log('Eliminando FAQ:', { careerId, faqId: f.id });
-      await deleteMyCareerFaq(
+      const resp = await deleteMyCareerFaq(
         careerId as number | string,
         f.id as number | string
       );
       await loadFaqsForCareer(faqCareer);
-      showToast('Pregunta frecuente eliminada correctamente', {
-        variant: 'success',
-      });
+      const okMsg =
+        resp &&
+        typeof resp === 'object' &&
+        (resp as Record<string, unknown>).message
+          ? String((resp as Record<string, unknown>).message)
+          : 'Pregunta frecuente eliminada correctamente';
+      showToast(okMsg, { variant: 'success' });
     } catch (err) {
       console.error('Error deleting faq', err);
-      setFaqError(
-        formatError(err, 'No se pudo eliminar la pregunta frecuente')
-      );
+      const msg = formatError(err, 'No se pudo eliminar la pregunta frecuente');
+      setFaqError(msg);
+      showToast(msg, { variant: 'error' });
     }
   };
 
@@ -1035,7 +1122,30 @@ export default function MisCarrerasPage() {
       {showFaqModal && faqCareer && (
         <div className={styles.modalBackdrop}>
           <div className={styles.modal}>
-            <h3>Preguntas frecuentes - {faqCareer.nombre}</h3>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <h3 style={{ margin: 0 }}>
+                Preguntas frecuentes - {faqCareer.nombre}
+              </h3>
+              <div>
+                <Button
+                  onClick={() => {
+                    // open add form in a separate modal (empty values)
+                    setFaqEditing(null);
+                    setFaqPregunta('');
+                    setFaqRespuesta('');
+                    setShowFaqEditModal(true);
+                  }}
+                >
+                  + Agregar
+                </Button>
+              </div>
+            </div>
 
             {faqLoading ? (
               <div>Cargando...</div>
@@ -1076,29 +1186,6 @@ export default function MisCarrerasPage() {
                   </tbody>
                 </table>
 
-                <label>Pregunta</label>
-                <Input
-                  value={faqPregunta}
-                  onChange={e => setFaqPregunta(e.target.value)}
-                  fullWidth
-                />
-                <label>Respuesta</label>
-                <Input
-                  value={faqRespuesta}
-                  onChange={e => setFaqRespuesta(e.target.value)}
-                  fullWidth
-                />
-                {faqError && (
-                  <div
-                    style={{
-                      color: 'var(--error-color, #d9534f)',
-                      marginTop: 8,
-                    }}
-                  >
-                    {faqError}
-                  </div>
-                )}
-
                 <div className={styles.modalActions} style={{ marginTop: 12 }}>
                   <Button
                     variant='outline'
@@ -1109,19 +1196,78 @@ export default function MisCarrerasPage() {
                   >
                     Cerrar
                   </Button>
-                  <Button onClick={saveFaq}>
-                    {faqEditing ? 'Actualizar' : 'Agregar'}
-                  </Button>
                 </div>
               </div>
             )}
           </div>
         </div>
       )}
+
+      {/* Separate modal overlay for adding/editing a FAQ */}
+      {showFaqEditModal && faqCareer && (
+        <div className={styles.modalBackdrop}>
+          <div className={styles.modal}>
+            <h3 style={{ marginTop: 0 }}>
+              {faqEditing ? 'Editar pregunta' : 'Agregar pregunta'}
+            </h3>
+            <label>Pregunta</label>
+            <Input
+              value={faqPregunta}
+              onChange={e => setFaqPregunta(e.target.value)}
+              fullWidth
+            />
+            <label>Respuesta</label>
+            <Input
+              value={faqRespuesta}
+              onChange={e => setFaqRespuesta(e.target.value)}
+              fullWidth
+            />
+            {faqError && (
+              <div
+                style={{ color: 'var(--error-color, #d9534f)', marginTop: 8 }}
+              >
+                {faqError}
+              </div>
+            )}
+            <div className={styles.modalActions} style={{ marginTop: 12 }}>
+              <Button
+                variant='outline'
+                onClick={() => setShowFaqEditModal(false)}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={saveFaq}>
+                {faqEditing ? 'Actualizar' : 'Agregar'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       {showMatModal && matCareer && (
         <div className={styles.modalBackdrop}>
           <div className={styles.modal}>
-            <h3>Materiales - {matCareer.nombre}</h3>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <h3 style={{ margin: 0 }}>Materiales - {matCareer.nombre}</h3>
+              <div>
+                <Button
+                  onClick={() => {
+                    setMatEditing(null);
+                    setMatTitulo('');
+                    setMatDescripcion('');
+                    setMatEnlace('');
+                    setShowMatEditModal(true);
+                  }}
+                >
+                  + Agregar
+                </Button>
+              </div>
+            </div>
 
             {matLoading ? (
               <div>Cargando...</div>
@@ -1164,42 +1310,6 @@ export default function MisCarrerasPage() {
                   </tbody>
                 </table>
 
-                <div style={{ marginBottom: 8 }}>
-                  <label>Título *</label>
-                  <Input
-                    value={matTitulo}
-                    onChange={e => setMatTitulo(e.target.value)}
-                    fullWidth
-                  />
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label>Descripción</label>
-                  <Input
-                    value={matDescripcion}
-                    onChange={e => setMatDescripcion(e.target.value)}
-                    fullWidth
-                  />
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label>Enlace</label>
-                  <Input
-                    value={matEnlace}
-                    onChange={e => setMatEnlace(e.target.value)}
-                    fullWidth
-                  />
-                </div>
-
-                {matError && (
-                  <div
-                    style={{
-                      color: 'var(--error-color, #d9534f)',
-                      marginTop: 8,
-                    }}
-                  >
-                    {matError}
-                  </div>
-                )}
-
                 <div className={styles.modalActions} style={{ marginTop: 12 }}>
                   <Button
                     variant='outline'
@@ -1210,12 +1320,56 @@ export default function MisCarrerasPage() {
                   >
                     Cerrar
                   </Button>
-                  <Button onClick={saveMat}>
-                    {matEditing ? 'Actualizar' : 'Agregar'}
-                  </Button>
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Separate modal overlay for adding/editing a Material */}
+      {showMatEditModal && matCareer && (
+        <div className={styles.modalBackdrop}>
+          <div className={styles.modal}>
+            <h3 style={{ marginTop: 0 }}>
+              {matEditing ? 'Editar contenido' : 'Agregar contenido'}
+            </h3>
+            <label>Título</label>
+            <Input
+              value={matTitulo}
+              onChange={e => setMatTitulo(e.target.value)}
+              fullWidth
+            />
+            <label>Descripción</label>
+            <Input
+              value={matDescripcion}
+              onChange={e => setMatDescripcion(e.target.value)}
+              fullWidth
+            />
+            <label>Enlace</label>
+            <Input
+              value={matEnlace}
+              onChange={e => setMatEnlace(e.target.value)}
+              fullWidth
+            />
+            {matError && (
+              <div
+                style={{ color: 'var(--error-color, #d9534f)', marginTop: 8 }}
+              >
+                {matError}
+              </div>
+            )}
+            <div className={styles.modalActions} style={{ marginTop: 12 }}>
+              <Button
+                variant='outline'
+                onClick={() => setShowMatEditModal(false)}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={saveMat}>
+                {matEditing ? 'Actualizar' : 'Agregar'}
+              </Button>
+            </div>
           </div>
         </div>
       )}

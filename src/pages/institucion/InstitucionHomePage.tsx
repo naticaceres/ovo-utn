@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/use-auth';
 import styles from './InstitucionHomePage.module.css';
 
 export default function InstitucionHomePage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   return (
     <div className={styles.container}>
       <div className={styles.grid}>
@@ -29,7 +31,11 @@ export default function InstitucionHomePage() {
         </div>
         <div
           className={styles.gridItem}
-          onClick={() => navigate('/app/institucion/estadisticas')}
+          onClick={() =>
+            user && user.role === 'institucion'
+              ? navigate(`/app/detalle-institucion/${user.id}`)
+              : navigate('/app/detalle-institucion')
+          }
         >
           <span className={styles.icon}>🏫</span>
           <span className={styles.label}>Ver Institución</span>
