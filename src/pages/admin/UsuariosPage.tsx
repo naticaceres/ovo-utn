@@ -71,11 +71,6 @@ export default function UsuariosPage() {
   const [selectedLocality, setSelectedLocality] = React.useState<
     number | string | null
   >(null);
-
-  // Estados para filtros
-  const [allItems, setAllItems] = React.useState<UserItem[]>([]);
-  const [filterByState, setFilterByState] = React.useState<string>('');
-
   // no password required for admin-created users per API
 
   const load = React.useCallback(async () => {
@@ -111,11 +106,9 @@ export default function UsuariosPage() {
           });
           return { ...u, groups: normalized } as UserItem;
         });
-        setAllItems(enriched);
         setItems(enriched);
       } catch {
         // if userGroups fails, fallback to users without groups
-        setAllItems(users);
         setItems(users);
       }
       // also load groups and states
@@ -166,52 +159,6 @@ export default function UsuariosPage() {
       setLoading(false);
     }
   }, [token]);
-
-  // Función para filtrar usuarios por estado
-  const applyFilter = React.useCallback(() => {
-    if (!filterByState || filterByState === '') {
-      setItems(allItems);
-    } else {
-      const filtered = allItems.filter(user => {
-        // Primero intentar obtener el estado desde los campos directos del usuario
-        let userState = user.estado ?? user.estadoNombre;
-
-        // Si no hay estado directo, inferir basándose en otros campos
-        if (!userState) {
-          const rec = user as unknown as Record<string, unknown>;
-          const f =
-            rec['fechaFin'] ??
-            rec['fecha_fin'] ??
-            rec['fechaBaja'] ??
-            rec['fecha_baja'] ??
-            rec['endDate'] ??
-            rec['end_date'] ??
-            null;
-
-          // Inferir estado basándose en condiciones
-          if (f && String(f).trim() !== '') {
-            userState = 'Baja';
-          } else if (user.activo === false) {
-            userState = 'Suspendido'; // Cambiar de 'Bloqueado' a 'Suspendido' según la API
-          } else {
-            userState = 'Activo';
-          }
-        }
-
-        // Comparar estado (case insensitive)
-        return (
-          userState && userState.toLowerCase() === filterByState.toLowerCase()
-        );
-      });
-
-      setItems(filtered);
-    }
-  }, [allItems, filterByState]);
-
-  // Aplicar filtro cuando cambie el estado seleccionado
-  React.useEffect(() => {
-    applyFilter();
-  }, [applyFilter]);
 
   React.useEffect(() => {
     load();
@@ -342,24 +289,6 @@ export default function UsuariosPage() {
         <Button onClick={openCreate}>+ Agregar usuario</Button>
       </div>
 
-      {/* Filtro por estado */}
-      <div className={styles.filters}>
-        <label htmlFor='stateFilter'>Filtrar por estado:</label>
-        <select
-          id='stateFilter'
-          className={styles.select}
-          value={filterByState}
-          onChange={e => setFilterByState(e.target.value)}
-        >
-          <option value=''>Todos los estados</option>
-          {states.map(state => (
-            <option key={String(state.id)} value={state.nombre}>
-              {state.nombre}
-            </option>
-          ))}
-        </select>
-      </div>
-
       {loading ? (
         <div>Cargando...</div>
       ) : error ? (
@@ -401,7 +330,7 @@ export default function UsuariosPage() {
                         rec['end_date'] ??
                         null;
                       if (f && String(f).trim() !== '') return 'Baja';
-                      if (u.activo === false) return 'Suspendido';
+                      if (u.activo === false) return 'Bloqueado';
                       return 'Activo';
                     })()}
                 </td>

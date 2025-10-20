@@ -1,12 +1,13 @@
-import { sendChatMessage } from 'src/context/api';
+import { startTest, submitTestAnswer } from '../../context/api';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import styles from './QuestionnairePage.module.css';
-import type { AuthUser } from '../../context/auth-context';
+// import { useAuth } from '../../context/use-auth'; // TODO: usar para validaciones futuras
 
 export function QuestionnairePage() {
   const navigate = useNavigate();
+  // const { user } = useAuth(); // TODO: usar para validaciones futuras
 
   const [messages, setMessages] = useState<
     {
@@ -18,6 +19,8 @@ export function QuestionnairePage() {
   >([]);
   const [input, setInput] = useState('');
   const [chatId, setChatId] = useState<string>('');
+  // const [userIdAnonimo, setUserIdAnonimo] = useState<string | null>(null); // Se maneja con localStorage
+  // const [idTest, setIdTest] = useState<number | null>(null); // TODO: usar para futuras funcionalidades
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
@@ -49,46 +52,62 @@ export function QuestionnairePage() {
     });
   };
 
-  // Mandar mensaje al backend
-  const sendMessage = async (userId: string, prompt: string, cid: string) => {
+  // Mandar respuesta al backend
+  const sendAnswer = async (answer: string) => {
     setIsLoading(true);
     try {
-      const res = await sendChatMessage(userId, prompt, cid);
-      // si el backend retorna chat_id, guardarlo y persistir en localStorage
-      if (res.chat_id) {
-        setChatId(res.chat_id);
-        try {
-          localStorage.setItem('chat_id', res.chat_id);
-        } catch {
-          /* ignore */
-        }
+      const res = await submitTestAnswer(chatId, answer);
+
+      // Manejar la respuesta del bot
+      if (res.fullHistory && res.fullHistory.length > 0) {
+        // Si hay historia completa, reemplazar todos los mensajes
+        const newMessages = res.fullHistory.map((msg, index) => ({
+          id: `history-${index}`,
+          sender: msg.startsWith('Usuario:')
+            ? 'user'
+            : ('bot' as 'bot' | 'user'),
+          text: msg.replace(/^(Usuario:|Asistente:)\s*/, ''),
+        }));
+        setMessages(newMessages);
+      } else if (res.chatbot_response) {
+        // Si solo hay respuesta del chatbot, agregarla
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `bot-${Date.now()}`,
+            sender: 'bot',
+            text: res.chatbot_response || '',
+          },
+        ]);
+      } else if (res.nextQuestion) {
+        // Si hay siguiente pregunta, agregarla
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `bot-${Date.now()}`,
+            sender: 'bot',
+            text: res.nextQuestion || '',
+          },
+        ]);
       }
-      // agregar respuesta del bot
-      setMessages(prev => [
-        ...prev,
-        {
-          id: `bot-${Date.now()}`,
-          sender: 'bot',
-          text: res.chatbot_response,
-        },
-      ]);
-      if (res.status === 'FINISHED') {
-        try {
-          if (res.final_scores) {
-            localStorage.setItem(
-              'final_scores',
-              JSON.stringify(res.final_scores)
-            );
-          }
-        } catch {
-          /* ignore */
-        }
-        // opcional: limpiar chat_id de la sesión si corresponde
-        try {
-          localStorage.removeItem('chat_id');
-        } catch {
-          /* ignore */
-        }
+
+      // Determinar cuándo el test está terminado
+      // Si no hay nextQuestion ni chatbot_response, el test ha terminado
+      if (!res.nextQuestion && !res.chatbot_response && res.fullHistory) {
+        navigate('/app/results');
+      } else if (
+        res.nextQuestion &&
+        (res.nextQuestion.toLowerCase().includes('finalizado') ||
+          res.nextQuestion.toLowerCase().includes('completado') ||
+          res.nextQuestion.toLowerCase().includes('terminado'))
+      ) {
+        navigate('/app/results');
+      } else if (
+        res.chatbot_response &&
+        (res.chatbot_response.toLowerCase().includes('finalizado') ||
+          res.chatbot_response.toLowerCase().includes('completado') ||
+          res.chatbot_response.toLowerCase().includes('terminado'))
+      ) {
         navigate('/app/results');
       }
     } catch (error: unknown) {
@@ -121,18 +140,66 @@ export function QuestionnairePage() {
     }
   };
 
-  const handleStartTest = () => {
+  const handleStartTest = async () => {
     setHasStarted(true);
-    const user = localStorage.getItem('user');
-    const authUser: AuthUser = user ? JSON.parse(user) : null;
-    const userId = authUser?.usuario?.id ?? 0;
+    setIsLoading(true);
 
-    // Crear nuevo chat_id para la sesión
-    const initialChatId = `sesion-${Date.now()}`;
-    setChatId(initialChatId);
+    try {
+      // Llamar al endpoint (funciona tanto para usuarios autenticados como anónimos)
+      const res = await startTest();
 
-    // la primera llamada no envía prompt para obtener la primera pregunta
-    sendMessage(userId.toString(), '', initialChatId);
+      // Guardar chatId e idTest
+      setChatId(res.chatId);
+
+      // Guardar idTest en localStorage para usar en resultados
+      if (res.idTest) {
+        localStorage.setItem('testId', res.idTest.toString());
+      }
+
+      // Si hay userIDAnonimo en la respuesta, guardarlo en localStorage
+      if (res.userIDAnonimo) {
+        localStorage.setItem('userIdAnonimo', res.userIDAnonimo);
+      }
+
+      // Agregar mensajes de la historia completa o mensaje inicial
+      if (res.fullHistory && res.fullHistory.length > 0) {
+        const initialMessages = res.fullHistory.map((msg, index) => ({
+          id: `history-${index}`,
+          sender: msg.startsWith('Usuario:')
+            ? 'user'
+            : ('bot' as 'bot' | 'user'),
+          text: msg.replace(/^(Usuario:|Asistente:)\s*/, ''),
+        }));
+        setMessages(initialMessages);
+      } else if (res.chatbot_response) {
+        setMessages([
+          {
+            id: `bot-${Date.now()}`,
+            sender: 'bot',
+            text: res.chatbot_response,
+          },
+        ]);
+      } else {
+        setMessages([
+          {
+            id: `bot-${Date.now()}`,
+            sender: 'bot',
+            text: 'Test iniciado. Por favor, responde las siguientes preguntas.',
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error en handleStartTest:', error);
+      setMessages([
+        {
+          id: `bot-err-${Date.now()}`,
+          sender: 'bot',
+          text: 'Error al iniciar el test. Intenta de nuevo.',
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // scroll al final al añadir mensajes
@@ -145,25 +212,15 @@ export function QuestionnairePage() {
   const handleSend = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const text = input.trim();
-    if (!text) return;
-    // append user message
+    if (!text || !chatId) return;
+
+    // Agregar mensaje del usuario
     const msgId = `user-${Date.now()}`;
     setMessages(prev => [...prev, { id: msgId, sender: 'user', text }]);
     setInput('');
-    const user = localStorage.getItem('user');
-    const authUser: AuthUser = user ? JSON.parse(user) : null;
-    const userId = authUser?.usuario?.id ?? 0;
-    // enviar al backend
-    const cid = chatId || `sesion-${Date.now()}`;
-    if (!chatId) {
-      try {
-        localStorage.setItem('chat_id', cid);
-      } catch {
-        /* ignore */
-      }
-      setChatId(cid);
-    }
-    sendMessage(userId.toString(), text, cid);
+
+    // Enviar respuesta al backend
+    sendAnswer(text);
   };
 
   if (!hasStarted) {

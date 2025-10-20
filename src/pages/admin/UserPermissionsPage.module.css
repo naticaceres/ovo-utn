@@ -37,7 +37,8 @@
 }
 
 .modal {
-  width: 420px;
+  width: 720px;
+  max-width: calc(100% - 2rem);
   background: #fff;
   border-radius: 10px;
   padding: 18px;
@@ -50,12 +51,53 @@
 }
 
 .permissionList {
-  max-height: 320px;
-  overflow: auto;
-  padding: 6px 0;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e6e6e6;
+  border-radius: 4px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
+}
+
+.permItem {
+  display: flex;
+  align-items: flex-start;
   gap: 8px;
+  padding: 8px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+}
+
+.permItem:last-child {
+  border-bottom: none;
+}
+
+.permItem:hover {
+  background-color: #f8f9fa;
+}
+
+.permContent {
+  flex: 1;
+}
+
+.permName {
+  font-weight: 500;
+  color: #2d3748;
+  margin-bottom: 4px;
+}
+
+.permDescription {
+  font-size: 0.875rem;
+  color: #718096;
+  line-height: 1.4;
+}
+
+.noResults {
+  padding: 20px;
+  text-align: center;
+  color: #718096;
+  font-style: italic;
 }
 
 .modalActions {

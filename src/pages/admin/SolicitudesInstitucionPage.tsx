@@ -3,7 +3,6 @@ import { BackButton } from '../../components/ui/BackButton';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import styles from './SolicitudesInstitucionPage.module.css';
-import { api } from '../../context/api';
 import {
   listInstitutionRequests,
   approveInstitutionRequest,
@@ -46,23 +45,6 @@ export default function SolicitudesInstitucionPage() {
   );
   const [justificacion, setJustificacion] = React.useState('');
 
-  // Estados para el modal de aprobación
-  const [showApproveModal, setShowApproveModal] = React.useState(false);
-  const [approvingRequestId, setApprovingRequestId] = React.useState<
-    number | string | null
-  >(null);
-  const [selectedUserId, setSelectedUserId] = React.useState<string>('');
-  const [users, setUsers] = React.useState<
-    Array<{
-      id: number | string;
-      nombre: string;
-      email?: string;
-      grupos?: string[];
-      estado?: string;
-    }>
-  >([]);
-  const [loadingUsers, setLoadingUsers] = React.useState(false);
-
   // Estados para bloquear botones durante acciones
   const [approvingId, setApprovingId] = React.useState<number | string | null>(
     null
@@ -103,48 +85,6 @@ export default function SolicitudesInstitucionPage() {
       setError('No se pudieron cargar las solicitudes de instituciones');
     } finally {
       setLoading(false);
-    }
-  }, []);
-
-  // Función para cargar usuarios disponibles
-  const fetchUsers = React.useCallback(async () => {
-    try {
-      setLoadingUsers(true);
-      const token = localStorage.getItem('token');
-
-      // Usar el contexto de API para obtener todos los campos del usuario
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const { data } = await api.get('/api/v1/admin/users', { headers });
-
-      console.log('Users data received:', data); // Para debug
-
-      // La respuesta es un array directo según el ejemplo proporcionado
-      const usersList = Array.isArray(data) ? data : [];
-
-      // Mapear los datos para que coincidan con el tipo esperado
-      const mappedUsers = usersList.map(user => ({
-        id: user.id,
-        nombre: `${user.nombre || ''} ${user.apellido || ''}`.trim(),
-        email: user.mail,
-        grupos: user.grupos || [],
-        estado: user.estado || 'Activo',
-      }));
-
-      console.log('Mapped users:', mappedUsers); // Para debug
-      setUsers(mappedUsers);
-    } catch (err) {
-      console.error('Error loading users:', err);
-      // Fallback: usar usuarios de ejemplo si no se puede cargar
-      setUsers([
-        { id: 1, nombre: 'Usuario Administrador', email: 'admin@example.com' },
-        {
-          id: 2,
-          nombre: 'Supervisor General',
-          email: 'supervisor@example.com',
-        },
-      ]);
-    } finally {
-      setLoadingUsers(false);
     }
   }, []);
 
@@ -192,10 +132,18 @@ export default function SolicitudesInstitucionPage() {
   }, [loadInstitutionTypes, loadData]);
 
   const onApprove = async (id: number | string) => {
-    setApprovingRequestId(id);
-    setSelectedUserId('');
-    await fetchUsers();
-    setShowApproveModal(true);
+    setError(null);
+    setApprovingId(id);
+    try {
+      const token = localStorage.getItem('token');
+      await approveInstitutionRequest(id, token || undefined);
+      loadData(); // Recargar la lista
+    } catch (err) {
+      console.error('Error approving institution request:', err);
+      setError('No se pudo aprobar la solicitud');
+    } finally {
+      setApprovingId(null);
+    }
   };
 
   const onReject = (id: number | string) => {
@@ -226,50 +174,6 @@ export default function SolicitudesInstitucionPage() {
     } finally {
       setConfirmingRejectId(null);
     }
-  };
-
-  // Confirmar aprobación con usuario seleccionado
-  const confirmApprove = async () => {
-    if (!selectedUserId || !approvingRequestId) {
-      setError('Debe seleccionar una opción');
-      return;
-    }
-
-    setError(null);
-    setApprovingId(approvingRequestId);
-    try {
-      const token = localStorage.getItem('token');
-
-      // Si se seleccionó "auto", no enviar userId (crear automáticamente)
-      if (selectedUserId === 'auto') {
-        await approveInstitutionRequest(
-          approvingRequestId,
-          undefined, // No enviar userId
-          token || undefined
-        );
-      } else {
-        await approveInstitutionRequest(
-          approvingRequestId,
-          selectedUserId,
-          token || undefined
-        );
-      }
-      loadData(); // Recargar la lista
-      setShowApproveModal(false);
-      setApprovingRequestId(null);
-      setSelectedUserId('');
-    } catch (err) {
-      console.error('Error approving institution request:', err);
-      setError('No se pudo aprobar la solicitud');
-    } finally {
-      setApprovingId(null);
-    }
-  };
-
-  const cancelApprove = () => {
-    setShowApproveModal(false);
-    setApprovingRequestId(null);
-    setSelectedUserId('');
   };
 
   const cancelReject = () => {
@@ -558,61 +462,6 @@ export default function SolicitudesInstitucionPage() {
                 style={{ background: '#dc3545', color: 'white' }}
               >
                 {confirmingRejectId !== null ? 'Rechazando...' : 'Rechazar'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de aprobación */}
-      {showApproveModal && (
-        <div className={styles.modalBackdrop}>
-          <div className={styles.modal}>
-            <h3>Aprobar Solicitud de Institución</h3>
-            <p>
-              Seleccione el usuario responsable de manejar esta institución:
-            </p>
-
-            {loadingUsers ? (
-              <div className={styles.loading}>Cargando usuarios...</div>
-            ) : (
-              <select
-                className={styles.select}
-                value={selectedUserId}
-                onChange={e => setSelectedUserId(e.target.value)}
-              >
-                <option value=''>Seleccionar una opción...</option>
-                <option value='auto'>
-                  CREAR NUEVO USUARIO AUTOMÁTICAMENTE
-                </option>
-                {users.map(user => (
-                  <option key={user.id} value={user.id}>
-                    {user.nombre} {user.email ? `- ${user.email}` : ''}
-                    {user.grupos && user.grupos.length > 0
-                      ? ` [${user.grupos.join(', ')}]`
-                      : ''}
-                  </option>
-                ))}
-              </select>
-            )}
-
-            <div className={styles.modalActions}>
-              <Button
-                variant='outline'
-                onClick={cancelApprove}
-                disabled={approvingId !== null}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={confirmApprove}
-                disabled={
-                  !selectedUserId || approvingId !== null || loadingUsers
-                }
-                isLoading={approvingId !== null}
-                style={{ background: '#28a745', color: 'white' }}
-              >
-                {approvingId !== null ? 'Aprobando...' : 'Aprobar'}
               </Button>
             </div>
           </div>

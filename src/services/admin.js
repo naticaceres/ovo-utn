@@ -96,13 +96,12 @@ export async function listInstitutionRequests(params = {}, token) {
   }
 }
 
-export async function approveInstitutionRequest(id, userId, token) {
+export async function approveInstitutionRequest(id, token) {
   try {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const body = userId ? { userId } : {};
     const { data } = await api.post(
       `/api/v1/admin/institutions/requests/${id}/approve`,
-      body,
+      {},
       { headers }
     );
     return data;

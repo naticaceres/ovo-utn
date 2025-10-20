@@ -73,6 +73,14 @@ export function LoginPage() {
         );
       };
 
+      // Verificar si hay un test pendiente después del login
+      const pendingTestId = localStorage.getItem('pendingTestId');
+      if (pendingTestId) {
+        // Redirigir a resultados para completar el flujo del test
+        navigate('/app/results');
+        return;
+      }
+
       // Prioridad: administrador > institucion > estudiante
       if (hasGroup('administrador') || hasGroup('admin')) {
         navigate('/app/admin');

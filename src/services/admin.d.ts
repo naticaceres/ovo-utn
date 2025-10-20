@@ -288,7 +288,6 @@ export function listInstitutionRequests(
 ): Promise<unknown[]>;
 export function approveInstitutionRequest(
   id: number | string,
-  userId?: string | number,
   token?: string
 ): Promise<boolean>;
 export function rejectInstitutionRequest(

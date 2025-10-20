@@ -24,7 +24,7 @@ export default function GruposPage() {
   const token = localStorage.getItem('token');
   const [items, setItems] = React.useState<Group[]>([]);
   const [perms, setPerms] = React.useState<
-    Array<{ id: number | string; nombre: string }>
+    Array<{ id: number | string; nombre: string; descripcion?: string }>
   >([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -36,6 +36,7 @@ export default function GruposPage() {
   const [selectedPerms, setSelectedPerms] = React.useState<
     Array<number | string>
   >([]);
+  const [searchTerm, setSearchTerm] = React.useState('');
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -99,6 +100,9 @@ export default function GruposPage() {
           return {
             id: (obj['id'] ?? obj['idPermiso'] ?? '') as number | string,
             nombre: (obj['nombrePermiso'] ?? obj['nombre'] ?? '') as string,
+            descripcion: (obj['descripcion'] ??
+              obj['description'] ??
+              '') as string,
           };
         })
       );
@@ -118,6 +122,7 @@ export default function GruposPage() {
     setNombre('');
     setDescripcion('');
     setSelectedPerms([]);
+    setSearchTerm('');
     setShowModal(true);
   };
 
@@ -140,6 +145,7 @@ export default function GruposPage() {
         })
       : [];
     setSelectedPerms(ids as Array<number | string>);
+    setSearchTerm('');
     setShowModal(true);
   };
 
@@ -148,6 +154,18 @@ export default function GruposPage() {
       prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
     );
   };
+
+  // Filtrar permisos basado en el término de búsqueda
+  const filteredPerms = React.useMemo(() => {
+    if (!searchTerm.trim()) return perms;
+
+    const term = searchTerm.toLowerCase();
+    return perms.filter(
+      p =>
+        p.nombre.toLowerCase().includes(term) ||
+        (p.descripcion && p.descripcion.toLowerCase().includes(term))
+    );
+  }, [perms, searchTerm]);
 
   const save = async () => {
     setError(null);
@@ -282,17 +300,39 @@ export default function GruposPage() {
 
             <div className={styles.permList}>
               <strong>Permisos</strong>
-              <div className={styles.permGrid}>
-                {perms.map(p => (
-                  <label key={p.id} className={styles.permItem}>
-                    <input
-                      type='checkbox'
-                      checked={selectedPerms.includes(p.id)}
-                      onChange={() => togglePerm(p.id)}
-                    />
-                    {p.nombre}
-                  </label>
-                ))}
+              <Input
+                label='Buscar permisos'
+                placeholder='Buscar por nombre o descripción...'
+                fullWidth
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+              <div className={styles.permScrollContainer}>
+                {filteredPerms.length === 0 ? (
+                  <div className={styles.noResults}>
+                    {searchTerm.trim()
+                      ? 'No se encontraron permisos que coincidan con la búsqueda'
+                      : 'No hay permisos disponibles'}
+                  </div>
+                ) : (
+                  filteredPerms.map(p => (
+                    <label key={p.id} className={styles.permItem}>
+                      <input
+                        type='checkbox'
+                        checked={selectedPerms.includes(p.id)}
+                        onChange={() => togglePerm(p.id)}
+                      />
+                      <div className={styles.permContent}>
+                        <div className={styles.permName}>{p.nombre}</div>
+                        {p.descripcion && (
+                          <div className={styles.permDescription}>
+                            {p.descripcion}
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  ))
+                )}
               </div>
             </div>
 

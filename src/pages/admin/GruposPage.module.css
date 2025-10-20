@@ -60,15 +60,51 @@
   margin-top: 0.75rem;
 }
 
-.permGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+.permScrollContainer {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e6e6e6;
+  border-radius: 4px;
   margin-top: 8px;
+  padding: 8px;
 }
 
 .permItem {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
+  padding: 8px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+}
+
+.permItem:last-child {
+  border-bottom: none;
+}
+
+.permItem:hover {
+  background-color: #f8f9fa;
+}
+
+.permContent {
+  flex: 1;
+}
+
+.permName {
+  font-weight: 500;
+  color: #2d3748;
+  margin-bottom: 4px;
+}
+
+.permDescription {
+  font-size: 0.875rem;
+  color: #718096;
+  line-height: 1.4;
+}
+
+.noResults {
+  padding: 20px;
+  text-align: center;
+  color: #718096;
+  font-style: italic;
 }

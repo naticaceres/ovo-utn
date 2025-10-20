@@ -24,6 +24,7 @@ type PermDTO = {
   _id?: number | string;
   nombre?: string;
   nombrePermiso?: string;
+  descripcion?: string;
 };
 
 export default function UserPermissionsPage() {
@@ -40,6 +41,7 @@ export default function UserPermissionsPage() {
   >(new Set());
   const [allPerms, setAllPerms] = React.useState<PermDTO[]>([]);
   const [search, setSearch] = React.useState('');
+  const [permissionSearch, setPermissionSearch] = React.useState('');
   const [saving, setSaving] = React.useState(false);
 
   const load = React.useCallback(async () => {
@@ -52,8 +54,27 @@ export default function UserPermissionsPage() {
       // preload permissions catalog
       try {
         const perms = await listPermissions({}, token || undefined);
-        const pArr = Array.isArray(perms) ? perms : [];
-        setAllPerms(pArr as PermDTO[]);
+        const rawP = perms as unknown as Record<string, unknown>;
+        const pArr = Array.isArray(perms)
+          ? perms
+          : Array.isArray(rawP['permissions'])
+            ? (rawP['permissions'] as unknown[])
+            : Array.isArray(rawP['data'])
+              ? (rawP['data'] as unknown[])
+              : [];
+
+        const mappedPerms = (Array.isArray(pArr) ? pArr : []).map(
+          (p: unknown) => {
+            const obj = p as Record<string, unknown>;
+            return {
+              id: obj['id'] ?? obj['idPermiso'] ?? '',
+              nombre: obj['nombrePermiso'] ?? obj['nombre'] ?? '',
+              descripcion: obj['descripcion'] ?? obj['description'] ?? '',
+            } as PermDTO;
+          }
+        );
+
+        setAllPerms(mappedPerms);
       } catch {
         setAllPerms([]);
       }
@@ -72,6 +93,7 @@ export default function UserPermissionsPage() {
     setViewingUser(u);
     setUserPerms([]);
     setSelectedPerms(new Set());
+    setPermissionSearch('');
     try {
       const data = await userPermissions(u.id, token || undefined);
       // normalize possible wrapped responses
@@ -165,6 +187,21 @@ export default function UserPermissionsPage() {
     return selectedPerms.has(permId);
   };
 
+  // Filtrar permisos basado en el término de búsqueda
+  const filteredPermissions = React.useMemo(() => {
+    if (!permissionSearch.trim()) return allPerms;
+
+    const term = permissionSearch.toLowerCase();
+    return allPerms.filter(p => {
+      const nombre = p.nombre ?? p.nombrePermiso ?? '';
+      const descripcion = p.descripcion ?? '';
+      return (
+        nombre.toLowerCase().includes(term) ||
+        descripcion.toLowerCase().includes(term)
+      );
+    });
+  }, [allPerms, permissionSearch]);
+
   return (
     <div className={styles.container}>
       <BackButton />
@@ -218,34 +255,48 @@ export default function UserPermissionsPage() {
             <h3>Asignar Permisos</h3>
             <div className={styles.searchBox}>
               <Input
-                placeholder='Buscar permiso...'
+                label='Buscar permisos'
+                placeholder='Buscar por nombre o descripción...'
                 fullWidth
-                value={''}
-                onChange={() => {}}
+                value={permissionSearch}
+                onChange={e => setPermissionSearch(e.target.value)}
               />
             </div>
             <div className={styles.permissionList}>
-              {allPerms.map(p => {
-                const maybeId = p.id ?? p.idPermiso ?? p._id;
-                if (typeof maybeId === 'undefined' || maybeId === null)
-                  return null;
-                const id = maybeId as string | number;
-                const nombre = p.nombre ?? p.nombrePermiso ?? '';
-                const checked = userHas(id);
-                return (
-                  <label
-                    key={String(id)}
-                    style={{ display: 'flex', gap: 8, alignItems: 'center' }}
-                  >
-                    <input
-                      type='checkbox'
-                      checked={checked}
-                      onChange={() => togglePermission(id)}
-                    />
-                    {nombre}
-                  </label>
-                );
-              })}
+              {filteredPermissions.length === 0 ? (
+                <div className={styles.noResults}>
+                  {permissionSearch.trim()
+                    ? 'No se encontraron permisos que coincidan con la búsqueda'
+                    : 'No hay permisos disponibles'}
+                </div>
+              ) : (
+                filteredPermissions.map(p => {
+                  const maybeId = p.id ?? p.idPermiso ?? p._id;
+                  if (typeof maybeId === 'undefined' || maybeId === null)
+                    return null;
+                  const id = maybeId as string | number;
+                  const nombre = p.nombre ?? p.nombrePermiso ?? '';
+                  const descripcion = p.descripcion ?? '';
+                  const checked = userHas(id);
+                  return (
+                    <label key={String(id)} className={styles.permItem}>
+                      <input
+                        type='checkbox'
+                        checked={checked}
+                        onChange={() => togglePermission(id)}
+                      />
+                      <div className={styles.permContent}>
+                        <div className={styles.permName}>{nombre}</div>
+                        {descripcion && (
+                          <div className={styles.permDescription}>
+                            {descripcion}
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  );
+                })
+              )}
             </div>
 
             <div className={styles.modalActions}>

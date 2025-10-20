@@ -69,14 +69,49 @@ api.interceptors.response.use(
         });
       }
     }
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    // Normalizar mensaje para enviar al handler UI
+    const friendlyMessage = getApiErrorMessage(error);
+
+    if (status === 401) {
       try {
         localStorage.removeItem('token');
       } catch {
         /* ignore */
       }
       delete api.defaults.headers.common['Authorization'];
-      // Se eliminó el redirect automático. La UI debe manejar 401 mostrando login manualmente.
+      // Dispatch evento global para que la UI muestre toast y redirija al login
+      try {
+        const ev = new CustomEvent('api:unauthorized', {
+          detail: { status: 401, message: friendlyMessage },
+        });
+        window.dispatchEvent(ev);
+      } catch {
+        /* ignore: window may be unavailable in some environments */
+      }
+    }
+
+    if (status === 403) {
+      try {
+        const ev = new CustomEvent('api:forbidden', {
+          detail: { status: 403, message: friendlyMessage },
+        });
+        window.dispatchEvent(ev);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    // Emitir evento genérico para errores con status para permitir manejo global opcional
+    if (typeof status === 'number' && status >= 400) {
+      try {
+        const ev = new CustomEvent('api:error', {
+          detail: { status, message: friendlyMessage },
+        });
+        window.dispatchEvent(ev);
+      } catch {
+        /* ignore */
+      }
     }
     return Promise.reject(error);
   }
@@ -223,6 +258,87 @@ export type ChatResponse = {
   final_scores?: Record<string, number>;
 };
 
+// Tipos para los nuevos endpoints de tests
+export type TestStartResponse = {
+  userIDAnonimo?: string;
+  userID?: string;
+  idTest: number;
+  chatId: string;
+  chatIdIA: string;
+  chatbot_response?: string;
+  fullHistory?: string[];
+};
+
+export type TestAnswerResponse = {
+  fullHistory?: string[];
+  nextQuestion?: string;
+  chatbot_response?: string;
+};
+
+export type TestResultsResponse = {
+  results: Record<string, string>;
+};
+
+export async function startTest(): Promise<TestStartResponse> {
+  const { data } = await api.post('/api/v1/tests/start', {});
+  return data as TestStartResponse;
+}
+
+export async function submitTestAnswer(
+  chatId: string,
+  answer: string
+): Promise<TestAnswerResponse> {
+  const payload: { answer: string; userIdAnonimo?: string } = { answer };
+
+  // Verificar si hay userIdAnonimo en localStorage
+  const userIdAnonimo = localStorage.getItem('userIdAnonimo');
+  if (userIdAnonimo) {
+    payload.userIdAnonimo = userIdAnonimo;
+  }
+  // Si no hay userIdAnonimo, el interceptor del api agregará automáticamente el token
+
+  const { data } = await api.post(`/api/v1/tests/${chatId}/answer`, payload);
+  return data as TestAnswerResponse;
+}
+
+export async function getTestResults(
+  testId: string
+): Promise<TestResultsResponse> {
+  let userIdAnonimo: string | null = null;
+
+  // Verificar si hay userIdAnonimo pendiente (después del login)
+  const pendingUserIdAnonimo = localStorage.getItem('pendingUserIdAnonimo');
+
+  // Si hay userIdAnonimo pendiente, usarlo para asociar el test al usuario autenticado
+  if (pendingUserIdAnonimo) {
+    userIdAnonimo = pendingUserIdAnonimo;
+  } else {
+    // Verificar si hay userIdAnonimo normal en localStorage
+    userIdAnonimo = localStorage.getItem('userIdAnonimo');
+  }
+
+  // Construir URL con query parameters si hay userIdAnonimo
+  let url = `/api/v1/tests/${testId}/results`;
+  if (userIdAnonimo) {
+    url += `?userIdAnonimo=${encodeURIComponent(userIdAnonimo)}`;
+  }
+
+  // Si no hay userIdAnonimo, el interceptor del api agregará automáticamente el token
+  const { data } = await api.get(url);
+
+  // Después de obtener los resultados exitosamente, limpiar datos temporales
+  if (pendingUserIdAnonimo) {
+    localStorage.removeItem('pendingUserIdAnonimo');
+    localStorage.removeItem('pendingTestId');
+  }
+
+  // Limpiar userIdAnonimo para futuras consultas con Bearer token
+  localStorage.removeItem('userIdAnonimo');
+
+  return data as TestResultsResponse;
+}
+
+// Función legacy para mantener compatibilidad (deprecated)
 export async function sendChatMessage(
   userId: string,
   prompt: string,

@@ -1,33 +1,81 @@
 import { useQuery } from '@tanstack/react-query';
-import { resultsApi } from 'src/context/api';
+import { resultsApi, getTestResults } from '../../context/api';
 import { Button } from '../../components/ui/Button';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import styles from './ResultsPage.module.css';
 import { useAuth } from '../../context/use-auth';
 import { useState, useEffect } from 'react';
 
 export function ResultsPage() {
-  const { data: recommendations, isLoading } = useQuery({
-    queryKey: ['recommendations'],
-    queryFn: resultsApi.getRecommendations,
-  });
+  const { data: recommendations, isLoading: isLoadingRecommendations } =
+    useQuery({
+      queryKey: ['recommendations'],
+      queryFn: resultsApi.getRecommendations,
+    });
 
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [testId, setTestId] = useState<string | null>(null);
   const [finalScores, setFinalScores] = useState<Record<string, number> | null>(
     null
   );
 
-  // Obtener las puntuaciones finales del localStorage
+  // Obtener el testId del localStorage y verificar autenticación
   useEffect(() => {
-    try {
-      const savedScores = localStorage.getItem('final_scores');
-      if (savedScores) {
-        setFinalScores(JSON.parse(savedScores));
-      }
-    } catch (error) {
-      console.error('Error al cargar las puntuaciones:', error);
+    const savedTestId = localStorage.getItem('testId');
+    const pendingTestId = localStorage.getItem('pendingTestId');
+    const userIdAnonimo = localStorage.getItem('userIdAnonimo');
+
+    // Si hay un testId pendiente (usuario volvió después del login), usarlo
+    if (pendingTestId && user) {
+      setTestId(pendingTestId);
+      return;
     }
-  }, []);
+
+    if (savedTestId) {
+      setTestId(savedTestId);
+
+      // Si no hay usuario logueado pero hay datos del test, redirigir al login
+      if (!user && userIdAnonimo) {
+        // Guardar datos necesarios para después del login
+        localStorage.setItem('pendingTestId', savedTestId);
+        localStorage.setItem('pendingUserIdAnonimo', userIdAnonimo);
+
+        // Redirigir al login
+        navigate('/app/login');
+        return;
+      }
+    }
+  }, [user, navigate]);
+
+  // Obtener los resultados del test usando el nuevo endpoint
+  const { data: testResults, isLoading: isLoadingResults } = useQuery({
+    queryKey: ['testResults', testId],
+    queryFn: () => getTestResults(testId!),
+    enabled: !!testId, // Solo ejecutar si tenemos testId
+  });
+
+  // Convertir los resultados del nuevo formato al formato esperado
+  useEffect(() => {
+    if (testResults?.results) {
+      // Convertir strings a números
+      const scores: Record<string, number> = {};
+      Object.entries(testResults.results).forEach(([key, value]) => {
+        scores[key] = parseFloat(value) || 0;
+      });
+      setFinalScores(scores);
+    } else {
+      // Fallback: intentar cargar desde localStorage (compatibilidad)
+      try {
+        const savedScores = localStorage.getItem('final_scores');
+        if (savedScores) {
+          setFinalScores(JSON.parse(savedScores));
+        }
+      } catch (error) {
+        console.error('Error al cargar las puntuaciones:', error);
+      }
+    }
+  }, [testResults]);
 
   // Función para obtener un icono aleatorio para cada aptitud
   const getRandomIcon = (aptitude: string) => {
@@ -79,7 +127,7 @@ export function ResultsPage() {
     return colors[index];
   };
 
-  if (isLoading) {
+  if (isLoadingRecommendations || isLoadingResults) {
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.loadingSpinner} />

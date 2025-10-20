@@ -1,8 +1,8 @@
 import { api } from '../context/api';
 
-export async function startTest(payload) {
+export async function startTest() {
   try {
-    const { data } = await api.post('/api/v1/tests/start', payload);
+    const { data } = await api.post('/api/v1/tests/start', {});
     return data;
   } catch (error) {
     throw error.response ? error.response.data : error;
@@ -30,9 +30,17 @@ export async function restartTest() {
   }
 }
 
-export async function submitAnswer(testId, payload) {
+export async function submitAnswer(chatId, answer, userIdAnonimo = null) {
   try {
-    const { data } = await api.post(`/api/v1/tests/${testId}/answer`, payload);
+    const payload = { answer };
+
+    // Si hay userIdAnonimo, lo incluimos en el payload
+    if (userIdAnonimo) {
+      payload.userIdAnonimo = userIdAnonimo;
+    }
+    // Si no hay userIdAnonimo, el interceptor del api agregará automáticamente el token
+
+    const { data } = await api.post(`/api/v1/tests/${chatId}/answer`, payload);
     return data;
   } catch (error) {
     throw error.response ? error.response.data : error;
@@ -87,6 +95,28 @@ export async function abandonTest(testId) {
 export async function finishTest(testId) {
   try {
     const { data } = await api.post(`/api/v1/tests/${testId}/finish`);
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function getTestResults(testId) {
+  try {
+    const payload = {};
+
+    // Verificar si hay userIdAnonimo en localStorage
+    const userIdAnonimo = localStorage.getItem('userIdAnonimo');
+    if (userIdAnonimo) {
+      payload.userIdAnonimo = userIdAnonimo;
+    }
+    // Si no hay userIdAnonimo, el interceptor del api agregará automáticamente el token
+
+    const { data } = await api.request({
+      method: 'GET',
+      url: `/api/v1/tests/${testId}/results`,
+      data: Object.keys(payload).length > 0 ? payload : {},
+    });
     return data;
   } catch (error) {
     throw error.response ? error.response.data : error;
