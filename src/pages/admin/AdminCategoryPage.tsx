@@ -2,20 +2,72 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { BackButton } from '../../components/ui/BackButton';
 import styles from '../student/StudentHomePage.module.css';
 import { ICONS } from './AdminIcons';
-import { CATEGORIES } from './adminConfig';
+import { CATEGORIES, getVisibleItemsInCategory } from './adminConfig';
+import { usePermissions } from '../../context/use-permissions';
 import React from 'react';
 
 export default function AdminCategoryPage() {
   const { categoryId } = useParams<{ categoryId: string }>();
   const navigate = useNavigate();
+  const { userPermissions } = usePermissions();
 
   const category = CATEGORIES.find(c => c.id === categoryId);
-  if (!category)
+
+  if (!category) {
     return (
       <div className={styles.container}>
+        <BackButton />
         <h2>Categoría no encontrada</h2>
+        <p>La categoría "{categoryId}" no existe.</p>
       </div>
     );
+  }
+
+  // Verificar si el usuario tiene permisos para esta categoría
+  if (category.requiredPermissions && category.requiredPermissions.length > 0) {
+    const hasAccess = category.requiredPermissions.some(permission =>
+      userPermissions.includes(permission)
+    );
+
+    if (!hasAccess) {
+      return (
+        <div className={styles.container}>
+          <BackButton />
+          <h2>Acceso Denegado</h2>
+          <p>
+            No tienes permisos para acceder a la sección "{category.title}".
+          </p>
+        </div>
+      );
+    }
+  }
+
+  // Obtener solo los items visibles según los permisos del usuario
+  const categoryWithFilteredItems = getVisibleItemsInCategory(
+    category,
+    userPermissions
+  );
+
+  // Si no hay items visibles después del filtrado
+  if (categoryWithFilteredItems.groups.length === 0) {
+    return (
+      <div className={styles.container}>
+        <BackButton />
+        <h2>{category.title}</h2>
+        <div
+          style={{
+            textAlign: 'center',
+            padding: 40,
+            color: '#666',
+            fontSize: 16,
+          }}
+        >
+          No tienes permisos para acceder a ninguna funcionalidad de esta
+          sección.
+        </div>
+      </div>
+    );
+  }
 
   const getIcon = (key?: string): React.ReactNode => {
     if (!key) return '🔹';
@@ -31,7 +83,7 @@ export default function AdminCategoryPage() {
       </header>
 
       <div style={{ display: 'grid', gap: 24 }}>
-        {category.groups.map(g => (
+        {categoryWithFilteredItems.groups.map(g => (
           <section key={g.title}>
             <h3 style={{ marginBottom: 12 }}>{g.title}</h3>
             <div

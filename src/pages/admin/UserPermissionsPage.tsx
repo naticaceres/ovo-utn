@@ -5,7 +5,6 @@ import styles from './UserPermissionsPage.module.css';
 import { Input } from '../../components/ui/Input';
 import {
   listAdminUsers,
-  userPermissions,
   listPermissions,
   updateUserPermissions,
 } from '../../services/admin';
@@ -15,6 +14,11 @@ type UserItem = {
   nombre: string;
   apellido?: string;
   email?: string;
+  mail?: string;
+  estado?: string;
+  grupos?: string[];
+  permisos_directos?: string[];
+  permisos_de_grupo?: string[];
   groups?: Array<{ id: number | string; nombre: string }>;
 };
 
@@ -39,6 +43,7 @@ export default function UserPermissionsPage() {
   const [selectedPerms, setSelectedPerms] = React.useState<
     Set<string | number>
   >(new Set());
+  const [groupPerms, setGroupPerms] = React.useState<Set<string>>(new Set());
   const [allPerms, setAllPerms] = React.useState<PermDTO[]>([]);
   const [search, setSearch] = React.useState('');
   const [permissionSearch, setPermissionSearch] = React.useState('');
@@ -93,37 +98,27 @@ export default function UserPermissionsPage() {
     setViewingUser(u);
     setUserPerms([]);
     setSelectedPerms(new Set());
+    setGroupPerms(new Set());
     setPermissionSearch('');
-    try {
-      const data = await userPermissions(u.id, token || undefined);
-      // normalize possible wrapped responses
-      const arr = ((): PermDTO[] => {
-        if (Array.isArray(data)) return data as PermDTO[];
-        const asObj = data as unknown as Record<string, unknown>;
-        if (Array.isArray(asObj['permissions']))
-          return asObj['permissions'] as PermDTO[];
-        if (Array.isArray(asObj['data'])) return asObj['data'] as PermDTO[];
-        return [];
-      })();
-      setUserPerms(arr);
 
-      // Initialize selected permissions with current user permissions
-      const currentPermIds = arr
-        .map(p => p.id ?? p.idPermiso ?? p._id)
-        .filter(id => id !== undefined);
-      setSelectedPerms(new Set(currentPermIds));
-    } catch {
-      setUserPerms([]);
-      setError('No se pudieron cargar los permisos del usuario');
-    }
+    // Los permisos directos son los que podemos editar
+    const directPerms = u.permisos_directos || [];
+    setSelectedPerms(new Set(directPerms));
+
+    // Los permisos de grupo son de solo lectura
+    const groupPermissions = u.permisos_de_grupo || [];
+    setGroupPerms(new Set(groupPermissions));
+
+    console.log('Permisos directos (editables):', directPerms);
+    console.log('Permisos de grupo (solo lectura):', groupPermissions);
   };
 
-  const togglePermission = (permId: number | string) => {
+  const togglePermission = (permName: string) => {
     const newSelected = new Set(selectedPerms);
-    if (newSelected.has(permId)) {
-      newSelected.delete(permId);
+    if (newSelected.has(permName)) {
+      newSelected.delete(permName);
     } else {
-      newSelected.add(permId);
+      newSelected.add(permName);
     }
     setSelectedPerms(newSelected);
   };
@@ -134,27 +129,35 @@ export default function UserPermissionsPage() {
     setError(null);
 
     try {
-      const permissionsArray = Array.from(selectedPerms);
+      const permissionNames = Array.from(selectedPerms);
+
+      // Convertir nombres de permisos a IDs
+      const permissionIds: (string | number)[] = permissionNames
+        .map(permName => {
+          const permData = allPerms.find(
+            p => (p.nombre ?? p.nombrePermiso ?? '') === permName
+          );
+          return permData?.id ?? permData?.idPermiso ?? permData?._id;
+        })
+        .filter(
+          (id): id is string | number =>
+            id !== undefined && id !== null && id !== ''
+        );
+
+      console.log('Nombres de permisos:', permissionNames);
+      console.log('IDs de permisos a enviar:', permissionIds);
+
       await updateUserPermissions(
         viewingUser.id,
-        permissionsArray,
+        permissionIds,
         token || undefined
       );
 
-      // Refresh the user permissions after successful save
-      const data = await userPermissions(viewingUser.id, token || undefined);
-      const arr = ((): PermDTO[] => {
-        if (Array.isArray(data)) return data as PermDTO[];
-        const asObj = data as unknown as Record<string, unknown>;
-        if (Array.isArray(asObj['permissions']))
-          return asObj['permissions'] as PermDTO[];
-        if (Array.isArray(asObj['data'])) return asObj['data'] as PermDTO[];
-        return [];
-      })();
-      setUserPerms(arr);
-
+      // Refresh the users list to get updated permissions
+      await load();
       setViewingUser(null);
-    } catch {
+    } catch (error) {
+      console.error('Error guardando permisos:', error);
       setError('No se pudieron guardar los permisos');
     } finally {
       setSaving(false);
@@ -164,6 +167,7 @@ export default function UserPermissionsPage() {
   const cancelEdit = () => {
     setViewingUser(null);
     setSelectedPerms(new Set());
+    setGroupPerms(new Set());
     setError(null);
   };
 
@@ -177,15 +181,11 @@ export default function UserPermissionsPage() {
       String(u.apellido || '')
         .toLowerCase()
         .includes(q) ||
-      String(u.email || '')
+      String(u.mail || u.email || '')
         .toLowerCase()
         .includes(q)
     );
   });
-
-  const userHas = (permId: number | string) => {
-    return selectedPerms.has(permId);
-  };
 
   // Filtrar permisos basado en el término de búsqueda
   const filteredPermissions = React.useMemo(() => {
@@ -235,7 +235,7 @@ export default function UserPermissionsPage() {
             {filteredUsers.map(u => (
               <tr key={String(u.id)}>
                 <td>{`${u.nombre || ''} ${u.apellido || ''}`.trim()}</td>
-                <td>{u.email}</td>
+                <td>{u.mail || u.email}</td>
                 <td>
                   <div className={styles.actions}>
                     <Button variant='outline' onClick={() => openView(u)}>
@@ -263,40 +263,208 @@ export default function UserPermissionsPage() {
               />
             </div>
             <div className={styles.permissionList}>
-              {filteredPermissions.length === 0 ? (
-                <div className={styles.noResults}>
-                  {permissionSearch.trim()
-                    ? 'No se encontraron permisos que coincidan con la búsqueda'
-                    : 'No hay permisos disponibles'}
-                </div>
-              ) : (
-                filteredPermissions.map(p => {
-                  const maybeId = p.id ?? p.idPermiso ?? p._id;
-                  if (typeof maybeId === 'undefined' || maybeId === null)
-                    return null;
-                  const id = maybeId as string | number;
-                  const nombre = p.nombre ?? p.nombrePermiso ?? '';
-                  const descripcion = p.descripcion ?? '';
-                  const checked = userHas(id);
-                  return (
-                    <label key={String(id)} className={styles.permItem}>
-                      <input
-                        type='checkbox'
-                        checked={checked}
-                        onChange={() => togglePermission(id)}
-                      />
-                      <div className={styles.permContent}>
-                        <div className={styles.permName}>{nombre}</div>
-                        {descripcion && (
-                          <div className={styles.permDescription}>
-                            {descripcion}
+              {/* Permisos de grupo (solo lectura) */}
+              {groupPerms.size > 0 && (
+                <div className={styles.groupPermissionsSection}>
+                  <h4
+                    style={{
+                      margin: '10px 0',
+                      color: '#666',
+                      fontSize: '14px',
+                    }}
+                  >
+                    📋 Permisos de Grupo (solo lectura)
+                  </h4>
+                  {Array.from(groupPerms)
+                    .filter(
+                      permName =>
+                        !permissionSearch.trim() ||
+                        permName
+                          .toLowerCase()
+                          .includes(permissionSearch.toLowerCase())
+                    )
+                    .map(permName => {
+                      const permData = allPerms.find(
+                        p => (p.nombre ?? p.nombrePermiso ?? '') === permName
+                      );
+                      const descripcion =
+                        permData?.descripcion ??
+                        'Heredado de grupo - No editable';
+
+                      return (
+                        <div
+                          key={`group-${permName}`}
+                          className={styles.permItem}
+                          style={{
+                            backgroundColor: '#f5f5f5',
+                            opacity: 0.8,
+                            border: '1px solid #ddd',
+                          }}
+                        >
+                          <input
+                            type='checkbox'
+                            checked={true}
+                            disabled={true}
+                            style={{ cursor: 'not-allowed' }}
+                          />
+                          <div className={styles.permContent}>
+                            <div
+                              className={styles.permName}
+                              style={{ color: '#666' }}
+                            >
+                              {permName}
+                            </div>
+                            <div
+                              className={styles.permDescription}
+                              style={{ color: '#999', fontSize: '12px' }}
+                            >
+                              {descripcion}
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    </label>
-                  );
-                })
+                        </div>
+                      );
+                    })}
+                </div>
               )}
+
+              {/* Permisos directos asignados (editables - se pueden quitar) */}
+              {selectedPerms.size > 0 && (
+                <div className={styles.directPermissionsSection}>
+                  <h4
+                    style={{
+                      margin: '10px 0',
+                      color: '#28a745',
+                      fontSize: '14px',
+                    }}
+                  >
+                    ✓ Permisos Directos Asignados (se pueden quitar)
+                  </h4>
+                  {Array.from(selectedPerms)
+                    .filter(
+                      permName =>
+                        !permissionSearch.trim() ||
+                        String(permName)
+                          .toLowerCase()
+                          .includes(permissionSearch.toLowerCase())
+                    )
+                    .map(permName => {
+                      const permData = allPerms.find(
+                        p => (p.nombre ?? p.nombrePermiso ?? '') === permName
+                      );
+                      const descripcion =
+                        permData?.descripcion ??
+                        'Permiso asignado directamente';
+
+                      return (
+                        <label
+                          key={`direct-${permName}`}
+                          className={styles.permItem}
+                          style={{
+                            backgroundColor: '#e8f5e8',
+                            border: '1px solid #28a745',
+                          }}
+                        >
+                          <input
+                            type='checkbox'
+                            checked={true}
+                            onChange={() => togglePermission(String(permName))}
+                            style={{ accentColor: '#28a745' }}
+                          />
+                          <div className={styles.permContent}>
+                            <div
+                              className={styles.permName}
+                              style={{ color: '#28a745' }}
+                            >
+                              {permName}
+                            </div>
+                            <div
+                              className={styles.permDescription}
+                              style={{ color: '#155724' }}
+                            >
+                              {descripcion}
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                </div>
+              )}
+
+              {/* Permisos disponibles para asignar */}
+              <div className={styles.availablePermissionsSection}>
+                <h4
+                  style={{
+                    margin: '10px 0',
+                    color: '#007bff',
+                    fontSize: '14px',
+                  }}
+                >
+                  📝 Permisos Disponibles para Asignar
+                </h4>
+
+                {filteredPermissions.length === 0 ? (
+                  <div className={styles.noResults}>
+                    {permissionSearch.trim()
+                      ? 'No se encontraron permisos que coincidan con la búsqueda'
+                      : 'No hay permisos disponibles'}
+                  </div>
+                ) : (
+                  (() => {
+                    const availablePerms = filteredPermissions.filter(p => {
+                      const nombre = p.nombre ?? p.nombrePermiso ?? '';
+                      // Solo mostrar permisos que no estén en grupos ni asignados directamente
+                      return (
+                        !groupPerms.has(nombre) && !selectedPerms.has(nombre)
+                      );
+                    });
+
+                    if (availablePerms.length === 0) {
+                      return (
+                        <div className={styles.noResults}>
+                          {permissionSearch.trim()
+                            ? 'Todos los permisos que coinciden ya están asignados'
+                            : 'Todos los permisos disponibles ya están asignados'}
+                        </div>
+                      );
+                    }
+
+                    return availablePerms.map(p => {
+                      const maybeId = p.id ?? p.idPermiso ?? p._id;
+                      if (typeof maybeId === 'undefined' || maybeId === null)
+                        return null;
+                      const id = maybeId as string | number;
+                      const nombre = p.nombre ?? p.nombrePermiso ?? '';
+                      const descripcion = p.descripcion ?? '';
+
+                      return (
+                        <label
+                          key={String(id)}
+                          className={styles.permItem}
+                          style={{
+                            backgroundColor: '#ffffff',
+                            border: '1px solid #e6e6e6',
+                          }}
+                        >
+                          <input
+                            type='checkbox'
+                            checked={false}
+                            onChange={() => togglePermission(nombre)}
+                            style={{ accentColor: '#007bff' }}
+                          />
+                          <div className={styles.permContent}>
+                            <div className={styles.permName}>{nombre}</div>
+                            {descripcion && (
+                              <div className={styles.permDescription}>
+                                {descripcion}
+                              </div>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    });
+                  })()
+                )}
+              </div>
             </div>
 
             <div className={styles.modalActions}>

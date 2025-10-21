@@ -34,6 +34,8 @@ import InstitucionEstadisticas from '../pages/institucion/InstitucionEstadistica
 import EstadisticasPage from '../pages/student/EstadisticasPage';
 import FavoriteCareersPage from '../pages/student/FavoriteCareersPage';
 import DetalleCarreraInstitucionPage from '../pages/student/DetalleCarreraInstitucionPage';
+import { AdminRoute } from '../components/AdminRoute';
+import DebugPermissionsPage from '../pages/admin/DebugPermissionsPage';
 
 const queryClient = new QueryClient();
 
@@ -73,22 +75,87 @@ const router = createBrowserRouter([
       { path: 'careers', element: <ConsultarCarrerasPage /> },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'statistics', element: <EstadisticasPage /> },
-      { path: 'admin', element: <AdminHomePage /> },
-      { path: 'admin/career-types', element: <CareerTypesPage /> },
-      { path: 'admin/parametros/abm-paises', element: <PaisesPage /> },
-      { path: 'admin/parametros/abm-provincias', element: <ProvinciasPage /> },
+      { path: 'debug-permissions', element: <DebugPermissionsPage /> },
+      {
+        path: 'admin',
+        element: (
+          <AdminRoute>
+            <AdminHomePage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: 'admin/career-types',
+        element: (
+          <AdminRoute>
+            <CareerTypesPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: 'admin/parametros/abm-paises',
+        element: (
+          <AdminRoute>
+            <PaisesPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: 'admin/parametros/abm-provincias',
+        element: (
+          <AdminRoute>
+            <ProvinciasPage />
+          </AdminRoute>
+        ),
+      },
       {
         path: 'admin/parametros/abm-localidades',
-        element: <LocalidadesPage />,
+        element: (
+          <AdminRoute>
+            <LocalidadesPage />
+          </AdminRoute>
+        ),
       },
-      { path: 'admin/parametros/abm-generos', element: <GenerosPage /> },
+      {
+        path: 'admin/parametros/abm-generos',
+        element: (
+          <AdminRoute>
+            <GenerosPage />
+          </AdminRoute>
+        ),
+      },
       {
         path: 'admin/parametros/abm-tipos-acciones',
-        element: <ActionTypesPage />,
+        element: (
+          <AdminRoute>
+            <ActionTypesPage />
+          </AdminRoute>
+        ),
       },
-      { path: 'admin/parametros/abm-aptitudes', element: <AptitudesPage /> },
-      { path: 'admin/:categoryId', element: <AdminCategoryPage /> },
-      { path: 'admin/:categoryId/:itemId', element: <AdminItemPage /> },
+      {
+        path: 'admin/parametros/abm-aptitudes',
+        element: (
+          <AdminRoute>
+            <AptitudesPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: 'admin/:categoryId',
+        element: (
+          <AdminRoute>
+            <AdminCategoryPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: 'admin/:categoryId/:itemId',
+        element: (
+          <AdminRoute>
+            <AdminItemPage />
+          </AdminRoute>
+        ),
+      },
       { path: 'institucion', element: <InstitucionHomePage /> },
       { path: 'institucion/profile', element: <ProfilePageInstitucion /> },
       {

@@ -250,6 +250,10 @@ export async function listAdminUsers(params = {}, token) {
           u.estado ??
           (u.estado && u.estado.nombre ? u.estado.nombre : null) ??
           null,
+        // Preservar arrays de permisos para la gestión de permisos dinámicos
+        permisos_directos: u.permisos_directos || [],
+        permisos_de_grupo: u.permisos_de_grupo || [],
+        grupos: u.grupos || [],
       }));
     }
     return [];

@@ -114,3 +114,20 @@
 .error {
   color: #b00020;
 }
+
+.groupPermissionsSection {
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e6e6e6;
+  padding-bottom: 8px;
+}
+
+.directPermissionsSection {
+  padding-top: 8px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e6e6e6;
+  padding-bottom: 8px;
+}
+
+.availablePermissionsSection {
+  padding-top: 8px;
+}
