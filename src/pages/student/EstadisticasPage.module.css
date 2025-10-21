@@ -1,0 +1,134 @@
+.backBtnContainer {
+  margin-top: 12px;
+  margin-left: 24px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+}
+/* Ocupa casi todo el viewport, con padding amplio y fondo suave */
+
+.container {
+  padding: 32px;
+  background: #f9f9ff;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+.tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.activeTab {
+  background: #4f4fff;
+  color: #fff;
+  border-radius: 8px 8px 0 0;
+  border: none;
+  padding: 12px 32px;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+.filters {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+.buscarBtn {
+  background: #4f4fff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.statsRow {
+  display: flex;
+  gap: 48px;
+  margin-bottom: 32px;
+}
+.statsBox {
+  background: #e7eaff;
+  padding: 24px;
+  border-radius: 12px;
+  font-weight: bold;
+  flex: 1;
+  font-size: 1.1rem;
+  box-shadow: 0 1px 8px 0 rgba(80, 80, 160, 0.06);
+}
+.rankingsRow {
+  display: flex;
+  gap: 48px;
+  margin-bottom: 32px;
+}
+.rankingBox {
+  background: #e7eaff;
+  padding: 24px;
+  border-radius: 12px;
+  flex: 1;
+  box-shadow: 0 1px 8px 0 rgba(80, 80, 160, 0.06);
+}
+.rankingNum {
+  background: #4f4fff;
+  color: #fff;
+  border-radius: 50%;
+  padding: 4px 14px;
+  margin-right: 12px;
+  font-weight: bold;
+  font-size: 1rem;
+}
+.rankingCount {
+  float: right;
+  font-weight: bold;
+  color: #4f4fff;
+  font-size: 1rem;
+}
+.chartBox {
+  background: #e7eaff;
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 32px;
+  box-shadow: 0 1px 8px 0 rgba(80, 80, 160, 0.06);
+}
+.barChart {
+  margin-top: 24px;
+}
+.barRow {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.barLabel {
+  width: 180px;
+  font-weight: bold;
+  font-size: 1rem;
+}
+.bar {
+  background: #4f4fff;
+  height: 32px;
+  border-radius: 8px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  font-weight: bold;
+  font-size: 1rem;
+}
+.barValue {
+  margin-left: 12px;
+}
+.exportBtn {
+  background: #4f4fff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-weight: bold;
+  cursor: pointer;
+  float: right;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+}

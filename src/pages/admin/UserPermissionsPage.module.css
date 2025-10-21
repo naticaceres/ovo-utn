@@ -1,0 +1,133 @@
+.container {
+  padding: 18px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal {
+  width: 720px;
+  max-width: calc(100% - 2rem);
+  background: #fff;
+  border-radius: 10px;
+  padding: 18px;
+  box-shadow: 0 8px 30px rgba(34, 34, 34, 0.12);
+}
+
+.modal h3 {
+  margin: 0 0 12px 0;
+  color: #5b2cff;
+}
+
+.permissionList {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e6e6e6;
+  border-radius: 4px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.permItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+}
+
+.permItem:last-child {
+  border-bottom: none;
+}
+
+.permItem:hover {
+  background-color: #f8f9fa;
+}
+
+.permContent {
+  flex: 1;
+}
+
+.permName {
+  font-weight: 500;
+  color: #2d3748;
+  margin-bottom: 4px;
+}
+
+.permDescription {
+  font-size: 0.875rem;
+  color: #718096;
+  line-height: 1.4;
+}
+
+.noResults {
+  padding: 20px;
+  text-align: center;
+  color: #718096;
+  font-style: italic;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.searchBox {
+  margin-bottom: 8px;
+}
+
+.error {
+  color: #b00020;
+}
+
+.groupPermissionsSection {
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e6e6e6;
+  padding-bottom: 8px;
+}
+
+.directPermissionsSection {
+  padding-top: 8px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e6e6e6;
+  padding-bottom: 8px;
+}
+
+.availablePermissionsSection {
+  padding-top: 8px;
+}

@@ -1,0 +1,151 @@
+@import '../../styles/variables.css';
+
+.profileContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-xl);
+  gap: var(--spacing-xl);
+  position: relative;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 900px;
+  margin-bottom: var(--spacing-lg);
+}
+
+.logo {
+  width: 48px;
+  height: 48px;
+}
+
+.title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.logoutBtn {
+  margin-left: auto;
+}
+
+.card {
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: var(--spacing-2xl);
+  width: 100%;
+  max-width: 900px;
+  margin-bottom: var(--spacing-md);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-xl);
+  color: var(--color-primary-dark);
+  margin: 0;
+}
+
+.editLink {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: var(--font-size-base);
+  transition: color var(--transition-normal);
+}
+
+.editLink:hover {
+  color: var(--color-primary-dark);
+}
+
+.userData {
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-normal);
+}
+
+.linkCard {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  cursor: pointer;
+  font-size: var(--font-size-lg);
+  color: var(--color-primary-dark);
+  margin-top: var(--spacing-sm);
+  transition: background var(--transition-normal);
+}
+
+.linkCard:hover {
+  background: var(--color-bg-hover);
+}
+
+.arrow {
+  font-size: var(--font-size-xl);
+  color: var(--color-primary);
+}
+
+.icon {
+  font-size: var(--font-size-xl);
+  color: var(--color-primary);
+}
+
+.cardDanger {
+  background: #fff;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: var(--spacing-2xl);
+  width: 100%;
+  max-width: 900px;
+  border: 1px solid var(--color-accent-2);
+  margin-bottom: var(--spacing-md);
+}
+
+.sectionTitleDanger {
+  font-size: var(--font-size-xl);
+  color: var(--color-accent-2);
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.dangerText {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-md);
+}
+
+@media (max-width: 900px) {
+  .header,
+  .card,
+  .cardDanger {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .profileContainer {
+    padding: var(--spacing-md);
+  }
+  .header {
+    flex-direction: column;
+    gap: var(--spacing-md);
+    align-items: flex-start;
+  }
+  .title {
+    font-size: var(--font-size-xl);
+  }
+  .card,
+  .cardDanger {
+    padding: var(--spacing-lg);
+  }
+}

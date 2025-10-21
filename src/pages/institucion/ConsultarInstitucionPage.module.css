@@ -1,0 +1,94 @@
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background: #fff;
+  border-radius: var(--radius-md);
+  padding: 0.5rem 1rem;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--spacing-xl);
+  max-width: 600px;
+  width: 100%;
+}
+
+.searchIcon {
+  font-size: 1.3rem;
+  color: var(--color-primary);
+}
+.container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-xl);
+  min-height: 100vh;
+  background: var(--color-bg-secondary);
+}
+
+.input {
+  width: 100%;
+  max-width: 600px;
+  padding: 0.7rem 1rem;
+  font-size: var(--font-size-base);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-bg-hover);
+  outline: none;
+}
+
+.cardsGrid {
+  display: flex;
+  gap: var(--spacing-xl);
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.card {
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: var(--spacing-xl);
+  min-width: 320px;
+  max-width: 340px;
+  cursor: pointer;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
+  margin-bottom: var(--spacing-lg);
+}
+
+.card:hover {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px) scale(1.03);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.cardTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.cardSede {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+}
+
+.descripcion {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-md);
+}

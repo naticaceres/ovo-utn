@@ -1,0 +1,47 @@
+.backBtn {
+  background: var(--color-bg-primary);
+  border: 2px solid var(--color-primary);
+  border-radius: 10px;
+  cursor: pointer;
+  padding: 0.5rem 0.8rem;
+  position: fixed;
+  /* place below the navbar: approximate navbar height + spacing */
+  top: calc(64px + 0.75rem);
+  left: 1.5rem;
+  z-index: calc(var(--z-fixed) + 1);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.backBtn:hover {
+  background: var(--color-primary);
+  border-color: var(--color-primary-dark);
+}
+
+.arrow {
+  font-size: 1.7rem;
+  color: var(--color-primary);
+  font-weight: bold;
+  transition: color 0.2s;
+}
+
+.backBtn:hover .arrow {
+  color: #fff;
+}
+
+@media (max-width: 600px) {
+  .backBtn {
+    top: calc(56px + 0.5rem);
+    left: 0.75rem;
+    padding: 0.4rem 0.6rem;
+    min-width: 36px;
+    min-height: 36px;
+  }
+}

@@ -1,0 +1,39 @@
+.container {
+  padding: 1rem;
+}
+.title {
+  margin: 0 0 1rem 0;
+}
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: var(--card-bg, #fff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.name {
+  font-weight: 600;
+}
+.sub {
+  color: #666;
+  font-size: 0.9rem;
+}
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.empty {
+  color: #444;
+}
+.error {
+  color: var(--danger, #b00020);
+}

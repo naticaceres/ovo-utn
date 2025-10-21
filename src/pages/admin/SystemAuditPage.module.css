@@ -1,0 +1,37 @@
+.container {
+  padding: 18px;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table th,
+.table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+}
+.error {
+  color: #b00020;
+}
+.toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
