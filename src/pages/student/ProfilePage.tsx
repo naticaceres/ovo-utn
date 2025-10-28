@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useContext } from 'react';
 import { Input } from '../../components/ui/Input';
+import { PasswordInput } from '../../components/ui/PasswordInput';
 import { BackButton } from '../../components/ui/BackButton';
 import { getProfile, updateProfile } from '../../services/user';
-import { deactivate } from '../../services/auth';
+import { deactivate, changePassword } from '../../services/auth';
 import { AuthContext } from '../../context/auth-context';
 import { useEffect } from 'react';
 
@@ -34,6 +35,16 @@ export default function ProfilePage() {
   const [showDeactivateModal, setShowDeactivateModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+
+  // Estados para cambio de contraseña
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+
   const auth = useContext(AuthContext);
 
   const handleEdit = (e: React.MouseEvent) => {
@@ -119,6 +130,71 @@ export default function ProfilePage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleChangePasswordClick = () => {
+    setShowChangePasswordModal(true);
+    setOldPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordError(null);
+    setPasswordSuccess(null);
+  };
+
+  const handleChangePasswordSubmit = async () => {
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    // Validaciones
+    if (!oldPassword.trim()) {
+      setPasswordError('Ingresa tu contraseña actual');
+      return;
+    }
+    if (!newPassword.trim()) {
+      setPasswordError('Ingresa la nueva contraseña');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError('La nueva contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Las contraseñas no coinciden');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      await changePassword(oldPassword, newPassword);
+      setPasswordSuccess('Contraseña cambiada exitosamente');
+      // Limpiar campos después de 2 segundos y cerrar modal
+      setTimeout(() => {
+        setShowChangePasswordModal(false);
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setPasswordSuccess(null);
+      }, 2000);
+    } catch (err: unknown) {
+      let msg = 'Error al cambiar la contraseña';
+      if (err && typeof err === 'object') {
+        const e = err as Record<string, unknown>;
+        const maybe = e['message'] || e['error'] || e['msg'];
+        if (typeof maybe === 'string') msg = maybe;
+      }
+      setPasswordError(msg);
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const closeChangePasswordModal = () => {
+    setShowChangePasswordModal(false);
+    setOldPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordError(null);
+    setPasswordSuccess(null);
   };
 
   return (
@@ -257,6 +333,16 @@ export default function ProfilePage() {
               tests
             </div>
           </div>
+
+          <div className={styles.card}>
+            <h2 className={styles.sectionTitle}>Seguridad</h2>
+            <div
+              className={styles.linkCard}
+              onClick={handleChangePasswordClick}
+            >
+              <span className={styles.icon}>🔒</span> Cambiar contraseña
+            </div>
+          </div>
         </>
       }
       <div className={styles.cardDanger}>
@@ -277,6 +363,161 @@ export default function ProfilePage() {
           Confirmar baja de usuario
         </Button>
       </div>
+
+      {/* Modal de cambio de contraseña */}
+      {showChangePasswordModal && (
+        <div
+          role='dialog'
+          aria-modal='true'
+          style={{
+            position: 'fixed',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.45)',
+            zIndex: 9999,
+            padding: '1rem',
+          }}
+          onKeyDown={e => {
+            if (e.key === 'Escape') closeChangePasswordModal();
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: 520,
+              background: '#fff',
+              borderRadius: 8,
+              padding: '1.5rem',
+              boxShadow: '0 6px 24px rgba(0,0,0,0.2)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1rem',
+              }}
+            >
+              <h3 style={{ marginTop: 0, marginBottom: 0 }}>
+                Cambiar contraseña
+              </h3>
+              <button
+                type='button'
+                onClick={closeChangePasswordModal}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer',
+                  color: '#666',
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 4,
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+            >
+              <PasswordInput
+                label='Contraseña actual'
+                value={oldPassword}
+                onChange={e => setOldPassword(e.target.value)}
+                placeholder='Ingresa tu contraseña actual'
+                required
+                fullWidth
+              />
+
+              <PasswordInput
+                label='Nueva contraseña'
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder='Ingresa la nueva contraseña'
+                required
+                fullWidth
+              />
+
+              <PasswordInput
+                label='Confirmar nueva contraseña'
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                placeholder='Confirma la nueva contraseña'
+                required
+                fullWidth
+              />
+
+              {passwordError && (
+                <div
+                  style={{
+                    color: 'var(--danger, #b00020)',
+                    fontSize: '0.875rem',
+                    padding: '0.5rem',
+                    backgroundColor: 'rgba(176, 0, 32, 0.1)',
+                    borderRadius: '4px',
+                  }}
+                >
+                  {passwordError}
+                </div>
+              )}
+
+              {passwordSuccess && (
+                <div
+                  style={{
+                    color: '#16a34a',
+                    fontSize: '0.875rem',
+                    padding: '0.5rem',
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                    borderRadius: '4px',
+                  }}
+                >
+                  {passwordSuccess}
+                </div>
+              )}
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                gap: 12,
+                marginTop: '1.5rem',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <Button
+                type='button'
+                variant='outline'
+                onClick={closeChangePasswordModal}
+                disabled={isChangingPassword}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type='button'
+                variant='primary'
+                isLoading={isChangingPassword}
+                onClick={handleChangePasswordSubmit}
+                disabled={
+                  !oldPassword.trim() ||
+                  !newPassword.trim() ||
+                  !confirmPassword.trim()
+                }
+              >
+                Cambiar contraseña
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de confirmación de baja */}
       {showDeactivateModal && (

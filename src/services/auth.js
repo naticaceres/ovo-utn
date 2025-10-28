@@ -75,3 +75,15 @@ export async function resetPassword(payload) {
     throw error.response ? error.response.data : error;
   }
 }
+
+export async function changePassword(oldPassword, newPassword) {
+  try {
+    const { data } = await api.post('/api/v1/auth/password/change', {
+      old_password: oldPassword,
+      new_password: newPassword,
+    });
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
