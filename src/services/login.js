@@ -20,3 +20,14 @@ export async function login(correo, contrasena) {
     throw error.response ? error.response.data : error;
   }
 }
+
+export async function forgotPassword(correo) {
+  try {
+    const response = await api.post('/api/v1/auth/password/forgot', {
+      correo,
+    });
+    return response;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}

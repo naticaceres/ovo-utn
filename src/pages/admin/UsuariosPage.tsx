@@ -195,7 +195,20 @@ export default function UsuariosPage() {
     setSelectedGroup(it.idGrupo ?? null);
     // preselect groups if available
     setSelectedGroups((it.groups || []).map(g => g.id));
-    setSelectedState(it.idEstadoUsuario ?? null);
+
+    // Buscar el estado actual del usuario
+    let currentStateId = it.idEstadoUsuario;
+
+    // Si no tenemos el ID del estado, intentar encontrarlo por nombre
+    if (!currentStateId && (it.estado || it.estadoNombre)) {
+      const stateName = it.estado || it.estadoNombre;
+      const foundState = states.find(s => s.nombre === stateName);
+      if (foundState) {
+        currentStateId = foundState.id;
+      }
+    }
+
+    setSelectedState(currentStateId ?? null);
     setSelectedGender(null); // Género no se edita en modo edición
     setSelectedLocality(null); // Localidad no se edita en modo edición
     setShowModal(true);
@@ -504,7 +517,7 @@ export default function UsuariosPage() {
                 marginTop: 6,
               }}
             >
-              {selectedState == null && (
+              {!editing && selectedState == null && (
                 <option value=''>Seleccione estado</option>
               )}
               {states.map(s => (

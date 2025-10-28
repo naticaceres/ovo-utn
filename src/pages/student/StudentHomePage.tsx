@@ -34,20 +34,6 @@ export default function StudentHomePage() {
       </div>
 
       {/* Mostrar información de permisos en desarrollo */}
-      <div
-        style={{
-          marginTop: 20,
-          padding: 10,
-          backgroundColor: '#f0f0f0',
-          borderRadius: 5,
-          fontSize: 12,
-          color: '#666',
-        }}
-      >
-        <strong>Items visibles:</strong> {visibleItems.length}
-        <br />
-        <strong>Permisos:</strong> {userPermissions.join(', ')}
-      </div>
     </div>
   );
 }
