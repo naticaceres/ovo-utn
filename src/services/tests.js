@@ -1,5 +1,10 @@
 import { api } from '../context/api';
 
+/**
+ * Inicia un nuevo test vocacional
+ * Funciona tanto para usuarios autenticados (con Bearer token) como anónimos
+ * @returns {Promise} { chatbot_response, fullHistory, idTest }
+ */
 export async function startTest() {
   try {
     const { data } = await api.post('/api/v1/tests/start', {});
@@ -9,114 +14,50 @@ export async function startTest() {
   }
 }
 
-export async function accessTest(testId, payload) {
-  try {
-    const { data } = await api.post(
-      `/api/v1/user/tests/${testId}/access`,
-      payload
-    );
-    return data;
-  } catch (error) {
-    throw error.response ? error.response.data : error;
-  }
-}
-
-export async function restartTest() {
-  try {
-    const { data } = await api.post('/api/v1/user/tests/restart');
-    return data;
-  } catch (error) {
-    throw error.response ? error.response.data : error;
-  }
-}
-
-export async function submitAnswer(chatId, answer, userIdAnonimo = null) {
+/**
+ * Envía una respuesta a una pregunta del test
+ * @param {number} testId - ID del test en curso
+ * @param {string} answer - Respuesta del usuario
+ * @returns {Promise} { fullHistory, nextQuestion } o { fullHistory, message } si finalizó (201)
+ */
+export async function submitAnswer(testId, answer) {
   try {
     const payload = { answer };
-
-    // Si hay userIdAnonimo, lo incluimos en el payload
-    if (userIdAnonimo) {
-      payload.userIdAnonimo = userIdAnonimo;
-    }
-    // Si no hay userIdAnonimo, el interceptor del api agregará automáticamente el token
-
-    const { data } = await api.post(`/api/v1/tests/${chatId}/answer`, payload);
-    return data;
+    const response = await api.post(`/api/v1/tests/${testId}/answer`, payload);
+    return {
+      data: response.data,
+      status: response.status,
+    };
   } catch (error) {
     throw error.response ? error.response.data : error;
   }
 }
 
-export async function getProgress(testId) {
-  try {
-    const { data } = await api.get(`/api/v1/tests/${testId}/progress`);
-    return data;
-  } catch (error) {
-    throw error.response ? error.response.data : error;
-  }
-}
-
-export async function pauseTest(testId) {
-  try {
-    const { data } = await api.post(`/api/v1/tests/${testId}/pause`);
-    return data;
-  } catch (error) {
-    throw error.response ? error.response.data : error;
-  }
-}
-
-export async function resumeTest(testId) {
-  try {
-    const { data } = await api.post(`/api/v1/tests/${testId}/resume`);
-    return data;
-  } catch (error) {
-    throw error.response ? error.response.data : error;
-  }
-}
-
-export async function saveExit(testId) {
-  try {
-    const { data } = await api.post(`/api/v1/tests/${testId}/save-exit`);
-    return data;
-  } catch (error) {
-    throw error.response ? error.response.data : error;
-  }
-}
-
-export async function abandonTest(testId) {
-  try {
-    const { data } = await api.post(`/api/v1/tests/${testId}/abandon`);
-    return data;
-  } catch (error) {
-    throw error.response ? error.response.data : error;
-  }
-}
-
-export async function finishTest(testId) {
-  try {
-    const { data } = await api.post(`/api/v1/tests/${testId}/finish`);
-    return data;
-  } catch (error) {
-    throw error.response ? error.response.data : error;
-  }
-}
-
+/**
+ * Obtiene los resultados de un test específico
+ * Si se proporciona el testId, asocia el test al usuario autenticado
+ * ACCESO PÚBLICO: Disponible para todos los usuarios autenticados, sin restricciones de permisos
+ * @param {number} testId - ID del test
+ * @returns {Promise} { aptitudesObtenidas, carrerasRecomendadas, fullHistory, testId }
+ */
 export async function getTestResults(testId) {
   try {
-    const payload = {};
+    const { data } = await api.get(`/api/v1/tests/${testId}/results`);
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
 
-    // Verificar si hay userIdAnonimo en localStorage
-    const userIdAnonimo = localStorage.getItem('userIdAnonimo');
-    if (userIdAnonimo) {
-      payload.userIdAnonimo = userIdAnonimo;
-    }
-    // Si no hay userIdAnonimo, el interceptor del api agregará automáticamente el token
-
-    const { data } = await api.request({
-      method: 'GET',
-      url: `/api/v1/tests/${testId}/results`,
-      data: Object.keys(payload).length > 0 ? payload : {},
-    });
+/**
+ * Obtiene la lista de todos los tests realizados por el usuario autenticado
+ * ACCESO PÚBLICO: Disponible para todos los usuarios autenticados, sin restricciones de permisos
+ * Requiere token de autenticación (Bearer token)
+ * @returns {Promise} Array de tests con sus resultados
+ */
+export async function getUserTests() {
+  try {
+    const { data } = await api.get('/api/v1/user/tests');
     return data;
   } catch (error) {
     throw error.response ? error.response.data : error;

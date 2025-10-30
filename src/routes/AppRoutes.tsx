@@ -34,6 +34,7 @@ import InstitucionEstadisticas from '../pages/institucion/InstitucionEstadistica
 import EstadisticasPage from '../pages/student/EstadisticasPage';
 import FavoriteCareersPage from '../pages/student/FavoriteCareersPage';
 import DetalleCarreraInstitucionPage from '../pages/student/DetalleCarreraInstitucionPage';
+import { TestsHistoryPage } from '../pages/student/TestsHistoryPage';
 import { AdminRoute } from '../components/AdminRoute';
 import DebugPermissionsPage from '../pages/admin/DebugPermissionsPage';
 
@@ -63,6 +64,8 @@ const router = createBrowserRouter([
       { path: 'questionnaire', element: <QuestionnairePage /> },
       { path: 'results', element: <ResultsPage /> },
       { path: 'student', element: <StudentHomePage /> },
+      { path: 'student/tests', element: <TestsHistoryPage /> },
+      { path: 'student/tests/:testId', element: <ResultsPage /> },
       { path: 'student/favorites', element: <FavoriteCareersPage /> },
       {
         path: 'student/carrera-detalle/:carreraInstitucionId',

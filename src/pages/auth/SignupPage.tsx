@@ -12,6 +12,7 @@ import { TermsContent } from '../legal/TerminosYCondicionesPage';
 import { PrivacyContent } from '../legal/PoliticasDePrivacidadPage';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/ui/Input';
+import { PasswordInput } from '../../components/ui/PasswordInput';
 import { Button } from '../../components/ui/Button';
 import styles from './SignupPage.module.css';
 import { getApiErrorMessage } from '../../context/api';
@@ -22,6 +23,7 @@ export function SignupPage() {
   const [correo, setCorreo] = useState('');
   const [dni, setDni] = useState('');
   const [contrasena, setContrasena] = useState('');
+  const [confirmarContrasena, setConfirmarContrasena] = useState('');
   const [fechaNac, setFechaNac] = useState('');
   const [idGenero, setIdGenero] = useState('');
   const [genders, setGenders] = useState<
@@ -163,6 +165,7 @@ export function SignupPage() {
   }, [idProvincia, idLocalidad]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const navigate = useNavigate();
 
   const onSubmit = (e: FormEvent) => {
@@ -175,11 +178,36 @@ export function SignupPage() {
       !correo ||
       !dni ||
       !contrasena ||
+      !confirmarContrasena ||
       !fechaNac ||
       !idGenero ||
       !idLocalidad
     ) {
       setError('Todos los campos son obligatorios');
+      return;
+    }
+
+    // Validar DNI
+    if (dni.length < 5 || dni.length > 8) {
+      setError('El DNI debe tener entre 5 y 8 dígitos');
+      return;
+    }
+
+    // Validar que el DNI solo contenga números
+    if (!/^\d+$/.test(dni)) {
+      setError('El DNI solo debe contener números');
+      return;
+    }
+
+    // Validar que las contraseñas coincidan
+    if (contrasena !== confirmarContrasena) {
+      setError('Las contraseñas no coinciden');
+      return;
+    }
+
+    // Validar longitud mínima de contraseña
+    if (contrasena.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres');
       return;
     }
     setModalStage(1);
@@ -203,7 +231,12 @@ export function SignupPage() {
       };
       await registerService(payload);
       setModalStage(0);
-      navigate('/app/login');
+      setRegistrationSuccess(true);
+
+      // Redirigir al login después de 5 segundos
+      setTimeout(() => {
+        navigate('/app/login');
+      }, 5000);
     } catch (err: unknown) {
       setModalStage(0);
       setError(getApiErrorMessage(err));
@@ -216,203 +249,281 @@ export function SignupPage() {
     <AuthLayout>
       <div className={styles.signupContainer}>
         <div className={styles.signupCard}>
-          <h1 className={styles.title}>Crear cuenta</h1>
-          <p className={styles.subtitle}>
-            Únete a OVO y descubre tu vocación profesional
-          </p>
-
-          <form onSubmit={onSubmit} className={styles.form}>
-            <Input
-              label='Correo electrónico'
-              type='email'
-              value={correo}
-              onChange={e => setCorreo(e.target.value)}
-              placeholder='tu@email.com'
-              required
-              fullWidth
-            />
-            <Input
-              label='DNI'
-              value={dni}
-              onChange={e => setDni(e.target.value)}
-              placeholder='Ingresa tu DNI'
-              required
-              fullWidth
-            />
-            <Input
-              label='Nombre'
-              value={nombre}
-              onChange={e => setNombre(e.target.value)}
-              placeholder='Ingresa tu nombre'
-              required
-              fullWidth
-            />
-            <Input
-              label='Apellido'
-              value={apellido}
-              onChange={e => setApellido(e.target.value)}
-              placeholder='Ingresa tu apellido'
-              required
-              fullWidth
-            />
-            <Input
-              label='Fecha de nacimiento'
-              type='date'
-              value={fechaNac}
-              onChange={e => setFechaNac(e.target.value)}
-              required
-              fullWidth
-            />
-            <div>
-              <label>Género</label>
-              <select
-                className={styles.select}
-                value={idGenero}
-                onChange={e => setIdGenero(e.target.value)}
-                required
-                disabled={loadingGenders || !!gendersError}
-              >
-                <option value=''>Selecciona un género</option>
-                {genders.map(g => (
-                  <option key={g.id} value={g.id}>
-                    {g.nombre}
-                  </option>
-                ))}
-              </select>
-              {loadingGenders && (
-                <div className={styles.helperText}>Cargando géneros...</div>
-              )}
-              {gendersError && (
-                <div className={styles.errorMessageSmall}>{gendersError}</div>
-              )}
-            </div>
-            <div>
-              <label className={styles.selectLabel}>País</label>
-              <select
-                className={styles.select}
-                value={idPais}
-                onChange={e => {
-                  setIdPais(e.target.value);
-                  setIdProvincia('');
-                  setIdLocalidad('');
-                }}
-                required
-                disabled={loadingCountries || !!countriesError}
-              >
-                <option value=''>Selecciona un país</option>
-                {countries.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre}
-                  </option>
-                ))}
-              </select>
-              {loadingCountries && (
-                <div className={styles.helperText}>Cargando países...</div>
-              )}
-              {countriesError && (
-                <div className={styles.errorMessageSmall}>{countriesError}</div>
-              )}
-            </div>
-            <div>
-              <label className={styles.selectLabel}>Provincia</label>
-              <select
-                className={styles.select}
-                value={idProvincia}
-                onChange={e => {
-                  setIdProvincia(e.target.value);
-                  setIdLocalidad('');
-                }}
-                required
-                disabled={!idPais || loadingProvinces || !!provincesError}
-              >
-                <option value=''>Selecciona una provincia</option>
-                {provinces.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre}
-                  </option>
-                ))}
-              </select>
-              {loadingProvinces && (
-                <div className={styles.helperText}>Cargando provincias...</div>
-              )}
-              {provincesError && (
-                <div className={styles.errorMessageSmall}>{provincesError}</div>
-              )}
-            </div>
-            <div>
-              <label className={styles.selectLabel}>Localidad</label>
-              <select
-                className={styles.select}
-                value={idLocalidad}
-                onChange={e => setIdLocalidad(e.target.value)}
-                required
-                disabled={
-                  !idProvincia || loadingLocalities || !!localitiesError
-                }
-              >
-                <option value=''>Selecciona una localidad</option>
-                {localities.map(l => (
-                  <option key={l.id} value={l.id}>
-                    {l.nombre}
-                  </option>
-                ))}
-              </select>
-              {loadingLocalities && (
-                <div className={styles.helperText}>Cargando localidades...</div>
-              )}
-              {localitiesError && (
-                <div className={styles.errorMessageSmall}>
-                  {localitiesError}
-                </div>
-              )}
-            </div>
-            <Input
-              label='Contraseña'
-              type='password'
-              value={contrasena}
-              onChange={e => setContrasena(e.target.value)}
-              placeholder='Mínimo 8 caracteres'
-              required
-              fullWidth
-            />
-
-            {error && (
-              <div className={styles.errorMessage} role='alert'>
-                {error}
+          {registrationSuccess ? (
+            <div className={styles.successContainer}>
+              <div className={styles.successIcon}>✅</div>
+              <h1 className={styles.title}>¡Registro exitoso!</h1>
+              <p className={styles.subtitle}>
+                Tu cuenta ha sido creada correctamente
+              </p>
+              <div className={styles.emailMessage}>
+                <p>
+                  <strong>📧 Verificación de email requerida</strong>
+                </p>
+                <p>Hemos enviado un correo de verificación a:</p>
+                <p>
+                  <strong>{correo}</strong>
+                </p>
+                <p>
+                  Para completar el registro y poder iniciar sesión, debes hacer
+                  clic en el enlace de verificación que se encuentra en el
+                  email.
+                </p>
+                <p className={styles.tipMessage}>
+                  💡{' '}
+                  <em>
+                    Si no encuentras el correo en tu bandeja de entrada, revisa
+                    la carpeta de spam o correo no deseado.
+                  </em>
+                </p>
               </div>
-            )}
-
-            <div className={styles.termsNote}>
-              Al registrarte se te pedirá aceptar los Términos y las Políticas
-              de Privacidad.
+              <div className={styles.redirectMessage}>
+                <p>Serás redirigido al login en unos segundos...</p>
+                <Button
+                  onClick={() => navigate('/app/login')}
+                  variant='primary'
+                  fullWidth
+                >
+                  Ir al login ahora
+                </Button>
+              </div>
             </div>
+          ) : (
+            <>
+              <h1 className={styles.title}>Crear cuenta</h1>
+              <p className={styles.subtitle}>
+                Únete a OVO y descubre tu vocación profesional
+              </p>
 
-            <Button
-              type='submit'
-              variant='primary'
-              size='lg'
-              fullWidth
-              isLoading={isLoading}
-            >
-              Crear cuenta
-            </Button>
-            <div className={styles.loginLink}>
-              ¿Ya tienes cuenta?{' '}
-              <a href='/app/login' className={styles.link}>
-                Inicia sesión
-              </a>
-            </div>
-          </form>
+              <form onSubmit={onSubmit} className={styles.form}>
+                <Input
+                  label='Correo electrónico'
+                  type='email'
+                  value={correo}
+                  onChange={e => setCorreo(e.target.value)}
+                  placeholder='tu@email.com'
+                  required
+                  fullWidth
+                />
+                <Input
+                  label='DNI'
+                  value={dni}
+                  onChange={e => {
+                    // Solo permitir números y máximo 8 caracteres
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+                    setDni(value);
+                  }}
+                  placeholder='Ingresa tu DNI (5-8 dígitos)'
+                  helperText={
+                    dni.length > 0
+                      ? `${dni.length}/8 dígitos ${
+                          dni.length < 5
+                            ? '(mínimo 5)'
+                            : dni.length >= 5 && dni.length <= 8
+                              ? '✓'
+                              : ''
+                        }`
+                      : 'Entre 5 y 8 dígitos'
+                  }
+                  required
+                  fullWidth
+                  maxLength={8}
+                  minLength={5}
+                  pattern='[0-9]{5,8}'
+                />
+                <Input
+                  label='Nombre'
+                  value={nombre}
+                  onChange={e => setNombre(e.target.value)}
+                  placeholder='Ingresa tu nombre'
+                  required
+                  fullWidth
+                />
+                <Input
+                  label='Apellido'
+                  value={apellido}
+                  onChange={e => setApellido(e.target.value)}
+                  placeholder='Ingresa tu apellido'
+                  required
+                  fullWidth
+                />
+                <Input
+                  label='Fecha de nacimiento'
+                  type='date'
+                  value={fechaNac}
+                  onChange={e => setFechaNac(e.target.value)}
+                  required
+                  fullWidth
+                />
+                <div>
+                  <label>Género</label>
+                  <select
+                    className={styles.select}
+                    value={idGenero}
+                    onChange={e => setIdGenero(e.target.value)}
+                    required
+                    disabled={loadingGenders || !!gendersError}
+                  >
+                    <option value=''>Selecciona un género</option>
+                    {genders.map(g => (
+                      <option key={g.id} value={g.id}>
+                        {g.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingGenders && (
+                    <div className={styles.helperText}>Cargando géneros...</div>
+                  )}
+                  {gendersError && (
+                    <div className={styles.errorMessageSmall}>
+                      {gendersError}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className={styles.selectLabel}>País</label>
+                  <select
+                    className={styles.select}
+                    value={idPais}
+                    onChange={e => {
+                      setIdPais(e.target.value);
+                      setIdProvincia('');
+                      setIdLocalidad('');
+                    }}
+                    required
+                    disabled={loadingCountries || !!countriesError}
+                  >
+                    <option value=''>Selecciona un país</option>
+                    {countries.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingCountries && (
+                    <div className={styles.helperText}>Cargando países...</div>
+                  )}
+                  {countriesError && (
+                    <div className={styles.errorMessageSmall}>
+                      {countriesError}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className={styles.selectLabel}>Provincia</label>
+                  <select
+                    className={styles.select}
+                    value={idProvincia}
+                    onChange={e => {
+                      setIdProvincia(e.target.value);
+                      setIdLocalidad('');
+                    }}
+                    required
+                    disabled={!idPais || loadingProvinces || !!provincesError}
+                  >
+                    <option value=''>Selecciona una provincia</option>
+                    {provinces.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingProvinces && (
+                    <div className={styles.helperText}>
+                      Cargando provincias...
+                    </div>
+                  )}
+                  {provincesError && (
+                    <div className={styles.errorMessageSmall}>
+                      {provincesError}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className={styles.selectLabel}>Localidad</label>
+                  <select
+                    className={styles.select}
+                    value={idLocalidad}
+                    onChange={e => setIdLocalidad(e.target.value)}
+                    required
+                    disabled={
+                      !idProvincia || loadingLocalities || !!localitiesError
+                    }
+                  >
+                    <option value=''>Selecciona una localidad</option>
+                    {localities.map(l => (
+                      <option key={l.id} value={l.id}>
+                        {l.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingLocalities && (
+                    <div className={styles.helperText}>
+                      Cargando localidades...
+                    </div>
+                  )}
+                  {localitiesError && (
+                    <div className={styles.errorMessageSmall}>
+                      {localitiesError}
+                    </div>
+                  )}
+                </div>
+                <PasswordInput
+                  label='Contraseña'
+                  value={contrasena}
+                  onChange={e => setContrasena(e.target.value)}
+                  placeholder='Mínimo 8 caracteres'
+                  required
+                  fullWidth
+                />
+                <PasswordInput
+                  label='Confirmar contraseña'
+                  value={confirmarContrasena}
+                  onChange={e => setConfirmarContrasena(e.target.value)}
+                  placeholder='Repite la contraseña'
+                  required
+                  fullWidth
+                />
 
-          <div style={{ marginTop: 12 }}>
-            <Button
-              variant='outline'
-              fullWidth
-              onClick={() => navigate('/institution-signup')}
-            >
-              Registrar institución
-            </Button>
-          </div>
+                {error && (
+                  <div className={styles.errorMessage} role='alert'>
+                    {error}
+                  </div>
+                )}
+
+                <div className={styles.termsNote}>
+                  Al registrarte se te pedirá aceptar los Términos y las
+                  Políticas de Privacidad.
+                </div>
+
+                <Button
+                  type='submit'
+                  variant='primary'
+                  size='lg'
+                  fullWidth
+                  isLoading={isLoading}
+                >
+                  Crear cuenta
+                </Button>
+                <div className={styles.loginLink}>
+                  ¿Ya tienes cuenta?{' '}
+                  <a href='/app/login' className={styles.link}>
+                    Inicia sesión
+                  </a>
+                </div>
+              </form>
+
+              <div style={{ marginTop: 12 }}>
+                <Button
+                  variant='outline'
+                  fullWidth
+                  onClick={() => navigate('/institution-signup')}
+                >
+                  Registrar institución
+                </Button>
+              </div>
+            </>
+          )}
 
           {/* Two-step modal: stage 1 = Terms, stage 2 = Privacy */}
           {modalStage > 0 && (

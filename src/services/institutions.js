@@ -193,6 +193,18 @@ export async function addMyCareerAptitude(careerId, payload) {
   }
 }
 
+export async function updateMyCareerAptitudes(careerId, payload) {
+  try {
+    const { data } = await api.put(
+      `/api/v1/institutions/me/careers/${careerId}/aptitudes`,
+      payload
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
 export async function removeMyCareerAptitude(careerId, aptitudeId) {
   try {
     const { data } = await api.delete(

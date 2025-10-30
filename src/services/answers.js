@@ -1,3 +1,12 @@
+/**
+ * @deprecated Este archivo está obsoleto. Usar services/tests.js en su lugar.
+ *
+ * La nueva lógica del sistema de tests utiliza:
+ * - tests.js: submitAnswer(testId, answer)
+ * - El endpoint ahora devuelve { fullHistory, nextQuestion } o { fullHistory, message } con status 201
+ * - Ya no se requiere userIdAnonimo, el sistema maneja automáticamente usuarios autenticados y anónimos
+ */
+
 import { api } from '../context/api';
 
 // Servicio especializado para operaciones sobre respuestas (si backend lo separa)

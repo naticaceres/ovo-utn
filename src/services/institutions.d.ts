@@ -77,6 +77,10 @@ export function addMyCareerAptitude(
   careerId: number | string,
   payload: unknown
 ): Promise<unknown>;
+export function updateMyCareerAptitudes(
+  careerId: number | string,
+  payload: unknown
+): Promise<unknown>;
 export function removeMyCareerAptitude(
   careerId: number | string,
   aptitudeId: number | string

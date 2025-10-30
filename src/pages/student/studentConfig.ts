@@ -29,6 +29,12 @@ export const BASIC_STUDENT_ITEMS: BasicStudentItem[] = [
     icon: '📝',
     route: '/app/questionnaire',
   },
+  {
+    id: 'historial-tests',
+    label: 'Historial de Tests',
+    icon: '📋',
+    route: '/app/student/tests',
+  },
 ];
 
 /**
@@ -48,13 +54,6 @@ export const STUDENT_ITEMS: StudentItem[] = [
     icon: '�',
     route: '/app/consultar-institucion',
     requiredPermission: 'USER_VIEW_INSTITUTIONS',
-  },
-  {
-    id: 'reiniciar-test',
-    label: 'Reiniciar Test',
-    icon: '�',
-    route: '/app/restart-test',
-    requiredPermission: 'USER_RESTART_TEST',
   },
   {
     id: 'ver-estadisticas',
