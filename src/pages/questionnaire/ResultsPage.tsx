@@ -179,9 +179,45 @@ export function ResultsPage() {
             </p>
           ) : (
             <div className={styles.aptitudeGrid}>
-              {Object.entries(displayResults.aptitudesObtenidas).map(
-                ([aptitude, score]) => {
-                  // Manejar casos donde el score no es un número válido
+              {(() => {
+                const aptitudes = displayResults.aptitudesObtenidas;
+
+                // Si es un array (nuevo formato del API)
+                if (Array.isArray(aptitudes)) {
+                  return aptitudes.map(apt => {
+                    const percentage = Math.max(
+                      0,
+                      Math.min(100, Math.round(apt.afinidadAptitud * 10))
+                    );
+                    const icon = getRandomIcon(apt.nombreAptitud);
+                    const color = getRandomColor(apt.nombreAptitud);
+
+                    return (
+                      <div key={apt.idAptitud} className={styles.aptitudeItem}>
+                        <div
+                          className={styles.aptitudeIcon}
+                          style={{ backgroundColor: color }}
+                        >
+                          {icon}
+                        </div>
+                        <h3>{apt.nombreAptitud}</h3>
+                        <div className={styles.aptitudeBar}>
+                          <div
+                            className={styles.aptitudeFill}
+                            style={{
+                              width: `${percentage}%`,
+                              backgroundColor: color,
+                            }}
+                          ></div>
+                        </div>
+                        <span>{percentage}%</span>
+                      </div>
+                    );
+                  });
+                }
+
+                // Si es un objeto (formato antiguo)
+                return Object.entries(aptitudes).map(([aptitude, score]) => {
                   const numericScore =
                     typeof score === 'number' && !isNaN(score) ? score : 0;
                   const percentage = Math.max(
@@ -212,8 +248,8 @@ export function ResultsPage() {
                       <span>{percentage}%</span>
                     </div>
                   );
-                }
-              )}
+                });
+              })()}
             </div>
           )}
         </div>
@@ -258,7 +294,7 @@ export function ResultsPage() {
                       </div>
                       <div className={styles.recommendationActions}>
                         <Link
-                          to={`/app/student/career/${carrera.idCarreraInstitucion}`}
+                          to={`/app/student/carrera-detalle/${carrera.idCarreraInstitucion}`}
                         >
                           <Button variant='outline' size='sm'>
                             Ver detalles

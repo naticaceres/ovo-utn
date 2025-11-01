@@ -196,21 +196,27 @@ export function TestsHistoryPage() {
               <div className={styles.testSection}>
                 <h3 className={styles.sectionTitle}>Aptitudes Obtenidas</h3>
                 {test.aptitudesObtenidas &&
-                Object.keys(test.aptitudesObtenidas).length > 0 ? (
+                test.aptitudesObtenidas.length > 0 ? (
                   <div className={styles.aptitudesGrid}>
-                    {Object.entries(test.aptitudesObtenidas)
-                      .sort(([, a], [, b]) => b - a)
+                    {test.aptitudesObtenidas
+                      .sort((a, b) => b.afinidadAptitud - a.afinidadAptitud)
                       .slice(0, 5)
-                      .map(([aptitude, score]) => {
+                      .map(aptitud => {
                         const percentage = Math.max(
                           0,
-                          Math.min(100, Math.round((score / 10) * 100))
+                          Math.min(
+                            100,
+                            Math.round(aptitud.afinidadAptitud * 10)
+                          )
                         );
-                        const icon = getRandomIcon(aptitude);
-                        const color = getRandomColor(aptitude);
+                        const icon = getRandomIcon(aptitud.nombreAptitud);
+                        const color = getRandomColor(aptitud.nombreAptitud);
 
                         return (
-                          <div key={aptitude} className={styles.aptitudeChip}>
+                          <div
+                            key={aptitud.idAptitud}
+                            className={styles.aptitudeChip}
+                          >
                             <span
                               className={styles.aptitudeIcon}
                               style={{ color }}
@@ -218,7 +224,7 @@ export function TestsHistoryPage() {
                               {icon}
                             </span>
                             <span className={styles.aptitudeName}>
-                              {aptitude}
+                              {aptitud.nombreAptitud}
                             </span>
                             <span className={styles.aptitudeScore}>
                               {percentage}%
@@ -267,7 +273,7 @@ export function TestsHistoryPage() {
                               </p>
                             </div>
                             <Link
-                              to={`/app/student/career/${carrera.idCarreraInstitucion}`}
+                              to={`/app/student/carrera-detalle/${carrera.idCarreraInstitucion}`}
                             >
                               <Button variant='outline' size='sm'>
                                 Ver detalles

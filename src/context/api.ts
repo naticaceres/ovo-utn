@@ -271,6 +271,12 @@ export type TestAnswerResponse = {
   message?: string; // Cuando el test finaliza
 };
 
+export type AptitudObtenida = {
+  idAptitud: number;
+  nombreAptitud: string;
+  afinidadAptitud: number;
+};
+
 export type CarreraRecomendada = {
   idCarreraInstitucion: number;
   puntaje?: number; // Viene en getTestResults
@@ -281,7 +287,7 @@ export type CarreraRecomendada = {
 };
 
 export type TestResultsResponse = {
-  aptitudesObtenidas: Record<string, number>;
+  aptitudesObtenidas: Record<string, number> | AptitudObtenida[]; // Puede ser objeto o array dependiendo del endpoint
   carrerasRecomendadas: CarreraRecomendada[];
   fullHistory: string[];
   testId: number;
@@ -294,7 +300,7 @@ export type UserTest = {
   fechaRealizacion?: string; // Para compatibilidad con código existente
   estado: string;
   carrerasRecomendadas: CarreraRecomendada[];
-  aptitudesObtenidas?: Record<string, number>; // Opcional, no viene en el historial
+  aptitudesObtenidas?: AptitudObtenida[]; // Array de aptitudes con sus datos
   fullHistory?: string[]; // Opcional, no viene en el historial
 };
 

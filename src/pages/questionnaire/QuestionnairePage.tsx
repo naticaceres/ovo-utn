@@ -107,8 +107,8 @@ export function QuestionnairePage() {
             // Si está logueado, ir directo a resultados
             navigate('/app/results');
           } else {
-            // Si no está logueado, redirigir a register manteniendo el idTest
-            navigate('/app/register');
+            // Si no está logueado, redirigir a signup manteniendo el idTest
+            navigate('/app/signup');
           }
         }, 2000);
       }
