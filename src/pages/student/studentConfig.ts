@@ -29,6 +29,12 @@ export const BASIC_STUDENT_ITEMS: BasicStudentItem[] = [
     icon: '📝',
     route: '/app/questionnaire',
   },
+  {
+    id: 'historial-tests',
+    label: 'Historial de Tests',
+    icon: '📋',
+    route: '/app/student/tests',
+  },
 ];
 
 /**
@@ -38,28 +44,21 @@ export const STUDENT_ITEMS: StudentItem[] = [
   {
     id: 'consultar-carreras',
     label: 'Consultar Carreras',
-    icon: '�',
+    icon: '📚',
     route: '/app/careers',
     requiredPermission: 'USER_VIEW_CAREERS',
   },
   {
     id: 'consultar-instituciones',
     label: 'Consultar Instituciones',
-    icon: '�',
+    icon: '🏫',
     route: '/app/consultar-institucion',
     requiredPermission: 'USER_VIEW_INSTITUTIONS',
   },
   {
-    id: 'reiniciar-test',
-    label: 'Reiniciar Test',
-    icon: '�',
-    route: '/app/restart-test',
-    requiredPermission: 'USER_RESTART_TEST',
-  },
-  {
     id: 'ver-estadisticas',
     label: 'Ver Estadísticas',
-    icon: '�',
+    icon: '📊',
     route: '/app/statistics',
     requiredPermission: 'VIEW_STATS',
   },
@@ -115,7 +114,7 @@ export const STUDENT_ITEMS: StudentItem[] = [
   {
     id: 'restaurar-backups',
     label: 'Restaurar Backups',
-    icon: '�',
+    icon: '🔄',
     route: '/app/admin/backups/restaurar-backup',
     requiredPermission: 'BACKUP_RESTORE',
   },
@@ -129,7 +128,7 @@ export const STUDENT_ITEMS: StudentItem[] = [
   {
     id: 'gestionar-tipos-carrera',
     label: 'Tipos de Carrera',
-    icon: '�',
+    icon: '📋',
     route: '/app/admin/carreras/abm-tipos-carrera',
     requiredPermission: 'MANAGE_CAREERS_TYPES',
   },

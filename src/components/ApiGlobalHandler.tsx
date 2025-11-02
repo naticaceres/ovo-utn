@@ -15,7 +15,14 @@ export default function ApiGlobalHandler() {
       const detail = (e as CustomEvent)?.detail || { message: 'No autorizado' };
       const message =
         detail.message || 'Sesión expirada. Por favor inicie sesión.';
-      showToast(message, { variant: 'error' });
+
+      // No mostrar toast ni redirigir si ya estamos en la página de login
+      const isOnLoginPage = window.location.pathname === '/app/login';
+
+      if (!isOnLoginPage) {
+        showToast(message, { variant: 'error' });
+      }
+
       try {
         // limpiar estado de autenticación local sin depender de AuthProvider
         localStorage.removeItem('token');
@@ -24,7 +31,8 @@ export default function ApiGlobalHandler() {
       } catch {
         /* ignore */
       }
-      if (!redirecting.current) {
+
+      if (!redirecting.current && !isOnLoginPage) {
         redirecting.current = true;
         // redirigir al login de manera global (funciona fuera de Router)
         try {

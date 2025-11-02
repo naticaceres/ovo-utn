@@ -5,7 +5,14 @@ export interface LoginResponse {
   headers?: Record<string, string>;
 }
 
+export interface ForgotPasswordResponse {
+  data?: unknown;
+  message?: string;
+}
+
 export function login(
   correo: string,
   contrasena: string
 ): Promise<LoginResponse>;
+
+export function forgotPassword(correo: string): Promise<ForgotPasswordResponse>;

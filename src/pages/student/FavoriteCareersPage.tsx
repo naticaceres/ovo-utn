@@ -32,7 +32,7 @@ export default function FavoriteCareersPage() {
       setCarreras(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error al cargar intereses:', err);
-      setError('No se pudieron cargar las carreras favoritas');
+      setError('No tiene preferencia por ninguna carrera');
     } finally {
       setLoading(false);
     }

@@ -21,6 +21,10 @@ import LocalidadesPage from '../pages/admin/LocalidadesPage';
 import GenerosPage from '../pages/admin/GenerosPage';
 import ActionTypesPage from '../pages/admin/ActionTypesPage';
 import AptitudesPage from '../pages/admin/AptitudesPage';
+import BackupConfigPage from '../pages/admin/BackupConfigPage';
+import RestoreBackupPage from '../pages/admin/RestoreBackupPage';
+import ConsultarBackupsPage from '../pages/admin/ConsultarBackupsPage';
+import CrearBackupPage from '../pages/admin/CrearBackupPage';
 import InstitucionHomePage from '../pages/institucion/InstitucionHomePage';
 import ProfilePageInstitucion from '../pages/institucion/ProfilePageInstitucion';
 import InstitutionSignupPage from '@/pages/institucion/InstitutionSignupPage';
@@ -34,6 +38,7 @@ import InstitucionEstadisticas from '../pages/institucion/InstitucionEstadistica
 import EstadisticasPage from '../pages/student/EstadisticasPage';
 import FavoriteCareersPage from '../pages/student/FavoriteCareersPage';
 import DetalleCarreraInstitucionPage from '../pages/student/DetalleCarreraInstitucionPage';
+import { TestsHistoryPage } from '../pages/student/TestsHistoryPage';
 import { AdminRoute } from '../components/AdminRoute';
 import DebugPermissionsPage from '../pages/admin/DebugPermissionsPage';
 
@@ -63,6 +68,8 @@ const router = createBrowserRouter([
       { path: 'questionnaire', element: <QuestionnairePage /> },
       { path: 'results', element: <ResultsPage /> },
       { path: 'student', element: <StudentHomePage /> },
+      { path: 'student/tests', element: <TestsHistoryPage /> },
+      { path: 'student/tests/:testId', element: <ResultsPage /> },
       { path: 'student/favorites', element: <FavoriteCareersPage /> },
       {
         path: 'student/carrera-detalle/:carreraInstitucionId',
@@ -137,6 +144,38 @@ const router = createBrowserRouter([
         element: (
           <AdminRoute>
             <AptitudesPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: 'admin/backups/abm-config-backup',
+        element: (
+          <AdminRoute>
+            <BackupConfigPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: 'admin/backups/restaurar-backup',
+        element: (
+          <AdminRoute>
+            <RestoreBackupPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: 'admin/backups/consultar-backups',
+        element: (
+          <AdminRoute>
+            <ConsultarBackupsPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: 'admin/backups/crear-backup',
+        element: (
+          <AdminRoute>
+            <CrearBackupPage />
           </AdminRoute>
         ),
       },

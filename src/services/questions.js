@@ -1,3 +1,17 @@
+/**
+ * @deprecated Este archivo está obsoleto. Usar services/tests.js en su lugar.
+ *
+ * La nueva lógica del sistema de tests utiliza:
+ * - tests.js: startTest(), submitAnswer(), getTestResults(), getUserTests()
+ * - api.ts: Funciones y tipos TypeScript actualizados
+ *
+ * El flujo nuevo es:
+ * 1. startTest() -> devuelve { chatbot_response, fullHistory, idTest }
+ * 2. submitAnswer(testId, answer) -> devuelve { fullHistory, nextQuestion } o status 201 cuando termina
+ * 3. getTestResults(testId) -> devuelve { aptitudesObtenidas, carrerasRecomendadas, fullHistory, testId }
+ * 4. getUserTests() -> devuelve array de tests históricos del usuario
+ */
+
 import { api } from '../context/api';
 
 // Servicio para obtener preguntas del test vocacional.

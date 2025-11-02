@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login as loginService } from '../../services/login';
+import { login as loginService, forgotPassword } from '../../services/login';
 import { setAuthToken, getApiErrorMessage } from '../../context/api';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { PasswordInput } from '../../components/ui/PasswordInput';
 import styles from './LoginPage.module.css';
 
 export function LoginPage() {
@@ -13,6 +14,11 @@ export function LoginPage() {
   const [password, setPassword] = useState('Holatrolo1');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
+  const [forgotMessage, setForgotMessage] = useState<string | null>(null);
+  const [forgotError, setForgotError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const onSubmit = async (e: FormEvent) => {
@@ -106,6 +112,42 @@ export function LoginPage() {
     }
   };
 
+  const handleForgotPasswordClick = () => {
+    setShowForgotModal(true);
+    setForgotEmail('');
+    setForgotError(null);
+    setForgotMessage(null);
+  };
+
+  const handleForgotPasswordSubmit = async () => {
+    if (!forgotEmail.trim()) {
+      setForgotError('Por favor ingresa tu email');
+      return;
+    }
+
+    setForgotError(null);
+    setForgotMessage(null);
+    setIsForgotLoading(true);
+
+    try {
+      await forgotPassword(forgotEmail);
+      setForgotMessage(
+        'Se ha enviado un email con las instrucciones para recuperar tu contraseña.'
+      );
+    } catch (err) {
+      setForgotError(getApiErrorMessage(err));
+    } finally {
+      setIsForgotLoading(false);
+    }
+  };
+
+  const closeForgotModal = () => {
+    setShowForgotModal(false);
+    setForgotEmail('');
+    setForgotError(null);
+    setForgotMessage(null);
+  };
+
   return (
     <AuthLayout>
       <div className={styles.loginContainer}>
@@ -124,9 +166,8 @@ export function LoginPage() {
               fullWidth
             />
 
-            <Input
+            <PasswordInput
               label='Contraseña'
-              type='password'
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder='Tu contraseña'
@@ -151,6 +192,17 @@ export function LoginPage() {
             </Button>
           </form>
 
+          <div className={styles.forgotPassword}>
+            <Button
+              type='button'
+              variant='outline'
+              onClick={handleForgotPasswordClick}
+              disabled={isLoading}
+            >
+              ¿Olvidaste tu contraseña?
+            </Button>
+          </div>
+
           <div className={styles.signupLink}>
             ¿No tienes cuenta?{' '}
             <a href='/app/signup' className={styles.link}>
@@ -158,6 +210,73 @@ export function LoginPage() {
             </a>
           </div>
         </div>
+
+        {/* Modal de Recuperar Contraseña */}
+        {showForgotModal && (
+          <div className={styles.modalBackdrop} onClick={closeForgotModal}>
+            <div className={styles.modal} onClick={e => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h2 className={styles.modalTitle}>Recuperar contraseña</h2>
+                <button
+                  className={styles.closeButton}
+                  onClick={closeForgotModal}
+                  type='button'
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className={styles.modalContent}>
+                <p className={styles.modalDescription}>
+                  Ingresa tu email y te enviaremos las instrucciones para
+                  recuperar tu contraseña.
+                </p>
+
+                <Input
+                  label='Email'
+                  type='email'
+                  value={forgotEmail}
+                  onChange={e => setForgotEmail(e.target.value)}
+                  placeholder='tu@email.com'
+                  required
+                  fullWidth
+                />
+
+                {forgotError && (
+                  <div className={styles.errorMessage} role='alert'>
+                    {forgotError}
+                  </div>
+                )}
+
+                {forgotMessage && (
+                  <div className={styles.successMessage} role='alert'>
+                    {forgotMessage}
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.modalActions}>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={closeForgotModal}
+                  disabled={isForgotLoading}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type='button'
+                  variant='primary'
+                  onClick={handleForgotPasswordSubmit}
+                  isLoading={isForgotLoading}
+                  disabled={!forgotEmail.trim()}
+                >
+                  Enviar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AuthLayout>
   );

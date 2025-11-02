@@ -3,11 +3,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import styles from './QuestionnairePage.module.css';
-// import { useAuth } from '../../context/use-auth'; // TODO: usar para validaciones futuras
+import { useAuth } from '../../context/use-auth';
 
 export function QuestionnairePage() {
   const navigate = useNavigate();
-  // const { user } = useAuth(); // TODO: usar para validaciones futuras
+  const { user } = useAuth();
 
   const [messages, setMessages] = useState<
     {
@@ -18,9 +18,7 @@ export function QuestionnairePage() {
     }[]
   >([]);
   const [input, setInput] = useState('');
-  const [chatId, setChatId] = useState<string>('');
-  // const [userIdAnonimo, setUserIdAnonimo] = useState<string | null>(null); // Se maneja con localStorage
-  // const [idTest, setIdTest] = useState<number | null>(null); // TODO: usar para futuras funcionalidades
+  const [idTest, setIdTest] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
@@ -54,61 +52,65 @@ export function QuestionnairePage() {
 
   // Mandar respuesta al backend
   const sendAnswer = async (answer: string) => {
+    if (!idTest) {
+      console.error('No hay idTest disponible');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const res = await submitTestAnswer(chatId, answer);
+      const res = await submitTestAnswer(idTest, answer);
 
       // Manejar la respuesta del bot
-      if (res.fullHistory && res.fullHistory.length > 0) {
+      if (res.data.fullHistory && res.data.fullHistory.length > 0) {
         // Si hay historia completa, reemplazar todos los mensajes
-        const newMessages = res.fullHistory.map((msg, index) => ({
-          id: `history-${index}`,
-          sender: msg.startsWith('Usuario:')
-            ? 'user'
-            : ('bot' as 'bot' | 'user'),
-          text: msg.replace(/^(Usuario:|Asistente:)\s*/, ''),
-        }));
+        const newMessages = res.data.fullHistory.map(
+          (msg: string, index: number) => ({
+            id: `history-${index}`,
+            sender: msg.startsWith('Usuario:')
+              ? 'user'
+              : ('bot' as 'bot' | 'user'),
+            text: msg.replace(/^(Usuario:|Asistente:)\s*/, ''),
+          })
+        );
         setMessages(newMessages);
-      } else if (res.chatbot_response) {
-        // Si solo hay respuesta del chatbot, agregarla
-        setMessages(prev => [
-          ...prev,
-          {
-            id: `bot-${Date.now()}`,
-            sender: 'bot',
-            text: res.chatbot_response || '',
-          },
-        ]);
-      } else if (res.nextQuestion) {
+      } else if (res.data.nextQuestion) {
         // Si hay siguiente pregunta, agregarla
         setMessages(prev => [
           ...prev,
           {
             id: `bot-${Date.now()}`,
             sender: 'bot',
-            text: res.nextQuestion || '',
+            text: res.data.nextQuestion || '',
           },
         ]);
       }
 
-      // Determinar cuándo el test está terminado
-      // Si no hay nextQuestion ni chatbot_response, el test ha terminado
-      if (!res.nextQuestion && !res.chatbot_response && res.fullHistory) {
-        navigate('/app/results');
-      } else if (
-        res.nextQuestion &&
-        (res.nextQuestion.toLowerCase().includes('finalizado') ||
-          res.nextQuestion.toLowerCase().includes('completado') ||
-          res.nextQuestion.toLowerCase().includes('terminado'))
-      ) {
-        navigate('/app/results');
-      } else if (
-        res.chatbot_response &&
-        (res.chatbot_response.toLowerCase().includes('finalizado') ||
-          res.chatbot_response.toLowerCase().includes('completado') ||
-          res.chatbot_response.toLowerCase().includes('terminado'))
-      ) {
-        navigate('/app/results');
+      // Verificar si el test finalizó (código 201)
+      if (res.status === 201) {
+        // Agregar mensaje final si existe
+        if (res.data.message) {
+          setMessages(prev => [
+            ...prev,
+            {
+              id: `bot-final-${Date.now()}`,
+              sender: 'bot',
+              text: res.data.message || 'Test finalizado.',
+            },
+          ]);
+        }
+
+        // Esperar un momento para que el usuario vea el mensaje final
+        setTimeout(() => {
+          // Verificar si el usuario está logueado
+          if (user) {
+            // Si está logueado, ir directo a resultados
+            navigate('/app/results');
+          } else {
+            // Si no está logueado, redirigir a signup manteniendo el idTest
+            navigate('/app/signup');
+          }
+        }, 2000);
       }
     } catch (error: unknown) {
       let errorMessage =
@@ -148,28 +150,21 @@ export function QuestionnairePage() {
       // Llamar al endpoint (funciona tanto para usuarios autenticados como anónimos)
       const res = await startTest();
 
-      // Guardar chatId e idTest
-      setChatId(res.chatId);
-
-      // Guardar idTest en localStorage para usar en resultados
-      if (res.idTest) {
-        localStorage.setItem('testId', res.idTest.toString());
-      }
-
-      // Si hay userIDAnonimo en la respuesta, guardarlo en localStorage
-      if (res.userIDAnonimo) {
-        localStorage.setItem('userIdAnonimo', res.userIDAnonimo);
-      }
+      // Guardar idTest en el estado y localStorage
+      setIdTest(res.idTest);
+      localStorage.setItem('testId', res.idTest.toString());
 
       // Agregar mensajes de la historia completa o mensaje inicial
       if (res.fullHistory && res.fullHistory.length > 0) {
-        const initialMessages = res.fullHistory.map((msg, index) => ({
-          id: `history-${index}`,
-          sender: msg.startsWith('Usuario:')
-            ? 'user'
-            : ('bot' as 'bot' | 'user'),
-          text: msg.replace(/^(Usuario:|Asistente:)\s*/, ''),
-        }));
+        const initialMessages = res.fullHistory.map(
+          (msg: string, index: number) => ({
+            id: `history-${index}`,
+            sender: msg.startsWith('Usuario:')
+              ? 'user'
+              : ('bot' as 'bot' | 'user'),
+            text: msg.replace(/^(Usuario:|Asistente:)\s*/, ''),
+          })
+        );
         setMessages(initialMessages);
       } else if (res.chatbot_response) {
         setMessages([
@@ -212,7 +207,7 @@ export function QuestionnairePage() {
   const handleSend = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const text = input.trim();
-    if (!text || !chatId) return;
+    if (!text || !idTest) return;
 
     // Agregar mensaje del usuario
     const msgId = `user-${Date.now()}`;

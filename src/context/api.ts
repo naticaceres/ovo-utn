@@ -260,82 +260,108 @@ export type ChatResponse = {
 
 // Tipos para los nuevos endpoints de tests
 export type TestStartResponse = {
-  userIDAnonimo?: string;
-  userID?: string;
+  chatbot_response: string;
+  fullHistory: string[];
   idTest: number;
-  chatId: string;
-  chatIdIA: string;
-  chatbot_response?: string;
-  fullHistory?: string[];
 };
 
 export type TestAnswerResponse = {
-  fullHistory?: string[];
+  fullHistory: string[];
   nextQuestion?: string;
-  chatbot_response?: string;
+  message?: string; // Cuando el test finaliza
+};
+
+export type AptitudObtenida = {
+  idAptitud: number;
+  nombreAptitud: string;
+  afinidadAptitud: number;
+};
+
+export type CarreraRecomendada = {
+  idCarreraInstitucion: number;
+  puntaje?: number; // Viene en getTestResults
+  tituloCarrera: string;
+  nombreCarrera?: string;
+  nombreInstitucion?: string;
+  afinidadCarrera?: number; // Viene en getUserTests (historial)
 };
 
 export type TestResultsResponse = {
-  results: Record<string, string>;
+  aptitudesObtenidas: Record<string, number> | AptitudObtenida[]; // Puede ser objeto o array dependiendo del endpoint
+  carrerasRecomendadas: CarreraRecomendada[];
+  fullHistory: string[];
+  testId: number;
 };
 
+export type UserTest = {
+  id: number;
+  testId?: number; // Para compatibilidad con código existente
+  fecha: string;
+  fechaRealizacion?: string; // Para compatibilidad con código existente
+  estado: string;
+  carrerasRecomendadas: CarreraRecomendada[];
+  aptitudesObtenidas?: AptitudObtenida[]; // Array de aptitudes con sus datos
+  fullHistory?: string[]; // Opcional, no viene en el historial
+};
+
+/**
+ * Inicia un nuevo test vocacional
+ * Funciona tanto para usuarios autenticados como anónimos
+ */
 export async function startTest(): Promise<TestStartResponse> {
   const { data } = await api.post('/api/v1/tests/start', {});
   return data as TestStartResponse;
 }
 
+/**
+ * Envía una respuesta a una pregunta del test
+ * @param testId - ID del test en curso
+ * @param answer - Respuesta del usuario
+ * @returns Respuesta con siguiente pregunta o mensaje de finalización (status 201)
+ */
 export async function submitTestAnswer(
-  chatId: string,
+  testId: number,
   answer: string
-): Promise<TestAnswerResponse> {
-  const payload: { answer: string; userIdAnonimo?: string } = { answer };
-
-  // Verificar si hay userIdAnonimo en localStorage
-  const userIdAnonimo = localStorage.getItem('userIdAnonimo');
-  if (userIdAnonimo) {
-    payload.userIdAnonimo = userIdAnonimo;
-  }
-  // Si no hay userIdAnonimo, el interceptor del api agregará automáticamente el token
-
-  const { data } = await api.post(`/api/v1/tests/${chatId}/answer`, payload);
-  return data as TestAnswerResponse;
+): Promise<{ data: TestAnswerResponse; status: number }> {
+  const payload = { answer };
+  const response = await api.post(`/api/v1/tests/${testId}/answer`, payload);
+  return {
+    data: response.data as TestAnswerResponse,
+    status: response.status,
+  };
 }
 
+/**
+ * Obtiene los resultados de un test específico
+ * Si el test no está asociado al usuario, lo asocia automáticamente
+ * ACCESO PÚBLICO: Disponible para todos los usuarios autenticados, sin restricciones de permisos
+ * Requiere autenticación (Bearer token)
+ */
 export async function getTestResults(
-  testId: string
+  testId: number
 ): Promise<TestResultsResponse> {
-  let userIdAnonimo: string | null = null;
+  const { data } = await api.get(`/api/v1/tests/${testId}/results`);
 
-  // Verificar si hay userIdAnonimo pendiente (después del login)
-  const pendingUserIdAnonimo = localStorage.getItem('pendingUserIdAnonimo');
-
-  // Si hay userIdAnonimo pendiente, usarlo para asociar el test al usuario autenticado
-  if (pendingUserIdAnonimo) {
-    userIdAnonimo = pendingUserIdAnonimo;
-  } else {
-    // Verificar si hay userIdAnonimo normal en localStorage
-    userIdAnonimo = localStorage.getItem('userIdAnonimo');
-  }
-
-  // Construir URL con query parameters si hay userIdAnonimo
-  let url = `/api/v1/tests/${testId}/results`;
-  if (userIdAnonimo) {
-    url += `?userIdAnonimo=${encodeURIComponent(userIdAnonimo)}`;
-  }
-
-  // Si no hay userIdAnonimo, el interceptor del api agregará automáticamente el token
-  const { data } = await api.get(url);
-
-  // Después de obtener los resultados exitosamente, limpiar datos temporales
-  if (pendingUserIdAnonimo) {
-    localStorage.removeItem('pendingUserIdAnonimo');
-    localStorage.removeItem('pendingTestId');
-  }
-
-  // Limpiar userIdAnonimo para futuras consultas con Bearer token
-  localStorage.removeItem('userIdAnonimo');
+  // Limpiar localStorage después de obtener los resultados
+  localStorage.removeItem('testId');
 
   return data as TestResultsResponse;
+}
+
+/**
+ * Obtiene la lista de todos los tests realizados por el usuario autenticado
+ * ACCESO PÚBLICO: Disponible para todos los usuarios autenticados, sin restricciones de permisos
+ * Requiere autenticación (Bearer token)
+ */
+export async function getUserTests(): Promise<UserTest[]> {
+  const { data } = await api.get('/api/v1/user/tests');
+
+  // Mapear la respuesta para mantener compatibilidad con el código existente
+  return (data as UserTest[]).map(test => ({
+    ...test,
+    testId: test.id, // Mapear id a testId para compatibilidad
+    fechaRealizacion: test.fecha, // Mapear fecha a fechaRealizacion para compatibilidad
+  }));
 }
 
 // Función legacy para mantener compatibilidad (deprecated)

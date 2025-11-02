@@ -5,6 +5,7 @@ import { BackButton } from '../../components/ui/BackButton';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { useToast } from '../../components/ui/toast/useToast';
+import { PermissionGuard } from '../../components/PermissionGuard';
 import {
   getMyCareers,
   createMyCareer,
@@ -20,6 +21,8 @@ import {
   createMyCareerMaterial,
   updateMyCareerMaterial,
   deleteMyCareerMaterial,
+  getMyCareerAptitudes,
+  updateMyCareerAptitudes,
 } from '../../services/institutions';
 import { listCareers } from '../../services/careers';
 
@@ -472,6 +475,19 @@ export default function MisCarrerasPage() {
   const [matDescripcion, setMatDescripcion] = useState('');
   const [matEnlace, setMatEnlace] = useState('');
 
+  // Aptitudes modal & actions
+  const [showAptModal, setShowAptModal] = useState(false);
+  const [aptCareer, setAptCareer] = useState<MyCareer | null>(null);
+  const [aptitudes, setAptitudes] = useState<
+    Array<{
+      id: number | string;
+      nombre: string;
+      puntaje: number;
+    }>
+  >([]);
+  const [aptLoading, setAptLoading] = useState(false);
+  const [aptError, setAptError] = useState<string | null>(null);
+
   const openMatModal = async (career: MyCareer) => {
     setMatError(null);
     setMatEditing(null);
@@ -764,6 +780,104 @@ export default function MisCarrerasPage() {
     }
   };
 
+  // Aptitudes functions
+  const openAptModal = async (career: MyCareer) => {
+    setAptError(null);
+    try {
+      await loadAptitudesForCareer(career);
+      setAptCareer(career);
+      setShowAptModal(true);
+    } catch (err: unknown) {
+      console.error('Error al listar aptitudes antes de abrir modal', err);
+      showToast(formatError(err, 'No se pudieron cargar las aptitudes'), {
+        variant: 'error',
+      });
+    }
+  };
+
+  const loadAptitudesForCareer = async (career: MyCareer) => {
+    setAptLoading(true);
+    setAptError(null);
+    const careerId =
+      career.id ?? career.idCarrera ?? career.idCarreraInstitucion;
+    if (!careerId) {
+      setAptError('Id de carrera inválido');
+      setAptLoading(false);
+      return;
+    }
+    try {
+      const data: unknown = await getMyCareerAptitudes(
+        careerId as number | string
+      );
+      let list: unknown[] = [];
+      if (data && typeof data === 'object') {
+        const d = data as Record<string, unknown>;
+        const candidate = d.aptitudes ?? d.aptitudes ?? d.items ?? d.data ?? d;
+        if (Array.isArray(candidate)) list = candidate;
+      } else if (Array.isArray(data)) {
+        list = data;
+      }
+
+      const mapped = list.map((it: unknown) => {
+        const obj = it as Record<string, unknown>;
+        return {
+          id: obj.id as number | string,
+          nombre: String(obj.nombre ?? obj.name ?? ''),
+          puntaje: Number(obj.puntaje ?? obj.score ?? 0),
+        };
+      });
+      setAptitudes(mapped);
+    } catch (err: unknown) {
+      console.error('Error loading aptitudes', err);
+      showToast(formatError(err, 'No se pudieron cargar las aptitudes'), {
+        variant: 'error',
+      });
+      throw err;
+    } finally {
+      setAptLoading(false);
+    }
+  };
+
+  const updateAptitudePuntaje = (
+    aptId: number | string,
+    newPuntaje: number
+  ) => {
+    setAptitudes(prev =>
+      prev.map(apt =>
+        apt.id === aptId ? { ...apt, puntaje: newPuntaje } : apt
+      )
+    );
+  };
+
+  const saveAptitudes = async () => {
+    if (!aptCareer) return;
+    const careerId =
+      aptCareer.id ?? aptCareer.idCarrera ?? aptCareer.idCarreraInstitucion;
+    if (!careerId) {
+      setAptError('Id de carrera inválido');
+      return;
+    }
+    setAptError(null);
+    try {
+      // Enviar solo las aptitudes que tienen puntaje > 0, según el patrón del ejemplo
+      const aptitudesToSend = aptitudes
+        .filter(apt => apt.puntaje > 0)
+        .map(apt => ({
+          idAptitud: apt.id,
+          puntaje: apt.puntaje,
+        }));
+
+      const payload = { aptitudes: aptitudesToSend };
+      await updateMyCareerAptitudes(careerId as number | string, payload);
+
+      showToast('Aptitudes guardadas correctamente', { variant: 'success' });
+      await loadAptitudesForCareer(aptCareer);
+    } catch (err) {
+      console.error('Error saving aptitudes', err);
+      setAptError('Error al guardar las aptitudes');
+    }
+  };
+
   return (
     <div className={styles.container}>
       <BackButton />
@@ -831,6 +945,19 @@ export default function MisCarrerasPage() {
                       >
                         📎
                       </Button>
+                      <PermissionGuard
+                        requiredPermissions='INSTITUTION_MANAGE_CAREERS_APTITUDES'
+                        fallback={null}
+                      >
+                        <Button
+                          variant='outline'
+                          onClick={() => {
+                            openAptModal(item);
+                          }}
+                        >
+                          🎯
+                        </Button>
+                      </PermissionGuard>
                       <Button
                         onClick={() => {
                           const idToRemove = (item.id ??
@@ -1213,6 +1340,90 @@ export default function MisCarrerasPage() {
                   <Button onClick={saveMat}>
                     {matEditing ? 'Actualizar' : 'Agregar'}
                   </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showAptModal && aptCareer && (
+        <div className={styles.modalBackdrop}>
+          <div className={styles.modal}>
+            <h3>Gestión de Aptitudes - {aptCareer.nombre}</h3>
+
+            {aptLoading ? (
+              <div>Cargando...</div>
+            ) : aptError ? (
+              <div className={styles.error}>{aptError}</div>
+            ) : (
+              <div>
+                <p
+                  style={{
+                    marginBottom: '16px',
+                    fontSize: '14px',
+                    color: '#666',
+                  }}
+                >
+                  Configura el puntaje de las aptitudes para esta carrera. Usa 0
+                  para eliminar una aptitud de la carrera.
+                </p>
+
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Aptitud</th>
+                      <th>Puntaje (0-100)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {aptitudes.map(apt => (
+                      <tr key={String(apt.id)}>
+                        <td style={{ maxWidth: 300, wordBreak: 'break-word' }}>
+                          {apt.nombre}
+                        </td>
+                        <td>
+                          <Input
+                            type='number'
+                            min='0'
+                            max='100'
+                            value={apt.puntaje}
+                            onChange={e =>
+                              updateAptitudePuntaje(
+                                apt.id,
+                                Number(e.target.value)
+                              )
+                            }
+                            style={{ width: '80px' }}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {aptError && (
+                  <div
+                    style={{
+                      color: 'var(--error-color, #d9534f)',
+                      marginTop: 8,
+                    }}
+                  >
+                    {aptError}
+                  </div>
+                )}
+
+                <div className={styles.modalActions} style={{ marginTop: 12 }}>
+                  <Button
+                    variant='outline'
+                    onClick={() => {
+                      setShowAptModal(false);
+                      setAptCareer(null);
+                    }}
+                  >
+                    Cerrar
+                  </Button>
+                  <Button onClick={saveAptitudes}>Guardar Cambios</Button>
                 </div>
               </div>
             )}
