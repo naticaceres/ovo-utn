@@ -1,6 +1,7 @@
 import React from 'react';
 import { BackButton } from '../../components/ui/BackButton';
 import { Button } from '../../components/ui/Button';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Input } from '../../components/ui/Input';
 import styles from './AdminCrud.module.css';
 import {
@@ -37,6 +38,14 @@ export default function LocalidadesPage() {
   const [selectedProvince, setSelectedProvince] = React.useState<
     number | string | ''
   >('');
+  const [localityToDelete, setLocalityToDelete] = React.useState<{
+    id: number | string;
+    nombre: string;
+  } | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
+  const [filterNombre, setFilterNombre] = React.useState('');
+  const [modalError, setModalError] = React.useState<string | null>(null);
+  const [saving, setSaving] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -68,29 +77,47 @@ export default function LocalidadesPage() {
     setEditing(item);
     setName(item.nombre);
     setSelectedProvince(item.idProvincia || '');
+    setModalError(null);
     setShowModal(true);
   };
 
-  const remove = async (id: number | string, nombre: string) => {
-    if (!window.confirm(`¿Eliminar "${nombre}"?`)) return;
+  const confirmDelete = (id: number | string, nombre: string) => {
+    setLocalityToDelete({ id, nombre });
+  };
+
+  const remove = async () => {
+    if (!localityToDelete) return;
+
+    setError(null);
+    setDeleting(true);
     try {
-      await deactivateLocality(id, nombre, token || undefined);
+      await deactivateLocality(
+        localityToDelete.id,
+        localityToDelete.nombre,
+        token || undefined
+      );
+      setLocalityToDelete(null);
       await load();
     } catch {
       setError('No se pudo eliminar la localidad');
+    } finally {
+      setDeleting(false);
     }
   };
 
   const save = async () => {
+    setModalError(null);
+
     if (!name.trim()) {
-      setError('El nombre es obligatorio');
+      setModalError('El nombre es obligatorio');
       return;
     }
     if (!selectedProvince) {
-      setError('La provincia es obligatoria');
+      setModalError('La provincia es obligatoria');
       return;
     }
 
+    setSaving(true);
     try {
       const payload = { nombre: name.trim(), idProvincia: selectedProvince };
       if (editing) {
@@ -102,11 +129,44 @@ export default function LocalidadesPage() {
       setEditing(null);
       setName('');
       setSelectedProvince('');
-      setError(null);
       await load();
-    } catch {
-      setError('No se pudo guardar la localidad');
+    } catch (err: unknown) {
+      let errorMessage = 'No se pudo guardar la localidad';
+
+      if (err && typeof err === 'object') {
+        const error = err as {
+          message?: string;
+          error?: string;
+          details?: string;
+          msg?: string;
+        };
+
+        const possibleMessage =
+          error.message || error.error || error.msg || error.details;
+
+        if (possibleMessage) {
+          errorMessage = possibleMessage;
+        }
+      }
+
+      setModalError(errorMessage);
+    } finally {
+      setSaving(false);
     }
+  };
+
+  // Función para filtrar localidades
+  const filteredItems = React.useMemo(() => {
+    return items.filter(it => {
+      const matchNombre =
+        !filterNombre ||
+        it.nombre?.toLowerCase().includes(filterNombre.toLowerCase());
+      return matchNombre;
+    });
+  }, [items, filterNombre]);
+
+  const clearFilters = () => {
+    setFilterNombre('');
   };
 
   return (
@@ -114,10 +174,74 @@ export default function LocalidadesPage() {
       <div className={styles.header}>
         <BackButton />
         <h1>Localidades</h1>
-        <Button onClick={() => setShowModal(true)}>Agregar localidad</Button>
+        <Button
+          onClick={() => {
+            setEditing(null);
+            setName('');
+            setSelectedProvince('');
+            setModalError(null);
+            setShowModal(true);
+          }}
+        >
+          Agregar localidad
+        </Button>
       </div>
 
       {error && <div className={styles.error}>{error}</div>}
+
+      {/* Filtros */}
+      <div
+        style={{
+          backgroundColor: '#f8f9fa',
+          padding: '16px',
+          borderRadius: '8px',
+          marginBottom: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '8px',
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
+            🔍 Filtros
+          </h3>
+          {filterNombre && (
+            <Button
+              variant='outline'
+              onClick={clearFilters}
+              style={{ fontSize: '12px', padding: '4px 12px' }}
+            >
+              Limpiar filtros
+            </Button>
+          )}
+        </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '12px',
+          }}
+        >
+          <Input
+            label='Nombre'
+            placeholder='Buscar por nombre...'
+            value={filterNombre}
+            onChange={e => setFilterNombre(e.target.value)}
+            fullWidth
+          />
+        </div>
+        <div style={{ fontSize: '14px', color: '#666' }}>
+          Mostrando <strong>{filteredItems.length}</strong> de{' '}
+          <strong>{items.length}</strong> localidades
+        </div>
+      </div>
 
       {loading ? (
         <div className={styles.loading}>Cargando...</div>
@@ -131,7 +255,7 @@ export default function LocalidadesPage() {
             </tr>
           </thead>
           <tbody>
-            {items.map(it => (
+            {filteredItems.map(it => (
               <tr key={it.id}>
                 <td>{it.nombre}</td>
                 <td>
@@ -144,7 +268,9 @@ export default function LocalidadesPage() {
                     <Button variant='outline' onClick={() => openEdit(it)}>
                       ✏️
                     </Button>
-                    <Button onClick={() => remove(it.id, it.nombre)}>🗑️</Button>
+                    <Button onClick={() => confirmDelete(it.id, it.nombre)}>
+                      🗑️
+                    </Button>
                   </div>
                 </td>
               </tr>
@@ -170,6 +296,7 @@ export default function LocalidadesPage() {
                 value={selectedProvince}
                 onChange={e => setSelectedProvince(e.target.value)}
                 className={styles.select}
+                disabled={saving}
               >
                 <option value=''>Seleccionar provincia...</option>
                 {provinces.map(province => (
@@ -179,15 +306,46 @@ export default function LocalidadesPage() {
                 ))}
               </select>
             </div>
+            {modalError && (
+              <div className={styles.error} style={{ marginTop: '12px' }}>
+                {modalError}
+              </div>
+            )}
             <div className={styles.actions}>
-              <Button onClick={save}>Guardar</Button>
-              <Button variant='outline' onClick={() => setShowModal(false)}>
+              <Button onClick={save} disabled={saving}>
+                {saving ? 'Guardando...' : 'Guardar'}
+              </Button>
+              <Button
+                variant='outline'
+                onClick={() => setShowModal(false)}
+                disabled={saving}
+              >
                 Cancelar
               </Button>
             </div>
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!localityToDelete}
+        onClose={() => setLocalityToDelete(null)}
+        onConfirm={remove}
+        title='Confirmar Eliminación de Localidad'
+        message={
+          <>
+            <p>
+              ¿Estás seguro de que deseas eliminar la localidad{' '}
+              <strong>"{localityToDelete?.nombre}"</strong>?
+            </p>
+            <p>Esta acción afectará a todos los usuarios de esta localidad.</p>
+          </>
+        }
+        confirmText='Sí, Eliminar Localidad'
+        cancelText='Cancelar'
+        variant='danger'
+        isLoading={deleting}
+      />
     </div>
   );
 }

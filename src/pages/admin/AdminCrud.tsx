@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '../../components/ui/Button';
 import { BackButton } from '../../components/ui/BackButton';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import styles from './AdminCrud.module.css';
 import { Input } from '../../components/ui/Input';
 
@@ -30,6 +31,14 @@ export default function AdminCrud({
   const [showModal, setShowModal] = React.useState(false);
   const [editing, setEditing] = React.useState<Item | null>(null);
   const [name, setName] = React.useState('');
+  const [itemToDelete, setItemToDelete] = React.useState<{
+    id: number | string;
+    nombre: string;
+  } | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
+  const [filterNombre, setFilterNombre] = React.useState('');
+  const [modalError, setModalError] = React.useState<string | null>(null);
+  const [saving, setSaving] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -50,17 +59,20 @@ export default function AdminCrud({
   const openCreate = () => {
     setEditing(null);
     setName('');
+    setModalError(null);
     setShowModal(true);
   };
 
   const openEdit = (it: Item) => {
     setEditing(it);
     setName(it.nombre || '');
+    setModalError(null);
     setShowModal(true);
   };
 
   const save = async () => {
-    setError(null);
+    setModalError(null);
+    setSaving(true);
     try {
       if (editing) {
         await update(editing.id, { nombre: name });
@@ -68,20 +80,65 @@ export default function AdminCrud({
         await create({ nombre: name });
       }
       setShowModal(false);
-      load();
-    } catch {
-      setError('Error al guardar');
+      await load();
+    } catch (err: unknown) {
+      // Extraer mensaje de error del backend
+      let errorMessage = 'Error al guardar';
+
+      if (err && typeof err === 'object') {
+        const error = err as {
+          message?: string;
+          error?: string;
+          details?: string;
+          msg?: string;
+        };
+
+        // Intentar extraer el mensaje del error
+        const possibleMessage =
+          error.message || error.error || error.msg || error.details;
+
+        if (possibleMessage) {
+          errorMessage = possibleMessage;
+        }
+      }
+
+      setModalError(errorMessage);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const remove = async (id: number | string, nombre?: string) => {
+  const confirmDelete = (id: number | string, nombre: string) => {
+    setItemToDelete({ id, nombre });
+  };
+
+  const remove = async () => {
+    if (!itemToDelete) return;
+
     setError(null);
+    setDeleting(true);
     try {
-      await deactivate(id, nombre);
+      await deactivate(itemToDelete.id, itemToDelete.nombre);
+      setItemToDelete(null);
       load();
     } catch {
       setError('No se pudo eliminar');
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const filteredItems = React.useMemo(() => {
+    return items.filter(it => {
+      const matchNombre =
+        !filterNombre ||
+        it.nombre?.toLowerCase().includes(filterNombre.toLowerCase());
+      return matchNombre;
+    });
+  }, [items, filterNombre]);
+
+  const clearFilters = () => {
+    setFilterNombre('');
   };
 
   return (
@@ -92,10 +149,64 @@ export default function AdminCrud({
         <Button onClick={openCreate}>+ Agregar</Button>
       </div>
 
+      {error && <div className={styles.error}>{error}</div>}
+
+      {/* Filtros */}
+      <div
+        style={{
+          backgroundColor: '#f8f9fa',
+          padding: '16px',
+          borderRadius: '8px',
+          marginBottom: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '8px',
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
+            🔍 Filtros
+          </h3>
+          {filterNombre && (
+            <Button
+              variant='outline'
+              onClick={clearFilters}
+              style={{ fontSize: '12px', padding: '4px 12px' }}
+            >
+              Limpiar filtros
+            </Button>
+          )}
+        </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '12px',
+          }}
+        >
+          <Input
+            label='Nombre'
+            placeholder='Buscar por nombre...'
+            value={filterNombre}
+            onChange={e => setFilterNombre(e.target.value)}
+            fullWidth
+          />
+        </div>
+        <div style={{ fontSize: '14px', color: '#666' }}>
+          Mostrando <strong>{filteredItems.length}</strong> de{' '}
+          <strong>{items.length}</strong> registros
+        </div>
+      </div>
+
       {loading ? (
         <div>Cargando...</div>
-      ) : error ? (
-        <div className={styles.error}>{error}</div>
       ) : (
         <table className={styles.table}>
           <thead>
@@ -105,7 +216,7 @@ export default function AdminCrud({
             </tr>
           </thead>
           <tbody>
-            {items.map(it => (
+            {filteredItems.map(it => (
               <tr key={it.id}>
                 <td>{it.nombre}</td>
                 <td>
@@ -113,7 +224,9 @@ export default function AdminCrud({
                     <Button variant='outline' onClick={() => openEdit(it)}>
                       ✏️
                     </Button>
-                    <Button onClick={() => remove(it.id, it.nombre)}>🗑️</Button>
+                    <Button onClick={() => confirmDelete(it.id, it.nombre)}>
+                      🗑️
+                    </Button>
                   </div>
                 </td>
               </tr>
@@ -136,17 +249,46 @@ export default function AdminCrud({
               value={name}
               onChange={e => setName(e.target.value)}
             />
+            {modalError && (
+              <div className={styles.error} style={{ marginTop: '12px' }}>
+                {modalError}
+              </div>
+            )}
             <div className={styles.modalActions}>
-              <Button variant='outline' onClick={() => setShowModal(false)}>
+              <Button
+                variant='outline'
+                onClick={() => setShowModal(false)}
+                disabled={saving}
+              >
                 Cancelar
               </Button>
-              <Button onClick={save} disabled={!name.trim()}>
-                Guardar
+              <Button onClick={save} disabled={!name.trim() || saving}>
+                {saving ? 'Guardando...' : 'Guardar'}
               </Button>
             </div>
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={remove}
+        title='Confirmar Eliminación'
+        message={
+          <>
+            <p>
+              ¿Estás seguro de que deseas eliminar{' '}
+              <strong>"{itemToDelete?.nombre}"</strong>?
+            </p>
+            <p>Esta acción no se puede deshacer.</p>
+          </>
+        }
+        confirmText='Sí, Eliminar'
+        cancelText='Cancelar'
+        variant='danger'
+        isLoading={deleting}
+      />
     </div>
   );
 }

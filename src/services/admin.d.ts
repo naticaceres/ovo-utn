@@ -2,6 +2,7 @@ export interface CareerTypeDTO {
   id: number | string;
   nombre: string;
   activo?: boolean;
+  fechaFin?: string | null;
 }
 
 export function listCareerTypes(): Promise<CareerTypeDTO[]>;
@@ -10,7 +11,7 @@ export function createCareerType(body: {
 }): Promise<boolean>;
 export function updateCareerType(
   id: number | string,
-  body: { nombreTipoCarrera: string }
+  body: { nombreTipoCarrera: string; fechaFin?: string | null }
 ): Promise<boolean>;
 export function deactivateCareerType(id: number | string): Promise<boolean>;
 
@@ -45,6 +46,7 @@ export interface CareerStateDTO {
   id: number | string;
   nombre: string;
   activo?: boolean;
+  fechaFin?: string | null;
 }
 
 export function listCareerStates(
@@ -54,7 +56,7 @@ export function listCareerStates(
 export function createCareerState(body: { nombre: string }): Promise<boolean>;
 export function updateCareerState(
   id: number | string,
-  body: { nombre: string }
+  body: { nombre: string; fechaFin?: string | null }
 ): Promise<boolean>;
 export function deactivateCareerState(
   id: number | string,
@@ -319,6 +321,7 @@ export interface UserStateDTO {
   id: number | string;
   nombre: string;
   activo?: boolean;
+  fechaFin?: string | null;
 }
 
 export function listUserStates(
@@ -332,7 +335,7 @@ export function createUserState(body: {
 
 export function updateUserState(
   id: number | string,
-  body: { nombreEstadoUsuario?: string }
+  body: { nombreEstadoUsuario?: string; fechaFin?: string | null }
 ): Promise<boolean>;
 
 export function deactivateUserState(

@@ -1,6 +1,7 @@
 import React from 'react';
 import { BackButton } from '../../components/ui/BackButton';
 import { Button } from '../../components/ui/Button';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Input } from '../../components/ui/Input';
 import styles from './SolicitudesInstitucionPage.module.css';
 import {
@@ -55,6 +56,10 @@ export default function SolicitudesInstitucionPage() {
   const [deactivatingId, setDeactivatingId] = React.useState<
     number | string | null
   >(null);
+  const [institutionToDelete, setInstitutionToDelete] = React.useState<{
+    id: number | string;
+    nombre: string;
+  } | null>(null);
 
   const loadInstitutionTypes = React.useCallback(async () => {
     try {
@@ -183,20 +188,19 @@ export default function SolicitudesInstitucionPage() {
     setConfirmingRejectId(null);
   };
 
-  const onDeactivate = async (id: number | string) => {
-    if (
-      !window.confirm(
-        '¿Está seguro de que desea dar de baja esta institución? Esta acción no se puede deshacer.'
-      )
-    ) {
-      return;
-    }
+  const confirmDeactivate = (id: number | string, nombre: string) => {
+    setInstitutionToDelete({ id, nombre });
+  };
+
+  const onDeactivate = async () => {
+    if (!institutionToDelete) return;
 
     setError(null);
-    setDeactivatingId(id);
+    setDeactivatingId(institutionToDelete.id);
     try {
       const token = localStorage.getItem('token');
-      await deactivateInstitution(id, token || undefined);
+      await deactivateInstitution(institutionToDelete.id, token || undefined);
+      setInstitutionToDelete(null);
       loadData(); // Recargar la lista
     } catch (err) {
       console.error('Error deactivating institution:', err);
@@ -402,7 +406,12 @@ export default function SolicitudesInstitucionPage() {
                     )}
                     {it.estado === 'Aprobada' && (
                       <Button
-                        onClick={() => onDeactivate(it.id)}
+                        onClick={() =>
+                          confirmDeactivate(
+                            it.id,
+                            it.nombre || 'esta institución'
+                          )
+                        }
                         style={{ background: '#dc3545', color: 'white' }}
                         disabled={
                           approvingId !== null ||
@@ -467,6 +476,32 @@ export default function SolicitudesInstitucionPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!institutionToDelete}
+        onClose={() => setInstitutionToDelete(null)}
+        onConfirm={onDeactivate}
+        title='Confirmar Baja de Institución'
+        message={
+          <>
+            <p>
+              ¿Estás seguro de que deseas dar de baja a{' '}
+              <strong>"{institutionToDelete?.nombre}"</strong>?
+            </p>
+            <p style={{ color: '#dc2626', fontWeight: 600 }}>
+              ⚠️ Esta acción desactivará la institución y no se puede deshacer.
+            </p>
+            <p>
+              La institución dejará de estar visible en el sistema y no podrá
+              gestionar carreras.
+            </p>
+          </>
+        }
+        confirmText='Sí, Dar de Baja'
+        cancelText='Cancelar'
+        variant='danger'
+        isLoading={deactivatingId === institutionToDelete?.id}
+      />
     </div>
   );
 }

@@ -15,6 +15,7 @@ import {
 import { TermsContent } from '../legal/TerminosYCondicionesPage';
 import { PrivacyContent } from '../legal/PoliticasDePrivacidadPage';
 import { useToast } from '../../components/ui/toast/useToast';
+import { getApiErrorMessage } from '../../context/api';
 
 type Option = { id: number | string; nombre: string };
 
@@ -44,6 +45,9 @@ export default function InstitutionSignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Estados para errores por campo
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
   // Estados de carga para los selects en cascada
   const [loadingCountries, setLoadingCountries] = useState(false);
   const [countriesError, setCountriesError] = useState<string | null>(null);
@@ -63,8 +67,8 @@ export default function InstitutionSignupPage() {
   useEffect(() => {
     let active = true;
     (async () => {
+      // Cargar tipos de institución - manejo de errores sin bloquear el formulario
       try {
-        // Cargar tipos de institución
         const instTypesResp = await getCatalog('institution-types', {
           includeInactive: 1,
         });
@@ -112,26 +116,31 @@ export default function InstitutionSignupPage() {
         const mappedTypes = mapInstitutionTypes(institutionTypesData);
 
         if (active) setTipos(mappedTypes);
-
-        // Cargar países
-        setLoadingCountries(true);
-        setCountriesError(null);
-        try {
-          const countries = await listCountries({ includeInactive: 1 });
-          if (active) setPaises(countries.filter(c => c.activo !== false));
-        } catch {
-          if (active) setCountriesError('No se pudieron cargar los países');
-        } finally {
-          if (active) setLoadingCountries(false);
-        }
       } catch (e) {
+        // Si falla la carga de tipos, no bloqueamos el formulario
+        // Solo mostramos un mensaje en consola
+        console.warn('No se pudieron cargar los tipos de institución:', e);
         if (active) {
-          try {
-            setError(typeof e === 'string' ? e : JSON.stringify(e));
-          } catch {
-            setError('Error al cargar opciones');
-          }
+          // Establecer tipos por defecto si el endpoint falla
+          setTipos([
+            { id: 1, nombre: 'Universidad' },
+            { id: 2, nombre: 'Instituto Terciario' },
+            { id: 3, nombre: 'Instituto Técnico' },
+            { id: 4, nombre: 'Centro de Formación' },
+          ]);
         }
+      }
+
+      // Cargar países
+      setLoadingCountries(true);
+      setCountriesError(null);
+      try {
+        const countries = await listCountries({ includeInactive: 1 });
+        if (active) setPaises(countries.filter(c => c.activo !== false));
+      } catch (err: unknown) {
+        if (active) setCountriesError(getApiErrorMessage(err));
+      } finally {
+        if (active) setLoadingCountries(false);
       }
     })();
     return () => {
@@ -155,8 +164,8 @@ export default function InstitutionSignupPage() {
       try {
         const pr = await listProvinces({ idPais: pais, includeInactive: 1 });
         if (active) setProvincias(pr.filter(p => p.activo !== false));
-      } catch {
-        if (active) setProvincesError('No se pudieron cargar las provincias');
+      } catch (err: unknown) {
+        if (active) setProvincesError(getApiErrorMessage(err));
       } finally {
         if (active) setLoadingProvinces(false);
       }
@@ -196,8 +205,8 @@ export default function InstitutionSignupPage() {
             setLocalidad('');
           }
         }
-      } catch {
-        if (active) setLocalitiesError('No se pudieron cargar las localidades');
+      } catch (err: unknown) {
+        if (active) setLocalitiesError(getApiErrorMessage(err));
       } finally {
         if (active) setLoadingLocalities(false);
       }
@@ -207,62 +216,97 @@ export default function InstitutionSignupPage() {
     };
   }, [provincia, localidad]);
 
-  const submit = () => {
+  const submit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    // Limpiar errores previos
+    setError(null);
+    const errors: Record<string, string> = {};
+
     // Validación completa de todos los campos obligatorios
     if (!nombre.trim()) {
-      setError('El nombre de la institución es obligatorio');
-      return;
+      errors.nombre = 'Completa este campo';
     }
     if (!idTipoInstitucion) {
-      setError('Debe seleccionar un tipo de institución');
-      return;
+      errors.idTipoInstitucion = 'Completa este campo';
     }
     if (!pais) {
-      setError('Debe seleccionar un país');
-      return;
+      errors.pais = 'Completa este campo';
     }
     if (!provincia) {
-      setError('Debe seleccionar una provincia');
-      return;
+      errors.provincia = 'Completa este campo';
     }
     if (!localidad) {
-      setError('Debe seleccionar una localidad');
-      return;
+      errors.localidad = 'Completa este campo';
     }
     if (!direccion.trim()) {
-      setError('La dirección es obligatoria');
-      return;
+      errors.direccion = 'Completa este campo';
     }
+
+    // Validación de email
     if (!email.trim()) {
-      setError('El email de contacto es obligatorio');
-      return;
+      errors.email = 'Completa este campo';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.email = 'Ingresa un email válido (debe contener @ y un dominio)';
     }
+
     if (!siglaInstitucion.trim()) {
-      setError('La sigla de la institución es obligatoria');
-      return;
+      errors.siglaInstitucion = 'Completa este campo';
     }
+
+    // Validación de teléfono
     if (!telefono.trim()) {
-      setError('El teléfono es obligatorio');
-      return;
+      errors.telefono = 'Completa este campo';
+    } else if (!/^[\d\s+\-()]+$/.test(telefono)) {
+      errors.telefono =
+        'El teléfono solo debe contener números y símbolos válidos (+, -, paréntesis)';
     }
+
+    // Validación de sitio web
     if (!sitioWeb.trim()) {
-      setError('El sitio web es obligatorio');
-      return;
+      errors.sitioWeb = 'Completa este campo';
+    } else if (!/^https?:\/\/.+\..+/.test(sitioWeb)) {
+      errors.sitioWeb = 'Ingresa una URL válida (ej: https://www.ejemplo.com)';
     }
+
+    // Validación de año de fundación
     if (!anioFundacion) {
-      setError('El año de fundación es obligatorio');
-      return;
+      errors.anioFundacion = 'Completa este campo';
+    } else {
+      const year = Number(anioFundacion);
+      if (year < 1800 || year > 2025) {
+        errors.anioFundacion = 'El año debe estar entre 1800 y 2025';
+      }
     }
+
     if (!codigoPostal.trim()) {
-      setError('El código postal es obligatorio');
-      return;
+      errors.codigoPostal = 'Completa este campo';
     }
+
+    // Validación de CUIT
     if (!cuit.trim()) {
-      setError('El CUIT es obligatorio');
+      errors.cuit = 'Completa este campo';
+    } else if (!/^\d{2}-?\d{8}-?\d{1}$/.test(cuit.replace(/\s/g, ''))) {
+      errors.cuit = 'El CUIT debe tener formato XX-XXXXXXXX-X o 11 dígitos';
+    }
+
+    // Validación de URL del logo
+    if (!urlLogo.trim()) {
+      errors.urlLogo = 'Completa este campo';
+    } else if (!/^https?:\/\/.+\..+/.test(urlLogo)) {
+      errors.urlLogo =
+        'Ingresa una URL válida (ej: https://www.ejemplo.com/logo.png)';
+    }
+
+    // Si hay errores, actualizar estado y no continuar
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setError('Por favor, completa todos los campos correctamente');
       return;
     }
 
-    // Limpiar error y mostrar modal
+    // Limpiar errores y mostrar modal
+    setFieldErrors({});
     setError(null);
     setModalStage(1);
   };
@@ -298,11 +342,9 @@ export default function InstitutionSignupPage() {
 
       // Redirigir al home del sistema
       navigate('/');
-    } catch (err) {
-      const e = err as { message?: unknown } | undefined;
-      setError(
-        e && typeof e.message === 'string' ? e.message : 'Error al registrar'
-      );
+    } catch (err: unknown) {
+      setModalStage(0);
+      setError(getApiErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -320,257 +362,456 @@ export default function InstitutionSignupPage() {
           </div>
           {error && <div className={styles.error}>{error}</div>}
 
-          <div className={styles.field}>
-            <Input
-              label='Nombre de la Institución'
-              value={nombre}
-              onChange={e => setNombre(e.target.value)}
-              fullWidth
-              required
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label>Tipo de Institución *</label>
-            <select
-              value={String(idTipoInstitucion)}
-              onChange={e => setIdTipoInstitucion(e.target.value)}
-              className={styles.select}
-              required
-            >
-              <option value=''>Seleccione un tipo</option>
-              {tipos.map((t: Option) => (
-                <option key={t.id} value={t.id}>
-                  {t.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.row} style={{ marginBottom: 12 }}>
-            <div style={{ flex: 1 }}>
-              <label>País *</label>
-              <select
-                value={String(pais)}
+          <form onSubmit={submit}>
+            <div className={styles.field}>
+              <Input
+                label='Nombre de la Institución *'
+                value={nombre}
                 onChange={e => {
-                  setPais(e.target.value);
-                  setProvincia('');
-                  setLocalidad('');
+                  setNombre(e.target.value);
+                  if (fieldErrors.nombre) {
+                    setFieldErrors(prev => {
+                      const newErrors = { ...prev };
+                      delete newErrors.nombre;
+                      return newErrors;
+                    });
+                  }
                 }}
-                className={styles.select}
-                disabled={loadingCountries || !!countriesError}
+                fullWidth
                 required
-              >
-                <option value=''>Seleccione un país</option>
-                {paises.map((p: Option) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre}
-                  </option>
-                ))}
-              </select>
-              {loadingCountries && (
-                <div
-                  style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}
-                >
-                  Cargando países...
-                </div>
-              )}
-              {countriesError && (
-                <div
-                  style={{
-                    fontSize: '12px',
-                    color: '#e74c3c',
-                    marginTop: '4px',
-                  }}
-                >
-                  {countriesError}
-                </div>
-              )}
+                error={fieldErrors.nombre}
+                placeholder='Nombre completo de la institución'
+              />
             </div>
-            <div style={{ flex: 1 }}>
-              <label>Provincia *</label>
+
+            <div className={styles.field}>
+              <label>Tipo de Institución *</label>
               <select
-                value={String(provincia)}
+                value={String(idTipoInstitucion)}
                 onChange={e => {
-                  setProvincia(e.target.value);
-                  setLocalidad('');
+                  setIdTipoInstitucion(e.target.value);
+                  if (fieldErrors.idTipoInstitucion) {
+                    setFieldErrors(prev => {
+                      const newErrors = { ...prev };
+                      delete newErrors.idTipoInstitucion;
+                      return newErrors;
+                    });
+                  }
                 }}
-                className={styles.select}
-                disabled={!pais || loadingProvinces || !!provincesError}
+                className={`${styles.select} ${fieldErrors.idTipoInstitucion ? styles.selectError : ''}`}
                 required
               >
-                <option value=''>Seleccione una provincia</option>
-                {provincias.map((p: Option) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre}
+                <option value=''>Seleccione un tipo</option>
+                {tipos.map((t: Option) => (
+                  <option key={t.id} value={t.id}>
+                    {t.nombre}
                   </option>
                 ))}
               </select>
-              {loadingProvinces && (
-                <div
-                  style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}
-                >
-                  Cargando provincias...
-                </div>
-              )}
-              {provincesError && (
-                <div
-                  style={{
-                    fontSize: '12px',
-                    color: '#e74c3c',
-                    marginTop: '4px',
-                  }}
-                >
-                  {provincesError}
+              {fieldErrors.idTipoInstitucion && (
+                <div className={styles.fieldError}>
+                  <span>⚠️</span> {fieldErrors.idTipoInstitucion}
                 </div>
               )}
             </div>
-            <div style={{ flex: 1 }}>
-              <label>Localidad *</label>
-              <select
-                value={String(localidad)}
-                onChange={e => setLocalidad(e.target.value)}
-                className={styles.select}
-                disabled={!provincia || loadingLocalities || !!localitiesError}
+
+            <div className={styles.row} style={{ marginBottom: 12 }}>
+              <div style={{ flex: 1 }}>
+                <label>País *</label>
+                <select
+                  value={String(pais)}
+                  onChange={e => {
+                    setPais(e.target.value);
+                    setProvincia('');
+                    setLocalidad('');
+                    if (fieldErrors.pais) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.pais;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                  className={`${styles.select} ${fieldErrors.pais ? styles.selectError : ''}`}
+                  disabled={loadingCountries || !!countriesError}
+                  required
+                >
+                  <option value=''>Seleccione un país</option>
+                  {paises.map((p: Option) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
+                {loadingCountries && (
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: '#666',
+                      marginTop: '4px',
+                    }}
+                  >
+                    Cargando países...
+                  </div>
+                )}
+                {countriesError && (
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: '#e74c3c',
+                      marginTop: '4px',
+                    }}
+                  >
+                    {countriesError}
+                  </div>
+                )}
+                {fieldErrors.pais && (
+                  <div className={styles.fieldError}>
+                    <span>⚠️</span> {fieldErrors.pais}
+                  </div>
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <label>Provincia *</label>
+                <select
+                  value={String(provincia)}
+                  onChange={e => {
+                    setProvincia(e.target.value);
+                    setLocalidad('');
+                    if (fieldErrors.provincia) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.provincia;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                  className={`${styles.select} ${fieldErrors.provincia ? styles.selectError : ''}`}
+                  disabled={!pais || loadingProvinces || !!provincesError}
+                  required
+                >
+                  <option value=''>Seleccione una provincia</option>
+                  {provincias.map((p: Option) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
+                {loadingProvinces && (
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: '#666',
+                      marginTop: '4px',
+                    }}
+                  >
+                    Cargando provincias...
+                  </div>
+                )}
+                {provincesError && (
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: '#e74c3c',
+                      marginTop: '4px',
+                    }}
+                  >
+                    {provincesError}
+                  </div>
+                )}
+                {fieldErrors.provincia && (
+                  <div className={styles.fieldError}>
+                    <span>⚠️</span> {fieldErrors.provincia}
+                  </div>
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <label>Localidad *</label>
+                <select
+                  value={String(localidad)}
+                  onChange={e => {
+                    setLocalidad(e.target.value);
+                    if (fieldErrors.localidad) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.localidad;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                  className={`${styles.select} ${fieldErrors.localidad ? styles.selectError : ''}`}
+                  disabled={
+                    !provincia || loadingLocalities || !!localitiesError
+                  }
+                  required
+                >
+                  <option value=''>Seleccione una localidad</option>
+                  {localidades.map((l: Option) => (
+                    <option key={l.id} value={l.id}>
+                      {l.nombre}
+                    </option>
+                  ))}
+                </select>
+                {loadingLocalities && (
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: '#666',
+                      marginTop: '4px',
+                    }}
+                  >
+                    Cargando localidades...
+                  </div>
+                )}
+                {localitiesError && (
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: '#e74c3c',
+                      marginTop: '4px',
+                    }}
+                  >
+                    {localitiesError}
+                  </div>
+                )}
+                {fieldErrors.localidad && (
+                  <div className={styles.fieldError}>
+                    <span>⚠️</span> {fieldErrors.localidad}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <Input
+                label='Dirección *'
+                value={direccion}
+                onChange={e => {
+                  setDireccion(e.target.value);
+                  if (fieldErrors.direccion) {
+                    setFieldErrors(prev => {
+                      const newErrors = { ...prev };
+                      delete newErrors.direccion;
+                      return newErrors;
+                    });
+                  }
+                }}
+                fullWidth
                 required
+                error={fieldErrors.direccion}
+                placeholder='Calle, número, piso, depto.'
+              />
+            </div>
+
+            <div className={styles.row} style={{ marginBottom: 12 }}>
+              <div style={{ flex: 1 }}>
+                <Input
+                  label='Código Postal *'
+                  value={codigoPostal}
+                  onChange={e => {
+                    // Permitir solo números
+                    const value = e.target.value.replace(/\D/g, '');
+                    setCodigoPostal(value);
+                    if (fieldErrors.codigoPostal) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.codigoPostal;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                  fullWidth
+                  required
+                  error={fieldErrors.codigoPostal}
+                  placeholder='Ej: 1234'
+                  maxLength={8}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <Input
+                  label='CUIT *'
+                  value={cuit}
+                  onChange={e => {
+                    // Permitir solo números y guiones
+                    const value = e.target.value.replace(/[^\d-]/g, '');
+                    setCuit(value);
+                    if (fieldErrors.cuit) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.cuit;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                  fullWidth
+                  required
+                  error={fieldErrors.cuit}
+                  placeholder='XX-XXXXXXXX-X'
+                  maxLength={13}
+                />
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <Input
+                label='Email de Contacto *'
+                type='email'
+                value={email}
+                onChange={e => {
+                  setEmail(e.target.value);
+                  if (fieldErrors.email) {
+                    setFieldErrors(prev => {
+                      const newErrors = { ...prev };
+                      delete newErrors.email;
+                      return newErrors;
+                    });
+                  }
+                }}
+                fullWidth
+                required
+                error={fieldErrors.email}
+                placeholder='correo@institucion.edu.ar'
+              />
+            </div>
+
+            <div className={styles.row} style={{ marginBottom: 12 }}>
+              <div style={{ flex: 1 }}>
+                <Input
+                  label='Sigla Institución *'
+                  value={siglaInstitucion}
+                  onChange={e => {
+                    // Convertir a mayúsculas automáticamente
+                    const value = e.target.value.toUpperCase();
+                    setSiglaInstitucion(value);
+                    if (fieldErrors.siglaInstitucion) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.siglaInstitucion;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                  fullWidth
+                  required
+                  error={fieldErrors.siglaInstitucion}
+                  placeholder='UTN, UBA, etc.'
+                  maxLength={10}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <Input
+                  label='Teléfono *'
+                  type='tel'
+                  value={telefono}
+                  onChange={e => {
+                    // Permitir solo números, espacios, +, -, y paréntesis
+                    const value = e.target.value.replace(/[^\d\s+\-()]/g, '');
+                    setTelefono(value);
+                    if (fieldErrors.telefono) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.telefono;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                  fullWidth
+                  required
+                  placeholder='+54 11 1234-5678'
+                  error={fieldErrors.telefono}
+                />
+              </div>
+            </div>
+
+            <div className={styles.row} style={{ marginBottom: 12 }}>
+              <div style={{ flex: 1 }}>
+                <Input
+                  label='Sitio Web *'
+                  type='url'
+                  value={sitioWeb}
+                  onChange={e => {
+                    setSitioWeb(e.target.value);
+                    if (fieldErrors.sitioWeb) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.sitioWeb;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                  fullWidth
+                  required
+                  placeholder='https://www.institucion.edu.ar'
+                  error={fieldErrors.sitioWeb}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <Input
+                  label='Año de Fundación *'
+                  type='number'
+                  value={anioFundacion}
+                  onChange={e => {
+                    const value = e.target.value;
+                    // Validar que esté en el rango correcto
+                    if (
+                      value === '' ||
+                      (Number(value) >= 1800 && Number(value) <= 2025)
+                    ) {
+                      setAnioFundacion(value);
+                    }
+                    if (fieldErrors.anioFundacion) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.anioFundacion;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                  fullWidth
+                  required
+                  placeholder='1952'
+                  min='1800'
+                  max='2025'
+                  error={fieldErrors.anioFundacion}
+                />
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <Input
+                label='URL del Logo *'
+                type='url'
+                value={urlLogo}
+                onChange={e => {
+                  setUrlLogo(e.target.value);
+                  if (fieldErrors.urlLogo) {
+                    setFieldErrors(prev => {
+                      const newErrors = { ...prev };
+                      delete newErrors.urlLogo;
+                      return newErrors;
+                    });
+                  }
+                }}
+                fullWidth
+                required
+                placeholder='https://www.institucion.edu.ar/logo.png'
+                error={fieldErrors.urlLogo}
+              />
+            </div>
+
+            <div className={styles.actions}>
+              <Button
+                variant='outline'
+                type='button'
+                onClick={() => navigate('/app/signup')}
               >
-                <option value=''>Seleccione una localidad</option>
-                {localidades.map((l: Option) => (
-                  <option key={l.id} value={l.id}>
-                    {l.nombre}
-                  </option>
-                ))}
-              </select>
-              {loadingLocalities && (
-                <div
-                  style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}
-                >
-                  Cargando localidades...
-                </div>
-              )}
-              {localitiesError && (
-                <div
-                  style={{
-                    fontSize: '12px',
-                    color: '#e74c3c',
-                    marginTop: '4px',
-                  }}
-                >
-                  {localitiesError}
-                </div>
-              )}
+                Cancelar
+              </Button>
+              <Button type='submit' isLoading={loading}>
+                Enviar Solicitud
+              </Button>
             </div>
-          </div>
-
-          <div className={styles.field}>
-            <Input
-              label='Dirección *'
-              value={direccion}
-              onChange={e => setDireccion(e.target.value)}
-              fullWidth
-              required
-            />
-          </div>
-
-          <div className={styles.row} style={{ marginBottom: 12 }}>
-            <div style={{ flex: 1 }}>
-              <Input
-                label='Código Postal *'
-                value={codigoPostal}
-                onChange={e => setCodigoPostal(e.target.value)}
-                fullWidth
-                required
-              />
-            </div>
-            <div style={{ flex: 1 }}>
-              <Input
-                label='CUIT *'
-                value={cuit}
-                onChange={e => setCuit(e.target.value)}
-                fullWidth
-                required
-              />
-            </div>
-          </div>
-
-          <div className={styles.field}>
-            <Input
-              label='Email de Contacto'
-              type='email'
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              fullWidth
-              required
-            />
-          </div>
-
-          <div className={styles.row} style={{ marginBottom: 12 }}>
-            <div style={{ flex: 1 }}>
-              <Input
-                label='Sigla Institución *'
-                value={siglaInstitucion}
-                onChange={e => setSiglaInstitucion(e.target.value)}
-                fullWidth
-                required
-                placeholder='Ej: UTN, UBA'
-              />
-            </div>
-            <div style={{ flex: 1 }}>
-              <Input
-                label='Teléfono *'
-                value={telefono}
-                onChange={e => setTelefono(e.target.value)}
-                fullWidth
-                required
-                placeholder='Ej: +54 11 1234-5678'
-              />
-            </div>
-          </div>
-
-          <div className={styles.row} style={{ marginBottom: 12 }}>
-            <div style={{ flex: 1 }}>
-              <Input
-                label='Sitio Web *'
-                value={sitioWeb}
-                onChange={e => setSitioWeb(e.target.value)}
-                fullWidth
-                required
-                placeholder='Ej: https://www.institucion.edu.ar'
-              />
-            </div>
-            <div style={{ flex: 1 }}>
-              <Input
-                label='Año de Fundación *'
-                type='number'
-                value={anioFundacion}
-                onChange={e => setAnioFundacion(e.target.value)}
-                fullWidth
-                required
-                placeholder='Ej: 1952'
-                min='1800'
-                max='2025'
-              />
-            </div>
-          </div>
-
-          <div className={styles.field}>
-            <Input
-              label='URL del Logo (opcional)'
-              value={urlLogo}
-              onChange={e => setUrlLogo(e.target.value)}
-              fullWidth
-              placeholder='Ej: https://www.institucion.edu.ar/logo.png'
-            />
-          </div>
-
-          <div className={styles.actions}>
-            <Button variant='outline' onClick={() => navigate('/app/signup')}>
-              Cancelar
-            </Button>
-            <Button onClick={submit} isLoading={loading}>
-              Enviar Solicitud
-            </Button>
-          </div>
+          </form>
           {/* Two-step modal: stage 1 = Terms, stage 2 = Privacy */}
           {modalStage > 0 && (
             <div className={styles.modalOverlay}>

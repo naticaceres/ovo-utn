@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '../../components/ui/Button';
 import { BackButton } from '../../components/ui/BackButton';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import styles from './GruposPage.module.css';
 import { Input } from '../../components/ui/Input';
 import {
@@ -37,6 +38,16 @@ export default function GruposPage() {
     Array<number | string>
   >([]);
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [groupToDelete, setGroupToDelete] = React.useState<{
+    id: number | string;
+    nombre: string;
+  } | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
+  const [filterNombre, setFilterNombre] = React.useState('');
+  const [filterDescripcion, setFilterDescripcion] = React.useState('');
+  const [filterPermisos, setFilterPermisos] = React.useState('');
+  const [modalError, setModalError] = React.useState<string | null>(null);
+  const [saving, setSaving] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -123,6 +134,7 @@ export default function GruposPage() {
     setDescripcion('');
     setSelectedPerms([]);
     setSearchTerm('');
+    setModalError(null);
     setShowModal(true);
   };
 
@@ -146,6 +158,7 @@ export default function GruposPage() {
       : [];
     setSelectedPerms(ids as Array<number | string>);
     setSearchTerm('');
+    setModalError(null);
     setShowModal(true);
   };
 
@@ -168,7 +181,8 @@ export default function GruposPage() {
   }, [perms, searchTerm]);
 
   const save = async () => {
-    setError(null);
+    setModalError(null);
+    setSaving(true);
     try {
       // ensure permisos are numbers when possible (backend expects ids)
       const permisosPayload = selectedPerms.map(p => {
@@ -210,25 +224,100 @@ export default function GruposPage() {
       console.log('[GruposPage] save response:', resp);
       setShowModal(false);
       await load();
-    } catch (err) {
-      // try to extract server error message
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const e: any = err;
-      console.error('[GruposPage] save error:', e);
-      const serverMessage =
-        e?.response?.data?.message ?? e?.response?.data ?? e?.message ?? null;
-      setError(serverMessage ? String(serverMessage) : 'Error al guardar');
+    } catch (err: unknown) {
+      console.error('[GruposPage] save error:', err);
+
+      let errorMessage = 'Error al guardar';
+
+      if (err && typeof err === 'object') {
+        const error = err as {
+          message?: string;
+          error?: string;
+          details?: string;
+          msg?: string;
+          response?: {
+            data?: {
+              message?: string;
+              error?: string;
+            };
+          };
+        };
+
+        const possibleMessage =
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          error.message ||
+          error.error ||
+          error.msg ||
+          error.details;
+
+        if (possibleMessage) {
+          errorMessage = possibleMessage;
+        }
+      }
+
+      setModalError(errorMessage);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const remove = async (id: number | string, nombreGrupo?: string) => {
+  const confirmDelete = (id: number | string, nombre: string) => {
+    setGroupToDelete({ id, nombre });
+  };
+
+  const remove = async () => {
+    if (!groupToDelete) return;
+
     setError(null);
+    setDeleting(true);
     try {
-      await deactivateGroupCatalog(id, nombreGrupo, token || undefined);
+      await deactivateGroupCatalog(
+        groupToDelete.id,
+        groupToDelete.nombre,
+        token || undefined
+      );
+      setGroupToDelete(null);
       load();
     } catch {
       setError('No se pudo eliminar');
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  // Función para filtrar grupos
+  const filteredItems = React.useMemo(() => {
+    return items.filter(it => {
+      const matchNombre =
+        !filterNombre ||
+        it.nombreGrupo?.toLowerCase().includes(filterNombre.toLowerCase());
+
+      const matchDescripcion =
+        !filterDescripcion ||
+        it.descripcion?.toLowerCase().includes(filterDescripcion.toLowerCase());
+
+      // Filtro por permisos - buscar en el texto de los permisos
+      const permisosTexto = (it.permisos || [])
+        .map(p =>
+          typeof p === 'object'
+            ? (p.nombrePermiso ?? p.nombre ?? '')
+            : String(p)
+        )
+        .join(' ')
+        .toLowerCase();
+
+      const matchPermisos =
+        !filterPermisos || permisosTexto.includes(filterPermisos.toLowerCase());
+
+      return matchNombre && matchDescripcion && matchPermisos;
+    });
+  }, [items, filterNombre, filterDescripcion, filterPermisos]);
+
+  const clearFilters = () => {
+    setFilterNombre('');
+    setFilterDescripcion('');
+    setFilterPermisos('');
   };
 
   return (
@@ -237,6 +326,74 @@ export default function GruposPage() {
       <div className={styles.header}>
         <h1>Grupos de Usuarios</h1>
         <Button onClick={openCreate}>+ Agregar grupo</Button>
+      </div>
+
+      {/* Filtros */}
+      <div
+        style={{
+          backgroundColor: '#f8f9fa',
+          padding: '16px',
+          borderRadius: '8px',
+          marginBottom: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '8px',
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
+            🔍 Filtros
+          </h3>
+          {(filterNombre || filterDescripcion || filterPermisos) && (
+            <Button
+              variant='outline'
+              onClick={clearFilters}
+              style={{ fontSize: '12px', padding: '4px 12px' }}
+            >
+              Limpiar filtros
+            </Button>
+          )}
+        </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '12px',
+          }}
+        >
+          <Input
+            label='Nombre'
+            placeholder='Buscar por nombre...'
+            value={filterNombre}
+            onChange={e => setFilterNombre(e.target.value)}
+            fullWidth
+          />
+          <Input
+            label='Descripción'
+            placeholder='Buscar por descripción...'
+            value={filterDescripcion}
+            onChange={e => setFilterDescripcion(e.target.value)}
+            fullWidth
+          />
+          <Input
+            label='Permisos'
+            placeholder='Buscar por permisos...'
+            value={filterPermisos}
+            onChange={e => setFilterPermisos(e.target.value)}
+            fullWidth
+          />
+        </div>
+        <div style={{ fontSize: '14px', color: '#666' }}>
+          Mostrando <strong>{filteredItems.length}</strong> de{' '}
+          <strong>{items.length}</strong> grupos
+        </div>
       </div>
 
       {loading ? (
@@ -254,7 +411,7 @@ export default function GruposPage() {
             </tr>
           </thead>
           <tbody>
-            {items.map(it => (
+            {filteredItems.map(it => (
               <tr key={it.id}>
                 <td>{it.nombreGrupo}</td>
                 <td>{it.descripcion}</td>
@@ -270,7 +427,9 @@ export default function GruposPage() {
                     <Button variant='outline' onClick={() => openEdit(it)}>
                       ✏️
                     </Button>
-                    <Button onClick={() => remove(it.id, it.nombreGrupo)}>
+                    <Button
+                      onClick={() => confirmDelete(it.id, it.nombreGrupo)}
+                    >
                       🗑️
                     </Button>
                   </div>
@@ -336,17 +495,50 @@ export default function GruposPage() {
               </div>
             </div>
 
+            {modalError && (
+              <div className={styles.error} style={{ marginTop: '12px' }}>
+                {modalError}
+              </div>
+            )}
+
             <div className={styles.modalActions}>
-              <Button variant='outline' onClick={() => setShowModal(false)}>
+              <Button
+                variant='outline'
+                onClick={() => setShowModal(false)}
+                disabled={saving}
+              >
                 Cancelar
               </Button>
-              <Button onClick={save} disabled={!nombre.trim()}>
-                Guardar
+              <Button onClick={save} disabled={!nombre.trim() || saving}>
+                {saving ? 'Guardando...' : 'Guardar'}
               </Button>
             </div>
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!groupToDelete}
+        onClose={() => setGroupToDelete(null)}
+        onConfirm={remove}
+        title='Confirmar Eliminación de Grupo'
+        message={
+          <>
+            <p>
+              ¿Estás seguro de que deseas eliminar el grupo{' '}
+              <strong>"{groupToDelete?.nombre}"</strong>?
+            </p>
+            <p>
+              Esta acción desactivará el grupo y afectará a todos los usuarios
+              asociados.
+            </p>
+          </>
+        }
+        confirmText='Sí, Eliminar Grupo'
+        cancelText='Cancelar'
+        variant='danger'
+        isLoading={deleting}
+      />
     </div>
   );
 }

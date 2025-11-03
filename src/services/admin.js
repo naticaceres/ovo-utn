@@ -921,6 +921,7 @@ export async function listInstitutionTypes(params = {}, token) {
           item.title ??
           '',
         activo: typeof item.activo !== 'undefined' ? item.activo : true,
+        fechaFin: item.fechaFin ?? null,
       }));
     }
     return [];
@@ -945,6 +946,18 @@ export async function createInstitutionType(payload) {
 export async function updateInstitutionType(id, payload) {
   try {
     const body = { nombreTipoInstitucion: payload.nombre };
+
+    // Incluir fechaFin si está presente en el payload
+    if ('fechaFin' in payload) {
+      if (payload.fechaFin === null) {
+        // Reactivar: enviar null explícitamente
+        body.fechaFin = null;
+      } else if (payload.fechaFin) {
+        // Programar baja: convertir fecha YYYY-MM-DD a formato YYYY-MM-DD HH:MM:SS
+        body.fechaFin = `${payload.fechaFin} 23:59:59`;
+      }
+    }
+
     const { data } = await api.put(
       `/api/v1/admin/catalog/institution-types/${id}`,
       body
@@ -991,6 +1004,7 @@ export async function listInstitutionStates(params = {}, token) {
           item.nombre ??
           '',
         activo: typeof item.activo !== 'undefined' ? item.activo : true,
+        fechaFin: item.fechaFin ?? null,
       }));
     }
     return [];
@@ -1015,6 +1029,18 @@ export async function createInstitutionState(payload) {
 export async function updateInstitutionState(id, payload) {
   try {
     const body = { nombreEstadoInstitucion: payload.nombre };
+
+    // Incluir fechaFin si está presente en el payload
+    if ('fechaFin' in payload) {
+      if (payload.fechaFin === null) {
+        // Reactivar: enviar null explícitamente
+        body.fechaFin = null;
+      } else if (payload.fechaFin) {
+        // Programar baja: convertir fecha YYYY-MM-DD a formato YYYY-MM-DD HH:MM:SS
+        body.fechaFin = `${payload.fechaFin} 23:59:59`;
+      }
+    }
+
     const { data } = await api.put(
       `/api/v1/admin/catalog/institution-states/${id}`,
       body
@@ -1117,6 +1143,7 @@ export async function listCareerStates(params = {}, token) {
           item.title ??
           '',
         activo: typeof item.activo !== 'undefined' ? item.activo : true,
+        fechaFin: item.fechaFin ?? null,
       }));
     }
 
@@ -1143,6 +1170,18 @@ export async function createCareerState(payload) {
 export async function updateCareerState(id, payload) {
   try {
     const body = { nombreEstadoCarreraInstitucion: payload.nombre };
+
+    // Incluir fechaFin si está presente en el payload
+    if ('fechaFin' in payload) {
+      if (payload.fechaFin === null) {
+        // Reactivar: enviar null explícitamente
+        body.fechaFin = null;
+      } else if (payload.fechaFin) {
+        // Programar baja: convertir fecha YYYY-MM-DD a formato YYYY-MM-DD HH:MM:SS
+        body.fechaFin = `${payload.fechaFin} 23:59:59`;
+      }
+    }
+
     const { data } = await api.put(
       `/api/v1/admin/catalog/career-institution-statuses/${id}`,
       body
@@ -1655,6 +1694,7 @@ export async function listSkills(params = {}, token) {
         nombre: item.nombreAptitud ?? item.nombre ?? item.name ?? '',
         descripcion: item.descripcion ?? '',
         activo: typeof item.activo !== 'undefined' ? item.activo : true,
+        fechaBaja: item.fechaBaja ?? null,
       }));
     }
     return [];
@@ -1687,6 +1727,18 @@ export async function updateSkill(id, payload, token) {
       nombreAptitud: payload.nombre,
       descripcion: payload.descripcion || '',
     };
+
+    // Incluir fechaBaja si está presente en el payload
+    if ('fechaBaja' in payload) {
+      if (payload.fechaBaja === null) {
+        // Reactivar: enviar null explícitamente
+        body.fechaBaja = null;
+      } else if (payload.fechaBaja) {
+        // Programar baja: convertir fecha YYYY-MM-DD a formato YYYY-MM-DD HH:MM:SS
+        body.fechaBaja = `${payload.fechaBaja} 23:59:59`;
+      }
+    }
+
     console.log('[updateSkill] Payload being sent:', body);
 
     const headers = token ? { Authorization: `Bearer ${token}` } : {};

@@ -46,6 +46,8 @@ export default function UserPermissionsPage() {
   const [groupPerms, setGroupPerms] = React.useState<Set<string>>(new Set());
   const [allPerms, setAllPerms] = React.useState<PermDTO[]>([]);
   const [search, setSearch] = React.useState('');
+  const [filterNombre, setFilterNombre] = React.useState('');
+  const [filterEmail, setFilterEmail] = React.useState('');
   const [permissionSearch, setPermissionSearch] = React.useState('');
   const [saving, setSaving] = React.useState(false);
 
@@ -171,21 +173,42 @@ export default function UserPermissionsPage() {
     setError(null);
   };
 
-  const filteredUsers = users.filter(u => {
-    const q = search.trim().toLowerCase();
-    if (!q) return true;
-    return (
-      String(u.nombre || '')
-        .toLowerCase()
-        .includes(q) ||
-      String(u.apellido || '')
-        .toLowerCase()
-        .includes(q) ||
-      String(u.mail || u.email || '')
-        .toLowerCase()
-        .includes(q)
-    );
-  });
+  const filteredUsers = React.useMemo(() => {
+    return users.filter(u => {
+      // Filtro por búsqueda general
+      const q = search.trim().toLowerCase();
+      const matchSearch =
+        !q ||
+        String(u.nombre || '')
+          .toLowerCase()
+          .includes(q) ||
+        String(u.apellido || '')
+          .toLowerCase()
+          .includes(q) ||
+        String(u.mail || u.email || '')
+          .toLowerCase()
+          .includes(q);
+
+      // Filtro por nombre específico
+      const matchNombre =
+        !filterNombre ||
+        String(u.nombre || '')
+          .toLowerCase()
+          .includes(filterNombre.toLowerCase()) ||
+        String(u.apellido || '')
+          .toLowerCase()
+          .includes(filterNombre.toLowerCase());
+
+      // Filtro por email específico
+      const matchEmail =
+        !filterEmail ||
+        String(u.mail || u.email || '')
+          .toLowerCase()
+          .includes(filterEmail.toLowerCase());
+
+      return matchSearch && matchNombre && matchEmail;
+    });
+  }, [users, search, filterNombre, filterEmail]);
 
   // Filtrar permisos basado en el término de búsqueda
   const filteredPermissions = React.useMemo(() => {
@@ -211,13 +234,83 @@ export default function UserPermissionsPage() {
 
       {error && <div className={styles.error}>{error}</div>}
 
-      <div style={{ marginBottom: 12 }}>
-        <Input
-          placeholder='Buscar usuario...'
-          fullWidth
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+      {/* Filtros */}
+      <div
+        style={{
+          backgroundColor: '#f8f9fa',
+          padding: '16px',
+          borderRadius: '8px',
+          marginBottom: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '8px',
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
+            🔍 Filtros
+          </h3>
+          {(search || filterNombre || filterEmail) && (
+            <Button
+              variant='outline'
+              onClick={() => {
+                setSearch('');
+                setFilterNombre('');
+                setFilterEmail('');
+              }}
+              style={{ fontSize: '12px', padding: '4px 12px' }}
+            >
+              Limpiar filtros
+            </Button>
+          )}
+        </div>
+
+        {/* Búsqueda general */}
+        <div style={{ marginBottom: '8px' }}>
+          <Input
+            label='Búsqueda general'
+            placeholder='Buscar en nombre o email...'
+            fullWidth
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+
+        {/* Filtros específicos */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '12px',
+          }}
+        >
+          <Input
+            label='Nombre'
+            placeholder='Filtrar por nombre...'
+            value={filterNombre}
+            onChange={e => setFilterNombre(e.target.value)}
+            fullWidth
+          />
+          <Input
+            label='Email'
+            placeholder='Filtrar por email...'
+            value={filterEmail}
+            onChange={e => setFilterEmail(e.target.value)}
+            fullWidth
+          />
+        </div>
+
+        <div style={{ fontSize: '14px', color: '#666' }}>
+          Mostrando <strong>{filteredUsers.length}</strong> de{' '}
+          <strong>{users.length}</strong> usuarios
+        </div>
       </div>
 
       {loading ? (

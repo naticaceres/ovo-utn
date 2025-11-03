@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '../../components/ui/Button';
 import { BackButton } from '../../components/ui/BackButton';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import styles from './AdminCrud.module.css';
 import { Input } from '../../components/ui/Input';
 import {
@@ -71,6 +72,19 @@ export default function UsuariosPage() {
   const [selectedLocality, setSelectedLocality] = React.useState<
     number | string | null
   >(null);
+  const [userToDelete, setUserToDelete] = React.useState<{
+    id: string | number;
+    nombre: string;
+  } | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
+
+  // Estados para filtros
+  const [filterNombre, setFilterNombre] = React.useState('');
+  const [filterApellido, setFilterApellido] = React.useState('');
+  const [filterEmail, setFilterEmail] = React.useState('');
+  const [filterRol, setFilterRol] = React.useState('');
+  const [filterEstado, setFilterEstado] = React.useState('');
+
   // no password required for admin-created users per API
 
   const load = React.useCallback(async () => {
@@ -135,7 +149,11 @@ export default function UsuariosPage() {
 
       try {
         const s = await listUserStates({}, token || undefined);
-        setStates(Array.isArray(s) ? s : []);
+        // Filtrar solo los estados activos (sin fechaFin)
+        const activeStates = Array.isArray(s)
+          ? s.filter(state => state.activo !== false && !state.fechaFin)
+          : [];
+        setStates(activeStates);
       } catch {
         setStates([]);
       }
@@ -284,14 +302,90 @@ export default function UsuariosPage() {
     }
   };
 
-  const remove = async (id: string | number, nombre?: string) => {
+  const confirmDelete = (id: string | number, nombre: string) => {
+    setUserToDelete({ id, nombre });
+  };
+
+  const remove = async () => {
+    if (!userToDelete) return;
+
     setError(null);
+    setDeleting(true);
     try {
-      await deactivateAdminUser(id, nombre, token || undefined);
+      await deactivateAdminUser(
+        userToDelete.id,
+        userToDelete.nombre,
+        token || undefined
+      );
+      setUserToDelete(null);
       load();
     } catch {
       setError('No se pudo eliminar');
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  // Función para filtrar usuarios
+  const filteredItems = React.useMemo(() => {
+    return items.filter(u => {
+      const matchNombre =
+        !filterNombre ||
+        u.nombre?.toLowerCase().includes(filterNombre.toLowerCase());
+      const matchApellido =
+        !filterApellido ||
+        u.apellido?.toLowerCase().includes(filterApellido.toLowerCase());
+      const matchEmail =
+        !filterEmail ||
+        u.email?.toLowerCase().includes(filterEmail.toLowerCase());
+
+      const userRol =
+        u.groups && u.groups.length > 0
+          ? u.groups.map(g => g.nombre).join(', ')
+          : u.rol || '';
+      const matchRol =
+        !filterRol || userRol.toLowerCase().includes(filterRol.toLowerCase());
+
+      const userEstado =
+        u.estado ??
+        u.estadoNombre ??
+        (() => {
+          const rec = u as unknown as Record<string, unknown>;
+          const f =
+            rec['fechaFin'] ??
+            rec['fecha_fin'] ??
+            rec['fechaBaja'] ??
+            rec['fecha_baja'] ??
+            rec['endDate'] ??
+            rec['end_date'] ??
+            null;
+          if (f && String(f).trim() !== '') return 'Baja';
+          if (u.activo === false) return 'Bloqueado';
+          return 'Activo';
+        })();
+      const matchEstado =
+        !filterEstado ||
+        userEstado.toLowerCase().includes(filterEstado.toLowerCase());
+
+      return (
+        matchNombre && matchApellido && matchEmail && matchRol && matchEstado
+      );
+    });
+  }, [
+    items,
+    filterNombre,
+    filterApellido,
+    filterEmail,
+    filterRol,
+    filterEstado,
+  ]);
+
+  const clearFilters = () => {
+    setFilterNombre('');
+    setFilterApellido('');
+    setFilterEmail('');
+    setFilterRol('');
+    setFilterEstado('');
   };
 
   return (
@@ -300,6 +394,92 @@ export default function UsuariosPage() {
       <div className={styles.header}>
         <h1>Usuarios</h1>
         <Button onClick={openCreate}>+ Agregar usuario</Button>
+      </div>
+
+      {/* Filtros */}
+      <div
+        style={{
+          backgroundColor: '#f8f9fa',
+          padding: '16px',
+          borderRadius: '8px',
+          marginBottom: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '8px',
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
+            🔍 Filtros
+          </h3>
+          {(filterNombre ||
+            filterApellido ||
+            filterEmail ||
+            filterRol ||
+            filterEstado) && (
+            <Button
+              variant='outline'
+              onClick={clearFilters}
+              style={{ fontSize: '12px', padding: '4px 12px' }}
+            >
+              Limpiar filtros
+            </Button>
+          )}
+        </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '12px',
+          }}
+        >
+          <Input
+            label='Nombre'
+            placeholder='Buscar por nombre...'
+            value={filterNombre}
+            onChange={e => setFilterNombre(e.target.value)}
+            fullWidth
+          />
+          <Input
+            label='Apellido'
+            placeholder='Buscar por apellido...'
+            value={filterApellido}
+            onChange={e => setFilterApellido(e.target.value)}
+            fullWidth
+          />
+          <Input
+            label='Email'
+            placeholder='Buscar por email...'
+            value={filterEmail}
+            onChange={e => setFilterEmail(e.target.value)}
+            fullWidth
+          />
+          <Input
+            label='Rol/Grupo'
+            placeholder='Buscar por rol...'
+            value={filterRol}
+            onChange={e => setFilterRol(e.target.value)}
+            fullWidth
+          />
+          <Input
+            label='Estado'
+            placeholder='Buscar por estado...'
+            value={filterEstado}
+            onChange={e => setFilterEstado(e.target.value)}
+            fullWidth
+          />
+        </div>
+        <div style={{ fontSize: '14px', color: '#666' }}>
+          Mostrando <strong>{filteredItems.length}</strong> de{' '}
+          <strong>{items.length}</strong> usuarios
+        </div>
       </div>
 
       {loading ? (
@@ -319,7 +499,7 @@ export default function UsuariosPage() {
             </tr>
           </thead>
           <tbody>
-            {items.map(u => (
+            {filteredItems.map(u => (
               <tr key={u.id}>
                 <td>{u.nombre}</td>
                 <td>{u.apellido}</td>
@@ -354,7 +534,7 @@ export default function UsuariosPage() {
                     </Button>
                     <Button
                       onClick={() =>
-                        remove(u.id, `${u.nombre} ${u.apellido}`.trim())
+                        confirmDelete(u.id, `${u.nombre} ${u.apellido}`.trim())
                       }
                     >
                       🗑️
@@ -558,6 +738,28 @@ export default function UsuariosPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!userToDelete}
+        onClose={() => setUserToDelete(null)}
+        onConfirm={remove}
+        title='Confirmar Eliminación de Usuario'
+        message={
+          <>
+            <p>
+              ¿Estás seguro de que deseas eliminar al usuario{' '}
+              <strong>"{userToDelete?.nombre}"</strong>?
+            </p>
+            <p>
+              Esta acción desactivará el usuario y no podrá acceder al sistema.
+            </p>
+          </>
+        }
+        confirmText='Sí, Eliminar Usuario'
+        cancelText='Cancelar'
+        variant='danger'
+        isLoading={deleting}
+      />
     </div>
   );
 }

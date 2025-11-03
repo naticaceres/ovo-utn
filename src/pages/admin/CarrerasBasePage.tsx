@@ -1,6 +1,7 @@
 import React from 'react';
 import { BackButton } from '../../components/ui/BackButton';
 import { Button } from '../../components/ui/Button';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Input } from '../../components/ui/Input';
 import styles from './AdminCrud.module.css';
 import {
@@ -34,6 +35,16 @@ export default function CarrerasBasePage() {
     ''
   );
   const [fechaFin, setFechaFin] = React.useState<string>('');
+  const [careerToDelete, setCareerToDelete] = React.useState<{
+    id: number | string;
+    nombre: string;
+  } | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
+
+  // Estados para filtros
+  const [filterNombre, setFilterNombre] = React.useState('');
+  const [filterTipo, setFilterTipo] = React.useState('');
+  const [filterEstado, setFilterEstado] = React.useState('');
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -91,9 +102,11 @@ export default function CarrerasBasePage() {
     setName(it.nombre || '');
     setSelectedType(it.idTipoCarrera ?? '');
 
-    // Handle fechaFin: if it's "NULL" or empty, set to empty string for the date input
-    if (it.fechaFin && it.fechaFin !== 'NULL') {
-      setFechaFin(it.fechaFin.split('T')[0]); // Convert to YYYY-MM-DD format for input
+    // Handle fechaFin: if it's "NULL", null, or empty, set to empty string for the date input
+    if (it.fechaFin && it.fechaFin !== 'NULL' && it.fechaFin.trim() !== '') {
+      // Convert from "YYYY-MM-DD HH:MM:SS" to "YYYY-MM-DD" format for date input
+      const dateOnly = it.fechaFin.split(' ')[0]; // Extract date part before space
+      setFechaFin(dateOnly);
     } else {
       setFechaFin('');
     }
@@ -124,22 +137,148 @@ export default function CarrerasBasePage() {
     }
   };
 
-  const remove = async (id: number | string, nombre?: string) => {
+  const confirmDelete = (id: number | string, nombre: string) => {
+    setCareerToDelete({ id, nombre });
+  };
+
+  const remove = async () => {
+    if (!careerToDelete) return;
+
     setError(null);
+    setDeleting(true);
     try {
-      await deactivateCareerBase(id, nombre || '', token || undefined);
+      await deactivateCareerBase(
+        careerToDelete.id,
+        careerToDelete.nombre,
+        token || undefined
+      );
+      setCareerToDelete(null);
       load();
     } catch {
       setError('No se pudo eliminar');
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  // Función para filtrar carreras
+  const filteredItems = React.useMemo(() => {
+    return items.filter(it => {
+      // Filtro por nombre
+      const matchNombre =
+        !filterNombre ||
+        it.nombre?.toLowerCase().includes(filterNombre.toLowerCase());
+
+      // Filtro por tipo
+      const tipoNombre =
+        types.find(t => t.id === it.idTipoCarrera)?.nombre || '';
+      const matchTipo =
+        !filterTipo ||
+        tipoNombre.toLowerCase().includes(filterTipo.toLowerCase());
+
+      // Filtro por estado
+      const fechaFin = it.fechaFin;
+      let estado = 'Activo';
+      if (fechaFin && fechaFin.trim() !== '' && fechaFin !== 'NULL') {
+        const endDate = new Date(fechaFin);
+        const now = new Date();
+        if (endDate <= now) {
+          estado = 'Baja';
+        } else {
+          estado = 'Programada baja';
+        }
+      } else if (it.activo === false) {
+        estado = 'Inactivo';
+      }
+
+      const matchEstado =
+        !filterEstado ||
+        estado.toLowerCase().includes(filterEstado.toLowerCase());
+
+      return matchNombre && matchTipo && matchEstado;
+    });
+  }, [items, types, filterNombre, filterTipo, filterEstado]);
+
+  const clearFilters = () => {
+    setFilterNombre('');
+    setFilterTipo('');
+    setFilterEstado('');
   };
 
   return (
     <div className={styles.container}>
       <BackButton />
       <div className={styles.header}>
-        <h1>Carrera</h1>
+        <h1>Carreras</h1>
         <Button onClick={openCreate}>+ Agregar</Button>
+      </div>
+
+      {/* Filtros */}
+      <div
+        style={{
+          backgroundColor: '#f8f9fa',
+          padding: '16px',
+          borderRadius: '8px',
+          marginBottom: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '8px',
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
+            🔍 Filtros
+          </h3>
+          {(filterNombre || filterTipo || filterEstado) && (
+            <Button
+              variant='outline'
+              onClick={clearFilters}
+              style={{ fontSize: '12px', padding: '4px 12px' }}
+            >
+              Limpiar filtros
+            </Button>
+          )}
+        </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '12px',
+          }}
+        >
+          <Input
+            label='Nombre'
+            placeholder='Buscar por nombre...'
+            value={filterNombre}
+            onChange={e => setFilterNombre(e.target.value)}
+            fullWidth
+          />
+          <Input
+            label='Tipo'
+            placeholder='Buscar por tipo...'
+            value={filterTipo}
+            onChange={e => setFilterTipo(e.target.value)}
+            fullWidth
+          />
+          <Input
+            label='Estado'
+            placeholder='Buscar por estado...'
+            value={filterEstado}
+            onChange={e => setFilterEstado(e.target.value)}
+            fullWidth
+          />
+        </div>
+        <div style={{ fontSize: '14px', color: '#666' }}>
+          Mostrando <strong>{filteredItems.length}</strong> de{' '}
+          <strong>{items.length}</strong> carreras
+        </div>
       </div>
 
       {loading ? (
@@ -157,7 +296,7 @@ export default function CarrerasBasePage() {
             </tr>
           </thead>
           <tbody>
-            {items.map(it => (
+            {filteredItems.map(it => (
               <tr key={it.id}>
                 <td>{it.nombre}</td>
                 <td>
@@ -188,7 +327,9 @@ export default function CarrerasBasePage() {
                     <Button variant='outline' onClick={() => openEdit(it)}>
                       ✏️
                     </Button>
-                    <Button onClick={() => remove(it.id, it.nombre)}>🗑️</Button>
+                    <Button onClick={() => confirmDelete(it.id, it.nombre)}>
+                      🗑️
+                    </Button>
                   </div>
                 </td>
               </tr>
@@ -253,6 +394,7 @@ export default function CarrerasBasePage() {
                     backgroundColor: fechaFin === 'NULL' ? '#f8f9fa' : 'white',
                   }}
                   placeholder='Seleccionar fecha de baja'
+                  min={new Date().toISOString().split('T')[0]}
                 />
                 <Button
                   variant='outline'
@@ -292,6 +434,25 @@ export default function CarrerasBasePage() {
                   </>
                 )}
               </small>
+              {fechaFin &&
+                fechaFin !== 'NULL' &&
+                new Date(fechaFin) <
+                  new Date(new Date().setHours(0, 0, 0, 0)) && (
+                  <div
+                    style={{
+                      marginTop: '8px',
+                      padding: '8px 12px',
+                      backgroundColor: '#f8d7da',
+                      borderRadius: '4px',
+                      fontSize: '13px',
+                      color: '#721c24',
+                    }}
+                  >
+                    <strong>⚠️ Advertencia:</strong> La fecha seleccionada es
+                    anterior a hoy. La carrera se marcará como "Baja"
+                    inmediatamente.
+                  </div>
+                )}
             </div>
             <div className={styles.modalActions}>
               <Button variant='outline' onClick={() => setShowModal(false)}>
@@ -304,6 +465,29 @@ export default function CarrerasBasePage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!careerToDelete}
+        onClose={() => setCareerToDelete(null)}
+        onConfirm={remove}
+        title='Confirmar Eliminación de Carrera'
+        message={
+          <>
+            <p>
+              ¿Estás seguro de que deseas eliminar la carrera{' '}
+              <strong>"{careerToDelete?.nombre}"</strong>?
+            </p>
+            <p>
+              Esta acción desactivará la carrera y no estará disponible en el
+              sistema.
+            </p>
+          </>
+        }
+        confirmText='Sí, Eliminar Carrera'
+        cancelText='Cancelar'
+        variant='danger'
+        isLoading={deleting}
+      />
     </div>
   );
 }

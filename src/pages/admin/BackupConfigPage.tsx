@@ -31,7 +31,18 @@ export default function BackupConfigPage() {
     try {
       setLoading(true);
       const data = await getBackupConfig();
-      setConfig(data);
+
+      // Convertir horaEjecucion de HH:MM:SS a HH:MM para el input type="time"
+      let horaParaInput = data.horaEjecucion;
+      if (horaParaInput && horaParaInput.length > 5) {
+        // Si viene con segundos (HH:MM:SS), quitar los segundos
+        horaParaInput = horaParaInput.substring(0, 5);
+      }
+
+      setConfig({
+        ...data,
+        horaEjecucion: horaParaInput,
+      });
     } catch (error) {
       // Si no hay configuración, usar valores por defecto
       const err = error as { response?: { status?: number } };
@@ -83,9 +94,12 @@ export default function BackupConfigPage() {
         return;
       }
 
-      // Asegurar formato HH:MM con ceros iniciales
-      const [hours, minutes] = config.horaEjecucion.split(':');
-      const formattedTime = `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+      // Asegurar formato HH:MM:SS con ceros iniciales para el backend
+      const timeParts = config.horaEjecucion.split(':');
+      const hours = timeParts[0].padStart(2, '0');
+      const minutes = timeParts[1].padStart(2, '0');
+      const seconds = timeParts[2] || '00'; // Agregar segundos si no existen
+      const formattedTime = `${hours}:${minutes}:${seconds}`;
 
       await updateBackupConfig({ ...config, horaEjecucion: formattedTime });
       showToast('Configuración de backups guardada exitosamente', {
