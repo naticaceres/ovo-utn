@@ -34,6 +34,8 @@ export default function CareerTypesPage() {
   const [deleting, setDeleting] = useState(false);
   const [filterNombre, setFilterNombre] = useState('');
   const [filterEstado, setFilterEstado] = useState('');
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -56,6 +58,7 @@ export default function CareerTypesPage() {
     setName('');
     setFechaFin('');
     setReactivar(false);
+    setModalError(null);
     setShowModal(true);
   };
 
@@ -73,14 +76,23 @@ export default function CareerTypesPage() {
       setReactivar(false);
     }
 
+    setModalError(null);
     setShowModal(true);
   };
 
   const save = async () => {
-    setError(null);
+    setModalError(null);
+
+    // Validar que el nombre no esté vacío
+    if (!name.trim()) {
+      setModalError('Debe ingresar un nombre para el tipo de carrera');
+      return;
+    }
+
+    setSaving(true);
     try {
       const payload: { nombreTipoCarrera: string; fechaFin?: string | null } = {
-        nombreTipoCarrera: name,
+        nombreTipoCarrera: name.trim(),
       };
 
       // Solo incluir fechaFin si estamos editando
@@ -96,12 +108,32 @@ export default function CareerTypesPage() {
       if (editing) {
         await updateCareerType(editing.id, payload);
       } else {
-        await createCareerType({ nombreTipoCarrera: name });
+        await createCareerType({ nombreTipoCarrera: name.trim() });
       }
       setShowModal(false);
-      load();
-    } catch {
-      setError('Error al guardar');
+      await load();
+    } catch (err: unknown) {
+      let errorMessage = 'Error al guardar';
+
+      if (err && typeof err === 'object') {
+        const error = err as {
+          message?: string;
+          error?: string;
+          details?: string;
+          msg?: string;
+        };
+
+        const possibleMessage =
+          error.message || error.error || error.msg || error.details;
+
+        if (possibleMessage) {
+          errorMessage = possibleMessage;
+        }
+      }
+
+      setModalError(errorMessage);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -323,6 +355,21 @@ export default function CareerTypesPage() {
               placeholder='Ingrese nombre del tipo de carrera'
             />
 
+            {modalError && (
+              <div
+                style={{
+                  marginTop: '12px',
+                  padding: '12px',
+                  backgroundColor: '#f8d7da',
+                  color: '#721c24',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                }}
+              >
+                {modalError}
+              </div>
+            )}
+
             {editing && (
               <>
                 <div style={{ marginTop: '16px' }}>
@@ -425,10 +472,16 @@ export default function CareerTypesPage() {
             )}
 
             <div className={styles.modalActions}>
-              <Button variant='outline' onClick={() => setShowModal(false)}>
+              <Button
+                variant='outline'
+                onClick={() => setShowModal(false)}
+                disabled={saving}
+              >
                 Cancelar
               </Button>
-              <Button onClick={save}>Guardar</Button>
+              <Button onClick={save} disabled={saving}>
+                {saving ? 'Guardando...' : 'Guardar'}
+              </Button>
             </div>
           </div>
         </div>
