@@ -333,6 +333,74 @@ export async function submitTestAnswer(
 }
 
 /**
+ * Obtiene el estado actual de un test
+ * Permite verificar si un test está activo o completado
+ */
+export async function getTestStatus(testId: number): Promise<{
+  idEstadoTest: number;
+  nombreEstadoTest: string;
+  status: 'in_progress' | 'completed';
+  testId: number;
+}> {
+  const { data } = await api.get(`/api/v1/tests/${testId}/status`);
+  // Mapear la respuesta del backend a un formato más amigable
+  return {
+    idEstadoTest: data.idEstadoTest as number,
+    nombreEstadoTest: data.nombreEstadoTest as string,
+    status: data.idEstadoTest === 1 ? 'in_progress' : 'completed',
+    testId: testId,
+  };
+}
+
+/**
+ * Obtiene el historial de conversación de un test en progreso
+ * Permite recuperar la conversación completa para continuar un test
+ */
+export async function getTestHistory(testId: number): Promise<{
+  fullHistory: Array<{ role: string; content: string }>;
+}> {
+  try {
+    const { data } = await api.get(`/api/v1/tests/${testId}/history`);
+
+    // El backend devuelve: { "HistorialPreguntas": "[\"...\", \"...\"]" }
+    // Necesitamos parsear el string JSON para obtener el array
+    if (data.HistorialPreguntas) {
+      const historyArray = JSON.parse(
+        data.HistorialPreguntas as string
+      ) as string[];
+
+      // Convertir el array de strings al formato esperado
+      const fullHistory = historyArray.map(msg => {
+        // Cada mensaje viene como: "Asistente: texto" o "Usuario: texto"
+        if (msg.startsWith('Asistente:')) {
+          return {
+            role: 'assistant',
+            content: msg.replace('Asistente: ', '').trim(),
+          };
+        } else if (msg.startsWith('Usuario:')) {
+          return {
+            role: 'user',
+            content: msg.replace('Usuario: ', '').trim(),
+          };
+        }
+        // Fallback si no tiene prefijo
+        return {
+          role: 'assistant',
+          content: msg,
+        };
+      });
+
+      return { fullHistory };
+    }
+
+    return { fullHistory: [] };
+  } catch (error) {
+    console.warn('No se pudo obtener el historial del test:', error);
+    return { fullHistory: [] };
+  }
+}
+
+/**
  * Obtiene los resultados de un test específico
  * Si el test no está asociado al usuario, lo asocia automáticamente
  * ACCESO PÚBLICO: Disponible para todos los usuarios autenticados, sin restricciones de permisos

@@ -1,4 +1,9 @@
-import { startTest, submitTestAnswer } from '../../context/api';
+import {
+  startTest,
+  submitTestAnswer,
+  getTestStatus,
+  getTestHistory,
+} from '../../context/api';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
@@ -23,6 +28,8 @@ export function QuestionnairePage() {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [isRecovering, setIsRecovering] = useState(true);
+  const [hasInProgressTest, setHasInProgressTest] = useState(false);
 
   // Helper: render text with newlines and simple **bold** tokens
   const renderFormattedText = (text: string) => {
@@ -198,6 +205,45 @@ export function QuestionnairePage() {
     }
   };
 
+  // Intentar recuperar test en progreso al montar el componente
+  useEffect(() => {
+    const recoverTest = async () => {
+      const savedTestId = localStorage.getItem('testId');
+
+      if (!savedTestId) {
+        setIsRecovering(false);
+        return;
+      }
+
+      try {
+        const testIdNum = parseInt(savedTestId, 10);
+        const status = await getTestStatus(testIdNum);
+
+        // Si el test está en progreso (idEstadoTest === 1 o status === 'in_progress')
+        if (status.status === 'in_progress') {
+          setIdTest(testIdNum);
+          setHasInProgressTest(true);
+
+          // Nota: Como el backend no devuelve el historial directamente,
+          // solo marcamos que hay un test en progreso y el usuario puede continuar.
+          // El historial se reconstruirá al enviar la primera respuesta.
+          console.log('Test en progreso detectado:', testIdNum);
+        } else if (status.status === 'completed') {
+          // Si el test ya está completado, limpiarlo
+          localStorage.removeItem('testId');
+        }
+      } catch (error) {
+        console.error('Error al recuperar test en progreso:', error);
+        // Si hay error al recuperar, limpiar el localStorage
+        localStorage.removeItem('testId');
+      } finally {
+        setIsRecovering(false);
+      }
+    };
+
+    recoverTest();
+  }, []);
+
   // scroll al final al añadir mensajes
   useEffect(() => {
     if (scrollRef.current) {
@@ -218,6 +264,25 @@ export function QuestionnairePage() {
     // Enviar respuesta al backend
     sendAnswer(text);
   };
+
+  // Mostrar pantalla de carga mientras se intenta recuperar un test
+  if (isRecovering) {
+    return (
+      <div className={styles.questionnaireCard}>
+        <BackButton />
+        <header className={styles.header}>
+          <h1 className={styles.title}>Test de Orientación Vocacional</h1>
+        </header>
+        <div className={styles.welcomeSection}>
+          <div className={styles.welcomeMessage}>
+            <p className={styles.description}>
+              Verificando si hay un test en progreso...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!hasStarted) {
     return (
@@ -245,47 +310,141 @@ export function QuestionnairePage() {
           </div>
 
           <div className={styles.welcomeMessage}>
-            <p className={styles.greeting}>
-              ¡Hola! Soy tu asistente de orientación vocacional.{' '}
-              <span className={styles.gIcon}>G</span>
-            </p>
-            <p className={styles.description}>
-              Vamos a descubrir juntos cuáles son tus talentos y preferencias
-              profesionales. Este proceso tomará aproximadamente 25-30 minutos.
-            </p>
+            {hasInProgressTest ? (
+              <>
+                <p className={styles.greeting}>
+                  ¡Bienvenido de nuevo! <span className={styles.gIcon}>👋</span>
+                </p>
+                <p className={styles.description}>
+                  Detectamos que tienes un test en progreso. ¿Deseas continuar
+                  donde lo dejaste o prefieres comenzar un nuevo test?
+                </p>
 
-            <div className={styles.howItWorks}>
-              <h3>¿Cómo funciona?</h3>
-              <ul>
-                <li>
-                  Te haré un máximo de 50 preguntas sobre tus intereses,
-                  habilidades y preferencias
-                </li>
-                <li>Las preguntas se adaptan a tus respuestas</li>
-                <li>
-                  Tu progreso se guarda automáticamente después de cada
-                  respuesta
-                </li>
-                <li>Puedes pausar cuando quieras</li>
-                <li>
-                  Al final recibirás tu perfil de aptitudes y carreras
-                  compatibles
-                </li>
-              </ul>
-            </div>
+                <div className={styles.warningBox}>
+                  <p>
+                    ⚠️ <strong>Nota:</strong> Si comienzas un nuevo test, se
+                    perderá el progreso del test anterior.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className={styles.greeting}>
+                  ¡Hola! Soy tu asistente de orientación vocacional.{' '}
+                  <span className={styles.gIcon}>🤖</span>
+                </p>
+                <p className={styles.description}>
+                  Vamos a descubrir juntos cuáles son tus talentos y
+                  preferencias profesionales. Este proceso tomará
+                  aproximadamente 25-30 minutos.
+                </p>
 
-            <p className={styles.readyQuestion}>¿Estás listo para comenzar?</p>
+                <div className={styles.howItWorks}>
+                  <h3>¿Cómo funciona?</h3>
+                  <ul>
+                    <li>
+                      Te haré un máximo de 50 preguntas sobre tus intereses,
+                      habilidades y preferencias
+                    </li>
+                    <li>Las preguntas se adaptan a tus respuestas</li>
+                    <li>
+                      Tu progreso se guarda automáticamente después de cada
+                      respuesta
+                    </li>
+                    <li>Puedes pausar cuando quieras y continuar más tarde</li>
+                    <li>
+                      Al final recibirás tu perfil de aptitudes y carreras
+                      compatibles
+                    </li>
+                  </ul>
+                </div>
+
+                <p className={styles.readyQuestion}>
+                  ¿Estás listo para comenzar?
+                </p>
+              </>
+            )}
           </div>
 
           <div className={styles.actionButtons}>
-            <Button
-              onClick={handleStartTest}
-              variant='primary'
-              size='lg'
-              className={styles.startButton}
-            >
-              Sí, empezar el test
-            </Button>
+            {hasInProgressTest ? (
+              <>
+                <Button
+                  onClick={async () => {
+                    setIsLoading(true);
+                    try {
+                      if (idTest) {
+                        // Intentar cargar el historial si está disponible
+                        const history = await getTestHistory(idTest);
+                        if (
+                          history.fullHistory &&
+                          history.fullHistory.length > 0
+                        ) {
+                          const recoveredMessages = history.fullHistory.map(
+                            (msg, index) => ({
+                              id: `history-${index}`,
+                              sender:
+                                msg.role === 'user'
+                                  ? 'user'
+                                  : ('bot' as 'bot' | 'user'),
+                              text: msg.content,
+                            })
+                          );
+                          setMessages(recoveredMessages);
+                        } else {
+                          // Si no hay historial, agregar mensaje inicial
+                          setMessages([
+                            {
+                              id: `bot-${Date.now()}`,
+                              sender: 'bot',
+                              text: 'Continuando con tu test. Por favor, responde la siguiente pregunta.',
+                            },
+                          ]);
+                        }
+                      }
+                      setHasStarted(true);
+                    } catch (error) {
+                      console.error('Error al cargar historial:', error);
+                      // Continuar sin historial
+                      setMessages([
+                        {
+                          id: `bot-${Date.now()}`,
+                          sender: 'bot',
+                          text: 'Continuando con tu test. Por favor, responde la siguiente pregunta.',
+                        },
+                      ]);
+                      setHasStarted(true);
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  variant='primary'
+                  size='lg'
+                  className={styles.startButton}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Cargando...' : 'Continuar test'}
+                </Button>
+                <Button
+                  onClick={handleStartTest}
+                  variant='outline'
+                  size='lg'
+                  className={styles.startButton}
+                  disabled={isLoading}
+                >
+                  Comenzar nuevo test
+                </Button>
+              </>
+            ) : (
+              <Button
+                onClick={handleStartTest}
+                variant='primary'
+                size='lg'
+                className={styles.startButton}
+              >
+                Sí, empezar el test
+              </Button>
+            )}
           </div>
         </div>
 

@@ -64,6 +64,28 @@ export function TestsHistoryPage() {
     associatePendingTest();
   }, [hasCheckedPendingTest, refetch]);
 
+  // Detectar y guardar test activo en localStorage
+  useEffect(() => {
+    if (userTests && userTests.length > 0) {
+      // Buscar si hay algún test con estado "Activo"
+      const activeTest = userTests.find(
+        (test: UserTest) => test.estado === 'Activo'
+      );
+
+      if (activeTest) {
+        // Guardar el testId activo en localStorage para poder continuarlo
+        const testId = activeTest.id || activeTest.testId;
+        if (testId) {
+          localStorage.setItem('testId', testId.toString());
+          console.log(
+            'Test activo detectado y guardado en localStorage:',
+            testId
+          );
+        }
+      }
+    }
+  }, [userTests]);
+
   // Función para obtener un icono aleatorio para cada aptitud
   const getRandomIcon = (aptitude: string) => {
     const icons = [
@@ -179,130 +201,153 @@ export function TestsHistoryPage() {
       </div>
 
       <div className={styles.testsList}>
-        {userTests.map((test: UserTest, index: number) => (
-          <div key={test.testId} className={styles.testCard}>
-            <div className={styles.testCardHeader}>
-              <div className={styles.testNumber}>
-                Test #{userTests.length - index}
-              </div>
-              {test.fechaRealizacion && (
-                <div className={styles.testDate}>
-                  {new Date(test.fechaRealizacion).toLocaleDateString('es-ES', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
+        {userTests.map((test: UserTest, index: number) => {
+          const isActiveTest = test.estado === 'Activo';
+          const testId = test.id || test.testId;
+
+          return (
+            <div
+              key={testId}
+              className={`${styles.testCard} ${isActiveTest ? styles.testCardActive : ''}`}
+            >
+              <div className={styles.testCardHeader}>
+                <div className={styles.testNumber}>
+                  Test #{userTests.length - index}
+                  {isActiveTest && (
+                    <span className={styles.activeTestBadge}>En Progreso</span>
+                  )}
                 </div>
-              )}
-            </div>
-
-            <div className={styles.testContent}>
-              {/* Aptitudes */}
-              <div className={styles.testSection}>
-                <h3 className={styles.sectionTitle}>Aptitudes Obtenidas</h3>
-                {test.aptitudesObtenidas &&
-                test.aptitudesObtenidas.length > 0 ? (
-                  <div className={styles.aptitudesGrid}>
-                    {test.aptitudesObtenidas
-                      .sort((a, b) => b.afinidadAptitud - a.afinidadAptitud)
-                      .slice(0, 5)
-                      .map(aptitud => {
-                        const percentage = Math.max(
-                          0,
-                          Math.min(
-                            100,
-                            Math.round(aptitud.afinidadAptitud * 10)
-                          )
-                        );
-                        const icon = getRandomIcon(aptitud.nombreAptitud);
-                        const color = getRandomColor(aptitud.nombreAptitud);
-
-                        return (
-                          <div
-                            key={aptitud.idAptitud}
-                            className={styles.aptitudeChip}
-                          >
-                            <span
-                              className={styles.aptitudeIcon}
-                              style={{ color }}
-                            >
-                              {icon}
-                            </span>
-                            <span className={styles.aptitudeName}>
-                              {aptitud.nombreAptitud}
-                            </span>
-                            <span className={styles.aptitudeScore}>
-                              {percentage}%
-                            </span>
-                          </div>
-                        );
-                      })}
+                {test.fecha && (
+                  <div className={styles.testDate}>
+                    {new Date(test.fecha).toLocaleDateString('es-ES', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
                   </div>
-                ) : (
-                  <p className={styles.noData}>No hay datos de aptitudes</p>
                 )}
               </div>
 
-              {/* Carreras Recomendadas */}
-              <div className={styles.testSection}>
-                <h3 className={styles.sectionTitle}>
-                  Top 3 Carreras Recomendadas
-                </h3>
-                {test.carrerasRecomendadas &&
-                test.carrerasRecomendadas.length > 0 ? (
-                  <div className={styles.careersList}>
-                    {test.carrerasRecomendadas
-                      .sort(
-                        (a: CarreraRecomendada, b: CarreraRecomendada) =>
-                          (b.afinidadCarrera || b.puntaje || 0) -
-                          (a.afinidadCarrera || a.puntaje || 0)
-                      )
-                      .slice(0, 3)
-                      .map((carrera: CarreraRecomendada, idx: number) => {
-                        // Usar afinidadCarrera si existe, sino puntaje, sino 0
-                        const compatibilidad =
-                          carrera.afinidadCarrera ?? carrera.puntaje ?? 0;
+              <div className={styles.testContent}>
+                {/* Aptitudes */}
+                <div className={styles.testSection}>
+                  <h3 className={styles.sectionTitle}>Aptitudes Obtenidas</h3>
+                  {test.aptitudesObtenidas &&
+                  test.aptitudesObtenidas.length > 0 ? (
+                    <div className={styles.aptitudesGrid}>
+                      {test.aptitudesObtenidas
+                        .sort((a, b) => b.afinidadAptitud - a.afinidadAptitud)
+                        .slice(0, 5)
+                        .map(aptitud => {
+                          const percentage = Math.max(
+                            0,
+                            Math.min(
+                              100,
+                              Math.round(aptitud.afinidadAptitud * 10)
+                            )
+                          );
+                          const icon = getRandomIcon(aptitud.nombreAptitud);
+                          const color = getRandomColor(aptitud.nombreAptitud);
 
-                        return (
-                          <div
-                            key={carrera.idCarreraInstitucion}
-                            className={styles.careerItem}
-                          >
-                            <div className={styles.careerRank}>#{idx + 1}</div>
-                            <div className={styles.careerInfo}>
-                              <h4 className={styles.careerTitle}>
-                                {carrera.tituloCarrera}
-                              </h4>
-                              <p className={styles.careerMatch}>
-                                Compatibilidad: {compatibilidad.toFixed(2)}%
-                              </p>
+                          return (
+                            <div
+                              key={aptitud.idAptitud}
+                              className={styles.aptitudeChip}
+                            >
+                              <span
+                                className={styles.aptitudeIcon}
+                                style={{ color }}
+                              >
+                                {icon}
+                              </span>
+                              <span className={styles.aptitudeName}>
+                                {aptitud.nombreAptitud}
+                              </span>
+                              <span className={styles.aptitudeScore}>
+                                {percentage}%
+                              </span>
                             </div>
-                            <Link
-                              to={`/app/student/carrera-detalle/${carrera.idCarreraInstitucion}`}
+                          );
+                        })}
+                    </div>
+                  ) : (
+                    <p className={styles.noData}>No hay datos de aptitudes</p>
+                  )}
+                </div>
+
+                {/* Carreras Recomendadas */}
+                <div className={styles.testSection}>
+                  <h3 className={styles.sectionTitle}>
+                    Top 3 Carreras Recomendadas
+                  </h3>
+                  {test.carrerasRecomendadas &&
+                  test.carrerasRecomendadas.length > 0 ? (
+                    <div className={styles.careersList}>
+                      {test.carrerasRecomendadas
+                        .sort(
+                          (a: CarreraRecomendada, b: CarreraRecomendada) =>
+                            (b.afinidadCarrera || b.puntaje || 0) -
+                            (a.afinidadCarrera || a.puntaje || 0)
+                        )
+                        .slice(0, 3)
+                        .map((carrera: CarreraRecomendada, idx: number) => {
+                          // Usar afinidadCarrera si existe, sino puntaje, sino 0
+                          const compatibilidad =
+                            carrera.afinidadCarrera ?? carrera.puntaje ?? 0;
+
+                          return (
+                            <div
+                              key={carrera.idCarreraInstitucion}
+                              className={styles.careerItem}
                             >
-                              <Button variant='outline' size='sm'>
-                                Ver detalles
-                              </Button>
-                            </Link>
-                          </div>
-                        );
-                      })}
-                  </div>
+                              <div className={styles.careerRank}>
+                                #{idx + 1}
+                              </div>
+                              <div className={styles.careerInfo}>
+                                <h4 className={styles.careerTitle}>
+                                  {carrera.tituloCarrera}
+                                </h4>
+                                <p className={styles.careerMatch}>
+                                  Compatibilidad: {compatibilidad.toFixed(2)}%
+                                </p>
+                              </div>
+                              <Link
+                                to={`/app/student/carrera-detalle/${carrera.idCarreraInstitucion}`}
+                              >
+                                <Button variant='outline' size='sm'>
+                                  Ver detalles
+                                </Button>
+                              </Link>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  ) : (
+                    <p className={styles.noData}>
+                      No hay carreras recomendadas
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.testCardFooter}>
+                {isActiveTest ? (
+                  <Link to='/app/questionnaire'>
+                    <Button variant='primary' size='sm'>
+                      🔄 Continuar Test
+                    </Button>
+                  </Link>
                 ) : (
-                  <p className={styles.noData}>No hay carreras recomendadas</p>
+                  <Link to={`/app/student/tests/${testId}`}>
+                    <Button variant='outline' size='sm'>
+                      Ver Resultados Completos
+                    </Button>
+                  </Link>
                 )}
               </div>
             </div>
-
-            <div className={styles.testCardFooter}>
-              <Link to={`/app/student/tests/${test.testId}`}>
-                <Button variant='outline' size='sm'>
-                  Ver Resultados Completos
-                </Button>
-              </Link>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

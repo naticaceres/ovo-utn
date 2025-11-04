@@ -86,6 +86,16 @@
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+/* Estilo especial para tests activos */
+.testCardActive {
+  border: 2px solid #10b981;
+  background: linear-gradient(to right, #f0fdf4, #ffffff);
+}
+
+.testCardActive:hover {
+  box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
+}
+
 .testCardHeader {
   display: flex;
   justify-content: space-between;
@@ -99,6 +109,48 @@
   font-size: 1.25rem;
   font-weight: 600;
   color: #8b5cf6;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.activeTestBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  background: #10b981;
+  color: white;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.activeTestBadge::before {
+  content: '●';
+  font-size: 0.5rem;
+  animation: blink 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 
 .testDate {
