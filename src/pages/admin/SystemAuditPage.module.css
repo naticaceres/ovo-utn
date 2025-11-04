@@ -35,3 +35,26 @@
   gap: 8px;
   align-items: center;
 }
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+}
+.fieldGroup label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.select {
+  width: 100%;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #e6e6e6;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
+}
+.select:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}

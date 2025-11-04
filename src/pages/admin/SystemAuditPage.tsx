@@ -3,26 +3,65 @@ import { BackButton } from '../../components/ui/BackButton';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import styles from './SystemAuditPage.module.css';
-import { audit, exportAuditFile } from '../../services/admin';
+import { audit, exportAuditFile, listActionTypes } from '../../services/admin';
+import { getApiErrorMessage } from '../../context/api';
+import { useToast } from '../../components/ui/toast/useToast';
 
 type AuditEntry = {
-  fechaHora?: string;
-  usuario?: string | Record<string, unknown>;
-  accion?: string;
-  clase?: string;
-  modulo?: string;
+  detalle?: string;
+  fecha?: string;
+  idTipoAccion?: number;
+  idUsuario?: number;
+  nombreTipoAccion?: string;
+  nombreUsuario?: string;
+};
+
+type ActionType = {
+  id: number | string;
+  nombre: string;
 };
 
 export default function SystemAuditPage() {
+  const { showToast } = useToast();
   const [from, setFrom] = React.useState('');
   const [to, setTo] = React.useState('');
   const [userId, setUserId] = React.useState('');
-  const [modulo, setModulo] = React.useState('');
   const [tipoAccion, setTipoAccion] = React.useState('');
 
   const [rows, setRows] = React.useState<AuditEntry[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  // Estado para los tipos de acción desde el catálogo
+  const [actionTypes, setActionTypes] = React.useState<ActionType[]>([]);
+  const [actionTypesLoading, setActionTypesLoading] = React.useState(false);
+  const [actionTypesError, setActionTypesError] = React.useState<string | null>(
+    null
+  );
+
+  // Cargar los tipos de acción desde el catálogo
+  const loadActionTypes = React.useCallback(async () => {
+    setActionTypesLoading(true);
+    setActionTypesError(null);
+    try {
+      const data = await listActionTypes();
+      const raw: ActionType[] = Array.isArray(data) ? data : [];
+      setActionTypes(raw);
+    } catch (err) {
+      const msg =
+        getApiErrorMessage(err) || 'No se pudieron cargar los tipos de acción';
+      setActionTypesError(msg);
+      showToast(msg, { variant: 'error' });
+      setActionTypes([]);
+    } finally {
+      setActionTypesLoading(false);
+    }
+  }, [showToast]);
+
+  // Cargar tipos de acción al montar el componente
+  React.useEffect(() => {
+    loadActionTypes();
+  }, [loadActionTypes]);
 
   const fetch = React.useCallback(async () => {
     setLoading(true);
@@ -32,7 +71,6 @@ export default function SystemAuditPage() {
       if (userId) params.userId = userId;
       if (from) params.from = from;
       if (to) params.to = to;
-      if (modulo) params.modulo = modulo;
       if (tipoAccion) params.tipoAccion = tipoAccion;
       const data = await audit(params);
       const raw = ((): AuditEntry[] => {
@@ -49,7 +87,7 @@ export default function SystemAuditPage() {
     } finally {
       setLoading(false);
     }
-  }, [from, to, userId, modulo, tipoAccion]);
+  }, [from, to, userId, tipoAccion]);
 
   const onExport = async (format: 'pdf' | 'csv') => {
     try {
@@ -57,58 +95,12 @@ export default function SystemAuditPage() {
       if (userId) params.userId = userId;
       if (from) params.from = from;
       if (to) params.to = to;
-      if (modulo) params.modulo = modulo;
       if (tipoAccion) params.tipoAccion = tipoAccion;
       await exportAuditFile(params, 'audit', format);
     } catch {
       setError('No se pudo exportar');
     }
   };
-
-  const renderCell = (v: unknown) => {
-    if (v === null || typeof v === 'undefined') return '';
-    if (typeof v === 'string' || typeof v === 'number') return String(v);
-    if (typeof v === 'object') {
-      const o = v as Record<string, unknown>;
-      const nombre = (o['nombre'] as string) || (o['name'] as string) || '';
-      const apellido =
-        (o['apellido'] as string) || (o['lastName'] as string) || '';
-      if (nombre || apellido) return `${nombre} ${apellido}`.trim();
-      if (o['id']) return String(o['id']);
-      return JSON.stringify(o);
-    }
-    return String(v);
-  };
-
-  const pick = (obj: Record<string, unknown> | undefined, keys: string[]) => {
-    if (!obj) return undefined;
-    for (const k of keys) {
-      if (typeof obj[k] !== 'undefined' && obj[k] !== null) return obj[k];
-    }
-    return undefined;
-  };
-
-  const renderDate = (r: AuditEntry) => {
-    const v = pick(r as unknown as Record<string, unknown>, [
-      'fechaHora',
-      'fecha',
-      'date',
-      'timestamp',
-    ]);
-    return v ? String(v) : '';
-  };
-
-  const renderAction = (r: AuditEntry) => {
-    const v = pick(r as unknown as Record<string, unknown>, [
-      'accion',
-      'action',
-      'tipo',
-      'tipoAccion',
-    ]);
-    return v ? String(v) : '';
-  };
-
-  // renderClase removed per UI request
 
   return (
     <div className={styles.container}>
@@ -139,31 +131,27 @@ export default function SystemAuditPage() {
           value={userId}
           onChange={e => setUserId(e.target.value)}
         />
-        <Input
-          label='Módulo'
-          placeholder='Buscar módulo'
-          value={modulo}
-          onChange={e => setModulo(e.target.value)}
-        />
-        <div>
-          <label style={{ display: 'block', marginBottom: 6 }}>
-            Tipo de acción
-          </label>
+        <div className={styles.fieldGroup}>
+          <label>Tipo de acción</label>
           <select
             value={tipoAccion}
             onChange={e => setTipoAccion(e.target.value)}
-            style={{
-              width: '100%',
-              padding: 8,
-              borderRadius: 6,
-              border: '1px solid #e6e6e6',
-            }}
+            className={styles.select}
+            disabled={actionTypesLoading}
           >
             <option value=''>Todos</option>
-            <option value='CREACION'>CREACION</option>
-            <option value='UPDATE'>UPDATE</option>
-            <option value='DELETE'>DELETE</option>
+            {actionTypes.map(type => (
+              <option key={type.id} value={type.id}>
+                {type.nombre}
+              </option>
+            ))}
           </select>
+          {actionTypesLoading && (
+            <div style={{ fontSize: 12 }}>Cargando tipos de acción...</div>
+          )}
+          {actionTypesError && (
+            <div className={styles.error}>{actionTypesError}</div>
+          )}
         </div>
       </div>
 
@@ -177,17 +165,17 @@ export default function SystemAuditPage() {
             <tr>
               <th>Fecha/Hora</th>
               <th>Usuario</th>
-              <th>Acción</th>
-              <th>Módulo</th>
+              <th>Tipo de Acción</th>
+              <th>Detalle</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r, i) => (
               <tr key={i}>
-                <td>{renderDate(r)}</td>
-                <td>{renderCell(r.usuario)}</td>
-                <td>{renderAction(r)}</td>
-                <td>{renderCell(r.modulo)}</td>
+                <td>{r.fecha || ''}</td>
+                <td>{r.nombreUsuario || ''}</td>
+                <td>{r.nombreTipoAccion || ''}</td>
+                <td>{r.detalle || ''}</td>
               </tr>
             ))}
           </tbody>

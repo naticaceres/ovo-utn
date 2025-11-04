@@ -10,6 +10,9 @@ import {
   rejectInstitutionRequest,
   listInstitutionTypes,
   deactivateInstitution,
+  activateInstitution,
+  getInstitutionStateHistory,
+  type InstitutionStateHistoryDTO,
 } from '../../services/admin';
 
 type RequestItem = {
@@ -56,10 +59,25 @@ export default function SolicitudesInstitucionPage() {
   const [deactivatingId, setDeactivatingId] = React.useState<
     number | string | null
   >(null);
+  const [activatingId, setActivatingId] = React.useState<
+    number | string | null
+  >(null);
   const [institutionToDelete, setInstitutionToDelete] = React.useState<{
     id: number | string;
     nombre: string;
   } | null>(null);
+
+  // Estados para el modal de historial
+  const [showHistoryModal, setShowHistoryModal] = React.useState(false);
+  const [stateHistory, setStateHistory] = React.useState<
+    InstitutionStateHistoryDTO[]
+  >([]);
+  const [loadingHistory, setLoadingHistory] = React.useState(false);
+  const [selectedInstitutionForHistory, setSelectedInstitutionForHistory] =
+    React.useState<{
+      id: number | string;
+      nombre: string;
+    } | null>(null);
 
   const loadInstitutionTypes = React.useCallback(async () => {
     try {
@@ -210,6 +228,70 @@ export default function SolicitudesInstitucionPage() {
     }
   };
 
+  const onActivate = async (id: number | string) => {
+    setError(null);
+    setActivatingId(id);
+    try {
+      const token = localStorage.getItem('token');
+      await activateInstitution(id, token || undefined);
+      loadData(); // Recargar la lista
+    } catch (err) {
+      console.error('Error activating institution:', err);
+      setError('No se pudo reactivar la institución');
+    } finally {
+      setActivatingId(null);
+    }
+  };
+
+  const openHistoryModal = async (
+    institutionId: number | string,
+    institutionName: string
+  ) => {
+    setSelectedInstitutionForHistory({
+      id: institutionId,
+      nombre: institutionName,
+    });
+    setShowHistoryModal(true);
+    setLoadingHistory(true);
+    setStateHistory([]);
+
+    try {
+      const token = localStorage.getItem('token');
+      const history = await getInstitutionStateHistory(
+        institutionId,
+        token || undefined
+      );
+      setStateHistory(history);
+    } catch (err) {
+      console.error('Error loading institution state history:', err);
+      setError('No se pudo cargar el historial de estados');
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const closeHistoryModal = () => {
+    setShowHistoryModal(false);
+    setSelectedInstitutionForHistory(null);
+    setStateHistory([]);
+  };
+
+  const formatDate = (dateString: string | null): string => {
+    if (!dateString) return 'Actualidad';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
   return (
     <div className={styles.container}>
       <BackButton />
@@ -238,7 +320,8 @@ export default function SolicitudesInstitucionPage() {
           disabled={
             approvingId !== null ||
             confirmingRejectId !== null ||
-            deactivatingId !== null
+            deactivatingId !== null ||
+            activatingId !== null
           }
         />
         <Input
@@ -248,7 +331,8 @@ export default function SolicitudesInstitucionPage() {
           disabled={
             approvingId !== null ||
             confirmingRejectId !== null ||
-            deactivatingId !== null
+            deactivatingId !== null ||
+            activatingId !== null
           }
         />
         <select
@@ -257,7 +341,8 @@ export default function SolicitudesInstitucionPage() {
           disabled={
             approvingId !== null ||
             confirmingRejectId !== null ||
-            deactivatingId !== null
+            deactivatingId !== null ||
+            activatingId !== null
           }
           style={{
             padding: '0.5rem',
@@ -282,7 +367,8 @@ export default function SolicitudesInstitucionPage() {
           disabled={
             approvingId !== null ||
             confirmingRejectId !== null ||
-            deactivatingId !== null
+            deactivatingId !== null ||
+            activatingId !== null
           }
         >
           Limpiar Filtros
@@ -377,6 +463,15 @@ export default function SolicitudesInstitucionPage() {
                 </td>
                 <td>
                   <div className={styles.actions}>
+                    <Button
+                      variant='outline'
+                      onClick={() =>
+                        openHistoryModal(it.id, it.nombre || 'Institución')
+                      }
+                      title='Ver historial de estados'
+                    >
+                      👁️
+                    </Button>
                     {it.estado === 'Pendiente' && (
                       <>
                         <Button
@@ -385,7 +480,8 @@ export default function SolicitudesInstitucionPage() {
                           disabled={
                             approvingId === it.id ||
                             confirmingRejectId === it.id ||
-                            deactivatingId === it.id
+                            deactivatingId === it.id ||
+                            activatingId === it.id
                           }
                           isLoading={approvingId === it.id}
                         >
@@ -397,7 +493,8 @@ export default function SolicitudesInstitucionPage() {
                           disabled={
                             approvingId === it.id ||
                             confirmingRejectId === it.id ||
-                            deactivatingId === it.id
+                            deactivatingId === it.id ||
+                            activatingId === it.id
                           }
                         >
                           Rechazar
@@ -416,7 +513,8 @@ export default function SolicitudesInstitucionPage() {
                         disabled={
                           approvingId !== null ||
                           confirmingRejectId !== null ||
-                          deactivatingId === it.id
+                          deactivatingId === it.id ||
+                          activatingId !== null
                         }
                         isLoading={deactivatingId === it.id}
                       >
@@ -425,15 +523,29 @@ export default function SolicitudesInstitucionPage() {
                           : 'Dar de baja'}
                       </Button>
                     )}
-                    {(it.estado === 'Rechazada' ||
-                      it.estado === 'Baja' ||
+                    {it.estado === 'Rechazada' && (
+                      <span style={{ color: '#666', fontSize: '12px' }}>
+                        Rechazada
+                      </span>
+                    )}
+                    {(it.estado === 'Baja' ||
                       it.estado === 'Inactiva' ||
                       it.estado === 'Desactivada') && (
-                      <span style={{ color: '#666', fontSize: '12px' }}>
-                        {it.estado === 'Rechazada'
-                          ? 'Rechazada'
-                          : 'Dada de baja'}
-                      </span>
+                      <Button
+                        onClick={() => onActivate(it.id)}
+                        style={{ background: '#17a2b8', color: 'white' }}
+                        disabled={
+                          approvingId !== null ||
+                          confirmingRejectId !== null ||
+                          deactivatingId !== null ||
+                          activatingId === it.id
+                        }
+                        isLoading={activatingId === it.id}
+                      >
+                        {activatingId === it.id
+                          ? 'Reactivando...'
+                          : 'Reactivar'}
+                      </Button>
                     )}
                   </div>
                 </td>
@@ -502,6 +614,145 @@ export default function SolicitudesInstitucionPage() {
         variant='danger'
         isLoading={deactivatingId === institutionToDelete?.id}
       />
+
+      {/* Modal de Historial de Estados de Institución */}
+      {showHistoryModal && (
+        <div className={styles.modalBackdrop}>
+          <div
+            className={styles.modal}
+            style={{ maxWidth: '900px', width: '90%' }}
+          >
+            <h3>
+              Historial de Estados -{' '}
+              {selectedInstitutionForHistory?.nombre || 'Institución'}
+            </h3>
+
+            {loadingHistory ? (
+              <div style={{ padding: '20px', textAlign: 'center' }}>
+                Cargando historial...
+              </div>
+            ) : error && stateHistory.length === 0 ? (
+              <div className={styles.error}>{error}</div>
+            ) : stateHistory.length === 0 ? (
+              <div
+                style={{ padding: '20px', textAlign: 'center', color: '#666' }}
+              >
+                No se encontró historial de estados para esta institución.
+              </div>
+            ) : (
+              <div
+                style={{
+                  maxHeight: '500px',
+                  overflowY: 'auto',
+                  marginTop: '16px',
+                }}
+              >
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Estado</th>
+                      <th>Fecha Inicio</th>
+                      <th>Fecha Fin</th>
+                      <th>Duración</th>
+                      <th>Justificación</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stateHistory.map((item, idx) => {
+                      const esActual = !item.fechaFin;
+                      return (
+                        <tr
+                          key={idx}
+                          style={{
+                            backgroundColor: esActual
+                              ? '#f0f9ff'
+                              : 'transparent',
+                            fontWeight: esActual ? 600 : 400,
+                          }}
+                        >
+                          <td>
+                            {item.nombreEstadoInstitucion}
+                            {esActual && (
+                              <span
+                                style={{
+                                  marginLeft: '8px',
+                                  padding: '2px 8px',
+                                  backgroundColor: '#22c55e',
+                                  color: 'white',
+                                  borderRadius: '4px',
+                                  fontSize: '12px',
+                                }}
+                              >
+                                Actual
+                              </span>
+                            )}
+                          </td>
+                          <td>{formatDate(item.fechaInicio)}</td>
+                          <td>{formatDate(item.fechaFin)}</td>
+                          <td>
+                            {(() => {
+                              try {
+                                const inicio = new Date(item.fechaInicio);
+                                const fin = item.fechaFin
+                                  ? new Date(item.fechaFin)
+                                  : new Date();
+                                const diffMs = fin.getTime() - inicio.getTime();
+                                const diffDays = Math.floor(
+                                  diffMs / (1000 * 60 * 60 * 24)
+                                );
+
+                                if (diffDays === 0) return 'Menos de 1 día';
+                                if (diffDays === 1) return '1 día';
+                                if (diffDays < 30) return `${diffDays} días`;
+                                if (diffDays < 365) {
+                                  const meses = Math.floor(diffDays / 30);
+                                  return `${meses} ${meses === 1 ? 'mes' : 'meses'}`;
+                                }
+                                const años = Math.floor(diffDays / 365);
+                                return `${años} ${años === 1 ? 'año' : 'años'}`;
+                              } catch {
+                                return 'N/A';
+                              }
+                            })()}
+                          </td>
+                          <td>
+                            {item.justificacion ? (
+                              <span
+                                style={{
+                                  fontSize: '12px',
+                                  color: '#721c24',
+                                  fontStyle: 'italic',
+                                  maxWidth: '200px',
+                                  display: 'block',
+                                  whiteSpace: 'pre-wrap',
+                                  wordBreak: 'break-word',
+                                }}
+                                title={item.justificacion}
+                              >
+                                {item.justificacion.length > 50
+                                  ? `${item.justificacion.substring(0, 50)}...`
+                                  : item.justificacion}
+                              </span>
+                            ) : (
+                              <span style={{ color: '#999', fontSize: '12px' }}>
+                                -
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className={styles.modalActions} style={{ marginTop: '20px' }}>
+              <Button onClick={closeHistoryModal}>Cerrar</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

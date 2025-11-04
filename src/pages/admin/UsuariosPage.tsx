@@ -14,6 +14,7 @@ import {
   userGroups,
   listGenders,
   listLocalities,
+  getUserStateHistory,
 } from '../../services/admin';
 
 type UserItem = {
@@ -77,6 +78,22 @@ export default function UsuariosPage() {
     nombre: string;
   } | null>(null);
   const [deleting, setDeleting] = React.useState(false);
+
+  // Estados para historial de estados
+  const [showHistoryModal, setShowHistoryModal] = React.useState(false);
+  const [stateHistory, setStateHistory] = React.useState<
+    Array<{
+      idEstadoUsuario: number;
+      nombreEstadoUsuario: string;
+      fechaInicio: string;
+      fechaFin: string | null;
+    }>
+  >([]);
+  const [loadingHistory, setLoadingHistory] = React.useState(false);
+  const [selectedUserForHistory, setSelectedUserForHistory] = React.useState<{
+    id: string | number;
+    nombre: string;
+  } | null>(null);
 
   // Estados para filtros
   const [filterNombre, setFilterNombre] = React.useState('');
@@ -388,6 +405,48 @@ export default function UsuariosPage() {
     setFilterEstado('');
   };
 
+  const openHistoryModal = async (
+    userId: string | number,
+    userName: string
+  ) => {
+    setSelectedUserForHistory({ id: userId, nombre: userName });
+    setShowHistoryModal(true);
+    setLoadingHistory(true);
+    setError(null);
+
+    try {
+      const history = await getUserStateHistory(userId, token || undefined);
+      setStateHistory(history);
+    } catch (err) {
+      setError('Error al cargar el historial de estados');
+      console.error('Error loading state history:', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const closeHistoryModal = () => {
+    setShowHistoryModal(false);
+    setSelectedUserForHistory(null);
+    setStateHistory([]);
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Actualidad';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
   return (
     <div className={styles.container}>
       <BackButton />
@@ -529,6 +588,18 @@ export default function UsuariosPage() {
                 </td>
                 <td>
                   <div className={styles.actions}>
+                    <Button
+                      variant='outline'
+                      onClick={() =>
+                        openHistoryModal(
+                          u.id,
+                          `${u.nombre} ${u.apellido}`.trim()
+                        )
+                      }
+                      title='Ver historial de estados'
+                    >
+                      👁️
+                    </Button>
                     <Button variant='outline' onClick={() => openEdit(u)}>
                       ✏️
                     </Button>
@@ -760,6 +831,120 @@ export default function UsuariosPage() {
         variant='danger'
         isLoading={deleting}
       />
+
+      {/* Modal de Historial de Estados */}
+      {showHistoryModal && (
+        <div className={styles.modalBackdrop}>
+          <div
+            className={styles.modal}
+            style={{ maxWidth: '900px', width: '90%' }}
+          >
+            <h3>
+              Historial de Estados -{' '}
+              {selectedUserForHistory?.nombre || 'Usuario'}
+            </h3>
+
+            {loadingHistory ? (
+              <div style={{ padding: '20px', textAlign: 'center' }}>
+                Cargando historial...
+              </div>
+            ) : error && stateHistory.length === 0 ? (
+              <div className={styles.error}>{error}</div>
+            ) : stateHistory.length === 0 ? (
+              <div
+                style={{ padding: '20px', textAlign: 'center', color: '#666' }}
+              >
+                No se encontró historial de estados para este usuario.
+              </div>
+            ) : (
+              <div
+                style={{
+                  maxHeight: '500px',
+                  overflowY: 'auto',
+                  marginTop: '16px',
+                }}
+              >
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Estado</th>
+                      <th>Fecha Inicio</th>
+                      <th>Fecha Fin</th>
+                      <th>Duración</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stateHistory.map((item, idx) => {
+                      const esActual = !item.fechaFin;
+                      return (
+                        <tr
+                          key={idx}
+                          style={{
+                            backgroundColor: esActual
+                              ? '#f0f9ff'
+                              : 'transparent',
+                            fontWeight: esActual ? 600 : 400,
+                          }}
+                        >
+                          <td>
+                            {item.nombreEstadoUsuario}
+                            {esActual && (
+                              <span
+                                style={{
+                                  marginLeft: '8px',
+                                  padding: '2px 8px',
+                                  backgroundColor: '#22c55e',
+                                  color: 'white',
+                                  borderRadius: '4px',
+                                  fontSize: '12px',
+                                }}
+                              >
+                                Actual
+                              </span>
+                            )}
+                          </td>
+                          <td>{formatDate(item.fechaInicio)}</td>
+                          <td>{formatDate(item.fechaFin)}</td>
+                          <td>
+                            {(() => {
+                              try {
+                                const inicio = new Date(item.fechaInicio);
+                                const fin = item.fechaFin
+                                  ? new Date(item.fechaFin)
+                                  : new Date();
+                                const diffMs = fin.getTime() - inicio.getTime();
+                                const diffDays = Math.floor(
+                                  diffMs / (1000 * 60 * 60 * 24)
+                                );
+
+                                if (diffDays === 0) return 'Menos de 1 día';
+                                if (diffDays === 1) return '1 día';
+                                if (diffDays < 30) return `${diffDays} días`;
+                                if (diffDays < 365) {
+                                  const meses = Math.floor(diffDays / 30);
+                                  return `${meses} ${meses === 1 ? 'mes' : 'meses'}`;
+                                }
+                                const años = Math.floor(diffDays / 365);
+                                return `${años} ${años === 1 ? 'año' : 'años'}`;
+                              } catch {
+                                return 'N/A';
+                              }
+                            })()}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className={styles.modalActions} style={{ marginTop: '20px' }}>
+              <Button onClick={closeHistoryModal}>Cerrar</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

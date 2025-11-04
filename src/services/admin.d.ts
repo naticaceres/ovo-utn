@@ -301,6 +301,23 @@ export function deactivateInstitution(
   id: number | string,
   token?: string
 ): Promise<boolean>;
+export function activateInstitution(
+  id: number | string,
+  token?: string
+): Promise<boolean>;
+
+export interface InstitutionStateHistoryDTO {
+  idinstitucionEstado: number;
+  nombreEstadoInstitucion: string;
+  fechaInicio: string;
+  fechaFin: string | null;
+  justificacion: string | null;
+}
+
+export function getInstitutionStateHistory(
+  institutionId: number | string,
+  token?: string
+): Promise<InstitutionStateHistoryDTO[]>;
 
 export interface GroupDTO {
   id: number | string;
@@ -446,6 +463,18 @@ export function userPermissions(
   userId: number | string,
   token?: string
 ): Promise<PermissionDTO[]>;
+
+export interface UserStateHistoryDTO {
+  idEstadoUsuario: number;
+  nombreEstadoUsuario: string;
+  fechaInicio: string;
+  fechaFin: string | null;
+}
+
+export function getUserStateHistory(
+  userId: number | string,
+  token?: string
+): Promise<UserStateHistoryDTO[]>;
 
 export function addUserPermission(
   userId: number | string,

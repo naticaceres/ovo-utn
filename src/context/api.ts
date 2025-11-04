@@ -279,6 +279,7 @@ export type AptitudObtenida = {
 
 export type CarreraRecomendada = {
   idCarreraInstitucion: number;
+  idInstitucion: number; // ID de la institución (agregado por backend)
   puntaje?: number; // Viene en getTestResults
   tituloCarrera: string;
   nombreCarrera?: string;

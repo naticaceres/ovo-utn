@@ -138,6 +138,33 @@ export async function deactivateInstitution(id, token) {
   }
 }
 
+export async function activateInstitution(id, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.post(
+      `/api/v1/admin/institutions/${id}/activate`,
+      {},
+      { headers }
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function getInstitutionStateHistory(institutionId, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.get(
+      `/api/v1/admin/institutions/${institutionId}/history`,
+      { headers }
+    );
+    return data.history || [];
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
 export async function createCareerType(payload) {
   try {
     const { data } = await api.post(
@@ -363,6 +390,19 @@ export async function userPermissions(userId, token) {
       { headers }
     );
     return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function getUserStateHistory(userId, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.get(
+      `/api/v1/admin/catalog/users/${userId}/states`,
+      { headers }
+    );
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     throw error.response ? error.response.data : error;
   }

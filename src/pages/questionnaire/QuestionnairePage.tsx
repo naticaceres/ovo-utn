@@ -2,6 +2,7 @@ import { startTest, submitTestAnswer } from '../../context/api';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
+import { BackButton } from '../../components/ui/BackButton';
 import styles from './QuestionnairePage.module.css';
 import { useAuth } from '../../context/use-auth';
 
@@ -221,6 +222,7 @@ export function QuestionnairePage() {
   if (!hasStarted) {
     return (
       <div className={styles.questionnaireCard}>
+        <BackButton />
         <header className={styles.header}>
           <h1 className={styles.title}>Test de Orientación Vocacional</h1>
           <div className={styles.statusBar}>
@@ -304,6 +306,7 @@ export function QuestionnairePage() {
 
   return (
     <div className={styles.questionnaireCard}>
+      <BackButton />
       <header className={styles.header}>
         <h1 className={styles.title}>Test de Orientación Vocacional</h1>
         <div className={styles.statusBar}>

@@ -6,6 +6,7 @@ import {
   type CarreraRecomendada,
 } from '../../context/api';
 import { Button } from '../../components/ui/Button';
+import { BackButton } from '../../components/ui/BackButton';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import styles from './TestsHistoryPage.module.css';
@@ -115,6 +116,7 @@ export function TestsHistoryPage() {
   if (isAssociatingTest || isLoading) {
     return (
       <div className={styles.loadingContainer}>
+        <BackButton />
         <div className={styles.loadingSpinner} />
         <p>
           {isAssociatingTest
@@ -128,6 +130,7 @@ export function TestsHistoryPage() {
   if (error) {
     return (
       <div className={styles.errorContainer}>
+        <BackButton />
         <h2>Error al cargar el historial</h2>
         <p>No se pudo obtener la información de tus tests realizados.</p>
         <Link to='/app/student'>
@@ -140,6 +143,7 @@ export function TestsHistoryPage() {
   if (!userTests || userTests.length === 0) {
     return (
       <div className={styles.emptyContainer}>
+        <BackButton />
         <div className={styles.emptyState}>
           <h2 className={styles.emptyTitle}>No has realizado ningún test</h2>
           <p className={styles.emptyDescription}>
@@ -158,6 +162,7 @@ export function TestsHistoryPage() {
 
   return (
     <div className={styles.historyContainer}>
+      <BackButton />
       <div className={styles.historyHeader}>
         <h1 className={styles.historyTitle}>Historial de Tests Vocacionales</h1>
         <p className={styles.historySubtitle}>

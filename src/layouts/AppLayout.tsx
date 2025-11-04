@@ -79,7 +79,7 @@ export function AppLayout() {
               <Link to='/app/questionnaire' className={styles.navLink}>
                 Cuestionario
               </Link>
-              <Link to='/app/results' className={styles.navLink}>
+              <Link to='/app/student/tests' className={styles.navLink}>
                 Resultados
               </Link>
             </>

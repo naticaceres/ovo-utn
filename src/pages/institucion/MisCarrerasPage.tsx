@@ -1101,7 +1101,7 @@ export default function MisCarrerasPage() {
                 fullWidth
               />
               <Input
-                label='Monto cuota'
+                label='Monto cuota por mes'
                 type='number'
                 step='0.01'
                 value={montoCuota === '' ? '' : String(montoCuota)}

@@ -25,6 +25,9 @@ import BackupConfigPage from '../pages/admin/BackupConfigPage';
 import RestoreBackupPage from '../pages/admin/RestoreBackupPage';
 import ConsultarBackupsPage from '../pages/admin/ConsultarBackupsPage';
 import CrearBackupPage from '../pages/admin/CrearBackupPage';
+import StatsDashboardPage from '../pages/admin/StatsDashboardPage';
+import SystemUsageStatsPage from '../pages/admin/SystemUsageStatsPage';
+import UserBehaviorStatsPage from '../pages/admin/UserBehaviorStatsPage';
 import InstitucionHomePage from '../pages/institucion/InstitucionHomePage';
 import ProfilePageInstitucion from '../pages/institucion/ProfilePageInstitucion';
 import InstitutionSignupPage from '@/pages/institucion/InstitutionSignupPage';
@@ -176,6 +179,30 @@ const router = createBrowserRouter([
         element: (
           <AdminRoute>
             <CrearBackupPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: 'admin/estadisticas/tablero-estadisticas',
+        element: (
+          <AdminRoute>
+            <StatsDashboardPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: 'admin/estadisticas/uso-funcionamiento',
+        element: (
+          <AdminRoute>
+            <SystemUsageStatsPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: 'admin/estadisticas/comportamiento-usuarios',
+        element: (
+          <AdminRoute>
+            <UserBehaviorStatsPage />
           </AdminRoute>
         ),
       },
