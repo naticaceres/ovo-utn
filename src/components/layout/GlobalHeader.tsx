@@ -22,27 +22,30 @@ export function GlobalHeader({ children }: GlobalHeaderProps) {
   const getHomeRoute = () => {
     if (!user) return '/'; // Usuario no logueado va a la página principal
 
-    // Verificar grupos del usuario
-    if (user.grupos && user.grupos.length > 0) {
-      const groups = user.grupos.map((g: string) => g.toLowerCase());
+    // Verificar que el usuario tenga datos válidos
+    if (!user.grupos || user.grupos.length === 0) {
+      return '/'; // Si no hay grupos, ir al home
+    }
 
-      if (
-        groups.some(
-          (g: string) => g.includes('administrador') || g.includes('admin')
-        )
-      ) {
-        return '/app/admin';
-      }
-      if (
-        groups.some(
-          (g: string) => g.includes('institucion') || g.includes('institución')
-        )
-      ) {
-        return '/app/institucion';
-      }
-      if (groups.some((g: string) => g.includes('estudiante'))) {
-        return '/app/student';
-      }
+    // Verificar grupos del usuario
+    const groups = user.grupos.map((g: string) => g.toLowerCase());
+
+    if (
+      groups.some(
+        (g: string) => g.includes('administrador') || g.includes('admin')
+      )
+    ) {
+      return '/app/admin';
+    }
+    if (
+      groups.some(
+        (g: string) => g.includes('institucion') || g.includes('institución')
+      )
+    ) {
+      return '/app/institucion';
+    }
+    if (groups.some((g: string) => g.includes('estudiante'))) {
+      return '/app/student';
     }
 
     // Si no se encuentra ningún grupo conocido, ir al home por defecto

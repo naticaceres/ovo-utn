@@ -8,6 +8,15 @@ import { useAuth } from '../context/use-auth';
 export function AppLayout() {
   const { user, logout } = useAuth();
 
+  // Función para manejar el logout con navegación limpia
+  const handleLogout = () => {
+    // Ejecutar el logout para limpiar el estado
+    logout();
+    // Usar window.location.replace para forzar navegación al home
+    // Esto reemplaza la entrada del historial y recarga la página
+    window.location.replace('/');
+  };
+
   // Debug temporal: mostrar datos del localStorage
   React.useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -100,9 +109,19 @@ export function AppLayout() {
                 <span className={styles.userInfo}>{getUserGroupDisplay()}</span>
               )}
               <span className={styles.userName}>👤 {getUserName()}</span>
-              <Link to='/' className={styles.navLink} onClick={logout}>
+              <button
+                className={styles.navLink}
+                onClick={handleLogout}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  font: 'inherit',
+                }}
+              >
                 Cerrar sesión
-              </Link>
+              </button>
             </>
           )}
         </nav>
