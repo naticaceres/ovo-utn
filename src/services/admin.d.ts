@@ -306,6 +306,12 @@ export function activateInstitution(
   token?: string
 ): Promise<boolean>;
 
+export function changeInstitutionAdmin(
+  institutionId: number | string,
+  idUsuario: number | string,
+  token?: string
+): Promise<boolean>;
+
 export interface InstitutionStateHistoryDTO {
   idinstitucionEstado: number;
   nombreEstadoInstitucion: string;

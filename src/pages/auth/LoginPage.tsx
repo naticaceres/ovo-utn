@@ -2,11 +2,14 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login as loginService, forgotPassword } from '../../services/login';
+import { loginGoogle } from '../../services/auth';
 import { setAuthToken, getApiErrorMessage } from '../../context/api';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { PasswordInput } from '../../components/ui/PasswordInput';
+import { GoogleLogin } from '@react-oauth/google';
+import type { CredentialResponse } from '@react-oauth/google';
 import styles from './LoginPage.module.css';
 
 export function LoginPage() {
@@ -33,10 +36,6 @@ export function LoginPage() {
         return;
       }
 
-      // La respuesta esperada puede tener la forma:
-      // { grupos: [...], permisos: [...], usuario: { ... } }
-      const usuario = resp.usuario || resp.user || resp;
-
       // El servicio ahora devuelve la respuesta completa. Revisar headers para new_token
       type Loose = Record<string, unknown>;
       const headerToken = (
@@ -58,53 +57,8 @@ export function LoginPage() {
       console.log('Login response - fullUserData:', fullUserData);
       localStorage.setItem('user', JSON.stringify(fullUserData));
 
-      const hasGroup = (name: string) => {
-        const r: unknown = resp;
-        type Loose = Record<string, unknown>;
-        const getArr = (obj: unknown) =>
-          (((obj as Loose)?.data as Loose | undefined)?.grupos as
-            | string[]
-            | undefined) ||
-          (((obj as Loose)?.data as Loose | undefined)?.groups as
-            | string[]
-            | undefined) ||
-          ((obj as Loose)?.grupos as string[] | undefined) ||
-          ((obj as Loose)?.groups as string[] | undefined) ||
-          [];
-        const candidates = getArr(r) as string[];
-        return candidates.some(
-          (g: unknown) =>
-            typeof g === 'string' &&
-            g.toLowerCase().includes(name.toLowerCase())
-        );
-      };
-
-      // Verificar si hay un test pendiente después del login
-      const pendingTestId = localStorage.getItem('pendingTestId');
-      if (pendingTestId) {
-        // Redirigir a resultados para completar el flujo del test
-        navigate('/app/results');
-        return;
-      }
-
-      // Prioridad: administrador > institucion > estudiante
-      if (hasGroup('administrador') || hasGroup('admin')) {
-        navigate('/app/admin');
-      } else if (hasGroup('institucion') || hasGroup('institución')) {
-        navigate('/app/institucion');
-      } else if (hasGroup('Estudiante')) {
-        navigate('/app/student');
-      } else if (
-        usuario &&
-        (((usuario as Loose).name as string | undefined) ===
-          'estudiante user' ||
-          ((usuario as Loose).role as string | undefined) === 'estudiante')
-      ) {
-        // fallback por compatibilidad con la lógica previa
-        navigate('/app/student');
-      } else {
-        navigate('/app/questionnaire');
-      }
+      // Redirigir a /app, que determinará automáticamente la ruta según el rol
+      navigate('/app');
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -146,6 +100,59 @@ export function LoginPage() {
     setForgotEmail('');
     setForgotError(null);
     setForgotMessage(null);
+  };
+
+  const handleGoogleSuccess = async (
+    credentialResponse: CredentialResponse
+  ) => {
+    if (!credentialResponse.credential) {
+      setError('No se recibió credencial de Google');
+      return;
+    }
+
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const resp = await loginGoogle(credentialResponse.credential);
+      if (!resp) {
+        setError('Error al iniciar sesión con Google');
+        return;
+      }
+
+      // Procesar la respuesta similar a login normal
+      type Loose = Record<string, unknown>;
+
+      const headerToken = (
+        resp as unknown as { headers?: Record<string, string> }
+      ).headers?.['new_token'];
+      const data = (resp as unknown as { data?: Loose }).data;
+      const bodyToken =
+        (data?.token as string | undefined) ||
+        (data?.accessToken as string | undefined) ||
+        (data?.access_token as string | undefined);
+      const token = headerToken || bodyToken;
+
+      if (token) {
+        localStorage.setItem('token', token);
+        setAuthToken(token);
+      }
+
+      const fullUserData = (resp as unknown as { data?: Loose }).data || resp;
+      console.log('Google login response - fullUserData:', fullUserData);
+      localStorage.setItem('user', JSON.stringify(fullUserData));
+
+      // Redirigir a /app, que determinará automáticamente la ruta según el rol
+      navigate('/app');
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Error al iniciar sesión con Google');
   };
 
   return (
@@ -191,6 +198,19 @@ export function LoginPage() {
               Entrar
             </Button>
           </form>
+
+          <div className={styles.divider}>
+            <span>o</span>
+          </div>
+
+          <div className={styles.googleButton}>
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              text='signin_with'
+              locale='es'
+            />
+          </div>
 
           <div className={styles.forgotPassword}>
             <Button

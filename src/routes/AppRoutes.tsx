@@ -44,6 +44,7 @@ import DetalleCarreraInstitucionPage from '../pages/student/DetalleCarreraInstit
 import { TestsHistoryPage } from '../pages/student/TestsHistoryPage';
 import { AdminRoute } from '../components/AdminRoute';
 import DebugPermissionsPage from '../pages/admin/DebugPermissionsPage';
+import { RedirectByRole } from '../pages/RedirectByRole';
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,7 @@ const router = createBrowserRouter([
     path: '/app',
     element: <AppLayoutWrapper />,
     children: [
+      { index: true, element: <RedirectByRole /> }, // Ruta por defecto /app
       { path: 'questionnaire', element: <QuestionnairePage /> },
       { path: 'results', element: <ResultsPage /> },
       { path: 'student', element: <StudentHomePage /> },

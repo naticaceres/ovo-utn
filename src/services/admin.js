@@ -88,6 +88,7 @@ export async function listInstitutionRequests(params = {}, token) {
         fechaSolicitud: item.fechaSolicitud ?? '',
         tipoId: item.tipoId,
         justificacion: item.justificacion ?? null,
+        idUsuario: item.idUsuario ?? null,
       }));
     }
     return [];
@@ -144,6 +145,20 @@ export async function activateInstitution(id, token) {
     const { data } = await api.post(
       `/api/v1/admin/institutions/${id}/activate`,
       {},
+      { headers }
+    );
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}
+
+export async function changeInstitutionAdmin(institutionId, idUsuario, token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const { data } = await api.post(
+      `/api/v1/institutions/${institutionId}/change_admin`,
+      { idUsuario },
       { headers }
     );
     return data;

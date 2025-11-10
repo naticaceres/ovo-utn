@@ -17,6 +17,7 @@ export default defineConfig({
   server: {
     allowedHosts: [
       'ovotest.mooo.com',
+      'ovofront.mooo.com',
       'wid84vod2j.execute-api.us-east-2.amazonaws.com',
     ],
     proxy: {

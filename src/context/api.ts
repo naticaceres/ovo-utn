@@ -433,6 +433,21 @@ export async function getUserTests(): Promise<UserTest[]> {
   }));
 }
 
+/**
+ * Elimina un test vocacional del historial del usuario
+ * ACCESO PÚBLICO: Disponible para todos los usuarios autenticados
+ * Solo puede eliminar sus propios tests
+ * @param testId - ID del test a eliminar
+ * @returns Confirmación de eliminación
+ */
+export async function deleteTest(testId: number): Promise<{
+  message: string;
+  success: boolean;
+}> {
+  const { data } = await api.delete(`/api/v1/tests/${testId}`);
+  return data as { message: string; success: boolean };
+}
+
 // Función legacy para mantener compatibilidad (deprecated)
 export async function sendChatMessage(
   userId: string,

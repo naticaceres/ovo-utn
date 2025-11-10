@@ -131,3 +131,19 @@ export async function getUserTests() {
     throw error.response ? error.response.data : error;
   }
 }
+
+/**
+ * Elimina un test vocacional del historial del usuario
+ * ACCESO PÚBLICO: Disponible para todos los usuarios autenticados
+ * Solo puede eliminar sus propios tests
+ * @param {number} testId - ID del test a eliminar
+ * @returns {Promise} Confirmación de eliminación
+ */
+export async function deleteTest(testId) {
+  try {
+    const { data } = await api.delete(`/api/v1/tests/${testId}`);
+    return data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+}

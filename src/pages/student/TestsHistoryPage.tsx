@@ -1,12 +1,14 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getUserTests,
   getTestResults,
+  deleteTest,
   type UserTest,
   type CarreraRecomendada,
 } from '../../context/api';
 import { Button } from '../../components/ui/Button';
 import { BackButton } from '../../components/ui/BackButton';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import styles from './TestsHistoryPage.module.css';
@@ -19,6 +21,37 @@ import styles from './TestsHistoryPage.module.css';
 export function TestsHistoryPage() {
   const [isAssociatingTest, setIsAssociatingTest] = useState(false);
   const [hasCheckedPendingTest, setHasCheckedPendingTest] = useState(false);
+  const [testToDelete, setTestToDelete] = useState<number | null>(null);
+  const queryClient = useQueryClient();
+
+  // Mutación para eliminar un test
+  const deleteTestMutation = useMutation({
+    mutationFn: deleteTest,
+    onSuccess: () => {
+      // Refrescar la lista de tests después de eliminar
+      queryClient.invalidateQueries({ queryKey: ['userTests'] });
+      setTestToDelete(null);
+    },
+    onError: error => {
+      console.error('Error al eliminar el test:', error);
+      alert('No se pudo eliminar el test. Por favor, intenta nuevamente.');
+    },
+  });
+
+  // Handlers para el diálogo de confirmación
+  const handleDeleteClick = (testId: number) => {
+    setTestToDelete(testId);
+  };
+
+  const handleConfirmDelete = () => {
+    if (testToDelete) {
+      deleteTestMutation.mutate(testToDelete);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setTestToDelete(null);
+  };
 
   // Obtener historial de tests del usuario
   // Esta funcionalidad está disponible para todos los usuarios autenticados
@@ -331,24 +364,47 @@ export function TestsHistoryPage() {
               </div>
 
               <div className={styles.testCardFooter}>
-                {isActiveTest ? (
-                  <Link to='/app/questionnaire'>
-                    <Button variant='primary' size='sm'>
-                      🔄 Continuar Test
-                    </Button>
-                  </Link>
-                ) : (
-                  <Link to={`/app/student/tests/${testId}`}>
-                    <Button variant='outline' size='sm'>
-                      Ver Resultados Completos
-                    </Button>
-                  </Link>
-                )}
+                <div className={styles.footerActions}>
+                  {isActiveTest ? (
+                    <Link to='/app/questionnaire'>
+                      <Button variant='primary' size='sm'>
+                        🔄 Continuar Test
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Link to={`/app/student/tests/${testId}`}>
+                      <Button variant='outline' size='sm'>
+                        Ver Resultados Completos
+                      </Button>
+                    </Link>
+                  )}
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => handleDeleteClick(testId ?? 0)}
+                    disabled={deleteTestMutation.isPending}
+                  >
+                    🗑️ Eliminar
+                  </Button>
+                </div>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Diálogo de confirmación para eliminar */}
+      <ConfirmDialog
+        isOpen={testToDelete !== null}
+        title='Eliminar Test Vocacional'
+        message='¿Estás seguro de que deseas eliminar este test? Esta acción no se puede deshacer.'
+        confirmText='Eliminar'
+        cancelText='Cancelar'
+        variant='danger'
+        onConfirm={handleConfirmDelete}
+        onClose={handleCancelDelete}
+        isLoading={deleteTestMutation.isPending}
+      />
     </div>
   );
 }

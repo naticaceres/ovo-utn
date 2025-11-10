@@ -105,3 +105,11 @@ export function getTestResults(testId: number): Promise<TestResult>;
  * Obtiene la lista de todos los tests realizados por el usuario autenticado
  */
 export function getUserTests(): Promise<Test[]>;
+
+/**
+ * Elimina un test vocacional del historial del usuario
+ */
+export function deleteTest(testId: number): Promise<{
+  message: string;
+  success: boolean;
+}>;

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { BackButton } from '../../components/ui/BackButton';
 import { Button } from '../../components/ui/Button';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -12,6 +12,8 @@ import {
   deactivateInstitution,
   activateInstitution,
   getInstitutionStateHistory,
+  changeInstitutionAdmin,
+  listUsers,
   type InstitutionStateHistoryDTO,
 } from '../../services/admin';
 
@@ -25,6 +27,7 @@ type RequestItem = {
   email?: string;
   fechaSolicitud?: string;
   justificacion?: string | null;
+  idUsuario?: number | null;
 };
 
 export default function SolicitudesInstitucionPage() {
@@ -78,6 +81,45 @@ export default function SolicitudesInstitucionPage() {
       id: number | string;
       nombre: string;
     } | null>(null);
+
+  // Estados para el modal de cambio de administrador
+  const [showChangeAdminModal, setShowChangeAdminModal] = React.useState(false);
+  const [selectedInstitutionForAdmin, setSelectedInstitutionForAdmin] =
+    React.useState<{
+      id: number | string;
+      nombre: string;
+      idUsuarioActual: number | null;
+    } | null>(null);
+  const [currentAdminUser, setCurrentAdminUser] = React.useState<{
+    id: number;
+    nombre: string;
+    apellido: string;
+    mail: string;
+  } | null>(null);
+  const [users, setUsers] = React.useState<
+    Array<{
+      id: number;
+      nombre: string;
+      apellido: string;
+      mail: string;
+      grupos: string[];
+    }>
+  >([]);
+  const [filteredUsers, setFilteredUsers] = React.useState<
+    Array<{
+      id: number;
+      nombre: string;
+      apellido: string;
+      mail: string;
+      grupos: string[];
+    }>
+  >([]);
+  const [userSearchTerm, setUserSearchTerm] = React.useState('');
+  const [loadingUsers, setLoadingUsers] = React.useState(false);
+  const [selectedUserId, setSelectedUserId] = React.useState<number | null>(
+    null
+  );
+  const [changingAdmin, setChangingAdmin] = React.useState(false);
 
   const loadInstitutionTypes = React.useCallback(async () => {
     try {
@@ -276,6 +318,111 @@ export default function SolicitudesInstitucionPage() {
     setStateHistory([]);
   };
 
+  const openChangeAdminModal = async (
+    institutionId: number | string,
+    institutionName: string,
+    currentUserId: number | null
+  ) => {
+    setSelectedInstitutionForAdmin({
+      id: institutionId,
+      nombre: institutionName,
+      idUsuarioActual: currentUserId,
+    });
+    setShowChangeAdminModal(true);
+    setLoadingUsers(true);
+    setUsers([]);
+    setFilteredUsers([]);
+    setUserSearchTerm('');
+    setSelectedUserId(null);
+    setCurrentAdminUser(null);
+
+    try {
+      const token = localStorage.getItem('token');
+      const usersData = await listUsers(token || undefined);
+      // Normalizar la respuesta
+      const normalizedUsers = (Array.isArray(usersData) ? usersData : []).map(
+        (u: {
+          id: number | string;
+          nombre?: string;
+          apellido?: string;
+          mail?: string;
+          email?: string;
+          grupos?: string[];
+        }) => ({
+          id: Number(u.id),
+          nombre: u.nombre || '',
+          apellido: u.apellido || '',
+          mail: u.mail || u.email || '',
+          grupos: u.grupos || [],
+        })
+      );
+      setUsers(normalizedUsers);
+      setFilteredUsers(normalizedUsers);
+
+      // Buscar y establecer el usuario actual si existe
+      if (currentUserId) {
+        const currentUser = normalizedUsers.find(u => u.id === currentUserId);
+        if (currentUser) {
+          setCurrentAdminUser(currentUser);
+          setSelectedUserId(currentUserId);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading users:', err);
+      setError('No se pudo cargar la lista de usuarios');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const closeChangeAdminModal = () => {
+    setShowChangeAdminModal(false);
+    setSelectedInstitutionForAdmin(null);
+    setUsers([]);
+    setFilteredUsers([]);
+    setUserSearchTerm('');
+    setSelectedUserId(null);
+    setCurrentAdminUser(null);
+  };
+
+  const handleUserSearch = (searchTerm: string) => {
+    setUserSearchTerm(searchTerm);
+    if (!searchTerm.trim()) {
+      setFilteredUsers(users);
+      return;
+    }
+
+    const term = searchTerm.toLowerCase().trim();
+    const filtered = users.filter(user => {
+      const fullName = `${user.nombre} ${user.apellido}`.toLowerCase();
+      const email = user.mail.toLowerCase();
+      return fullName.includes(term) || email.includes(term);
+    });
+    setFilteredUsers(filtered);
+  };
+
+  const confirmChangeAdmin = async () => {
+    if (!selectedInstitutionForAdmin || !selectedUserId) return;
+
+    setError(null);
+    setChangingAdmin(true);
+    try {
+      const token = localStorage.getItem('token');
+      await changeInstitutionAdmin(
+        selectedInstitutionForAdmin.id,
+        selectedUserId,
+        token || undefined
+      );
+      closeChangeAdminModal();
+      loadData(); // Recargar la lista
+    } catch (err) {
+      console.error('Error changing institution admin:', err);
+      setError('No se pudo cambiar el usuario administrador de la institución');
+    } finally {
+      setChangingAdmin(false);
+    }
+  };
+
   const formatDate = (dateString: string | null): string => {
     if (!dateString) return 'Actualidad';
     try {
@@ -472,6 +619,28 @@ export default function SolicitudesInstitucionPage() {
                     >
                       👁️
                     </Button>
+                    {(it.estado === 'Aprobada' ||
+                      it.estado === 'Pendiente') && (
+                      <Button
+                        variant='outline'
+                        onClick={() =>
+                          openChangeAdminModal(
+                            it.id,
+                            it.nombre || 'Institución',
+                            it.idUsuario || null
+                          )
+                        }
+                        title='Cambiar usuario administrador'
+                        disabled={
+                          approvingId !== null ||
+                          confirmingRejectId !== null ||
+                          deactivatingId !== null ||
+                          activatingId !== null
+                        }
+                      >
+                        👤
+                      </Button>
+                    )}
                     {it.estado === 'Pendiente' && (
                       <>
                         <Button
@@ -749,6 +918,203 @@ export default function SolicitudesInstitucionPage() {
 
             <div className={styles.modalActions} style={{ marginTop: '20px' }}>
               <Button onClick={closeHistoryModal}>Cerrar</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Cambio de Administrador */}
+      {showChangeAdminModal && (
+        <div className={styles.modalBackdrop}>
+          <div
+            className={styles.modal}
+            style={{ maxWidth: '800px', width: '90%' }}
+          >
+            <h3>
+              Cambiar Usuario Administrador -{' '}
+              {selectedInstitutionForAdmin?.nombre || 'Institución'}
+            </h3>
+
+            {/* Mostrar usuario actual */}
+            {currentAdminUser ? (
+              <div
+                style={{
+                  marginTop: '16px',
+                  marginBottom: '16px',
+                  padding: '12px',
+                  backgroundColor: '#e3f2fd',
+                  borderRadius: '4px',
+                  border: '1px solid #2196f3',
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: 'bold',
+                    marginBottom: '8px',
+                    color: '#1976d2',
+                  }}
+                >
+                  👤 Usuario Actual:
+                </div>
+                <div style={{ display: 'flex', gap: '16px', fontSize: '14px' }}>
+                  <span>
+                    <strong>Nombre:</strong> {currentAdminUser.nombre}{' '}
+                    {currentAdminUser.apellido}
+                  </span>
+                  <span>
+                    <strong>Email:</strong> {currentAdminUser.mail}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  marginTop: '16px',
+                  marginBottom: '16px',
+                  padding: '12px',
+                  backgroundColor: '#fff3cd',
+                  borderRadius: '4px',
+                  border: '1px solid #ffc107',
+                  color: '#856404',
+                }}
+              >
+                ⚠️ Esta institución no tiene un usuario administrador asignado
+                actualmente
+              </div>
+            )}
+
+            <div style={{ marginBottom: '16px' }}>
+              <Input
+                placeholder='Buscar usuario por nombre o email...'
+                value={userSearchTerm}
+                onChange={e => handleUserSearch(e.target.value)}
+                disabled={loadingUsers || changingAdmin}
+              />
+            </div>
+
+            {loadingUsers ? (
+              <div style={{ padding: '20px', textAlign: 'center' }}>
+                Cargando usuarios...
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div
+                style={{ padding: '20px', textAlign: 'center', color: '#666' }}
+              >
+                {userSearchTerm.trim()
+                  ? 'No se encontraron usuarios que coincidan con la búsqueda'
+                  : 'No se encontraron usuarios'}
+              </div>
+            ) : (
+              <div
+                style={{
+                  maxHeight: '400px',
+                  overflowY: 'auto',
+                  border: '1px solid #e6e6e6',
+                  borderRadius: '4px',
+                }}
+              >
+                <table className={styles.table} style={{ marginBottom: 0 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: '50px' }}>Seleccionar</th>
+                      <th>Nombre</th>
+                      <th>Email</th>
+                      <th>Grupos</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredUsers.map(user => (
+                      <tr
+                        key={user.id}
+                        style={{
+                          backgroundColor:
+                            selectedUserId === user.id
+                              ? '#e3f2fd'
+                              : 'transparent',
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => setSelectedUserId(user.id)}
+                      >
+                        <td style={{ textAlign: 'center' }}>
+                          <input
+                            type='radio'
+                            name='selectedUser'
+                            checked={selectedUserId === user.id}
+                            onChange={() => setSelectedUserId(user.id)}
+                            disabled={changingAdmin}
+                          />
+                        </td>
+                        <td>
+                          {user.nombre} {user.apellido}
+                          {currentAdminUser &&
+                            user.id === currentAdminUser.id && (
+                              <span
+                                style={{
+                                  marginLeft: '8px',
+                                  padding: '2px 6px',
+                                  backgroundColor: '#2196f3',
+                                  color: 'white',
+                                  borderRadius: '3px',
+                                  fontSize: '11px',
+                                }}
+                              >
+                                Actual
+                              </span>
+                            )}
+                        </td>
+                        <td>{user.mail}</td>
+                        <td>
+                          {user.grupos.length > 0 ? (
+                            <div
+                              style={{
+                                display: 'flex',
+                                gap: '4px',
+                                flexWrap: 'wrap',
+                              }}
+                            >
+                              {user.grupos.map((grupo, idx) => (
+                                <span
+                                  key={idx}
+                                  style={{
+                                    padding: '2px 6px',
+                                    backgroundColor: '#e0e0e0',
+                                    borderRadius: '3px',
+                                    fontSize: '11px',
+                                  }}
+                                >
+                                  {grupo}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span style={{ color: '#999', fontSize: '12px' }}>
+                              Sin grupos
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className={styles.modalActions} style={{ marginTop: '20px' }}>
+              <Button
+                variant='outline'
+                onClick={closeChangeAdminModal}
+                disabled={changingAdmin}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={confirmChangeAdmin}
+                disabled={!selectedUserId || changingAdmin}
+                isLoading={changingAdmin}
+                style={{ background: '#2563eb', color: 'white' }}
+              >
+                {changingAdmin ? 'Cambiando...' : 'Confirmar Cambio'}
+              </Button>
             </div>
           </div>
         </div>
