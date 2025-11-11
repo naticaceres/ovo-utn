@@ -3,10 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styles from './DetalleCarreraInstitucionPage.module.css';
 import { BackButton } from '../../components/ui/BackButton';
 import { Button } from '../../components/ui/Button';
-import {
-  getCareerInstitution,
-  getCareerInstitutionById,
-} from '../../services/careers';
+import { getCareerInstitution } from '../../services/careers';
 import { getInterests, addInterest, removeInterest } from '../../services/user';
 import { useToast } from '../../components/ui/toast/useToast';
 
@@ -48,7 +45,7 @@ interface CarreraInstitucionResponse {
 }
 
 export default function DetalleCarreraInstitucionPage() {
-  const { careerId, institutionId, carreraInstitucionId } = useParams();
+  const { careerId, carreraInstitucionId } = useParams();
   const navigate = useNavigate();
   const [carreraInstitucion, setCarreraInstitucion] =
     useState<CarreraInstitucionResponse | null>(null);
@@ -60,8 +57,8 @@ export default function DetalleCarreraInstitucionPage() {
 
   useEffect(() => {
     async function fetchCarreraInstitucion() {
-      // Verificar si tenemos carreraInstitucionId (ruta nueva) o careerId + institutionId (ruta antigua)
-      if (!carreraInstitucionId && (!careerId || !institutionId)) {
+      // Verificar que tengamos ambos parámetros
+      if (!careerId || !carreraInstitucionId) {
         setError('Parámetros faltantes');
         setLoading(false);
         return;
@@ -71,20 +68,14 @@ export default function DetalleCarreraInstitucionPage() {
         setLoading(true);
         setError(null);
 
-        let data;
-        if (carreraInstitucionId) {
-          console.log(
-            'Obteniendo detalle por ID carrera-institución:',
-            carreraInstitucionId
-          );
-          data = await getCareerInstitutionById(carreraInstitucionId);
-        } else {
-          console.log('Obteniendo detalle carrera-institución:', {
-            careerId,
-            institutionId,
-          });
-          data = await getCareerInstitution(careerId!, institutionId!);
-        }
+        console.log('Obteniendo detalle carrera-institución:', {
+          careerId,
+          carreraInstitucionId,
+        });
+        const data = await getCareerInstitution(
+          careerId!,
+          carreraInstitucionId!
+        );
 
         console.log('Datos recibidos:', data);
 
@@ -131,7 +122,7 @@ export default function DetalleCarreraInstitucionPage() {
     }
 
     fetchCarreraInstitucion();
-  }, [careerId, institutionId, carreraInstitucionId]);
+  }, [careerId, carreraInstitucionId]);
 
   if (loading) {
     return (
@@ -382,8 +373,6 @@ export default function DetalleCarreraInstitucionPage() {
               const instId = institucion.id;
               if (instId) {
                 navigate(`/app/detalle-institucion/${instId}`);
-              } else if (institutionId) {
-                navigate(`/app/detalle-institucion/${institutionId}`);
               }
             }}
           >

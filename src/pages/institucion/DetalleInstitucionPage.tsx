@@ -273,30 +273,25 @@ export default function DetalleInstitucionPage() {
               <button
                 className={styles.verBtn}
                 onClick={() => {
-                  // Try to get career id from carrerasRaw if available
+                  // Obtener idCarrera e idCarreraInstitucion de carrerasRaw
                   const raw =
                     institucion.carrerasRaw && institucion.carrerasRaw[index];
-                  let careerId: string | number | undefined;
+                  let idCarrera: string | number | undefined;
+                  let idCarreraInstitucion: string | number | undefined;
+
                   if (raw && typeof raw === 'object') {
-                    careerId = (raw as Record<string, unknown>)['idCarrera'] as
-                      | string
-                      | number
-                      | undefined;
-                    if (!careerId)
-                      careerId = (raw as Record<string, unknown>)['id'] as
-                        | string
-                        | number
-                        | undefined;
-                    if (!careerId)
-                      careerId = (raw as Record<string, unknown>)[
-                        'idCarreraInstitucion'
-                      ] as string | number | undefined;
+                    idCarrera = (raw as Record<string, unknown>)[
+                      'idCarrera'
+                    ] as string | number | undefined;
+                    idCarreraInstitucion = (raw as Record<string, unknown>)[
+                      'idCarreraInstitucion'
+                    ] as string | number | undefined;
                   }
 
-                  const institutionId = institucion.id;
-                  if (careerId && institutionId) {
+                  if (idCarrera && idCarreraInstitucion) {
+                    // Usar el formato correcto: /api/v1/careers/<idCarrera>/institutions/<idCarreraInstitucion>
                     navigate(
-                      `/app/student/carrera-institucion/${careerId}/${institutionId}`
+                      `/app/student/carrera-institucion/${idCarrera}/${idCarreraInstitucion}`
                     );
                   } else {
                     // Fallback: go to carrera detail or show message

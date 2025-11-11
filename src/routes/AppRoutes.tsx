@@ -81,7 +81,7 @@ const router = createBrowserRouter([
         element: <DetalleCarreraInstitucionPage />,
       },
       {
-        path: 'student/carrera-institucion/:careerId/:institutionId',
+        path: 'student/carrera-institucion/:careerId/:carreraInstitucionId',
         element: <DetalleCarreraInstitucionPage />,
       },
       { path: 'careers', element: <ConsultarCarrerasPage /> },

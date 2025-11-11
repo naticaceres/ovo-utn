@@ -144,16 +144,19 @@ export default function ConsultarCarrerasPage() {
                 onClick={() => {
                   console.log('Navegando a detalle:', carreraInst);
 
-                  // Extraer los IDs del detailPath
-                  // detailPath tiene formato: "/api/v1/careers/1/institutions/1"
+                  // Extraer idCarrera del detailPath y usar idCarreraInstitucion directamente
+                  // detailPath tiene formato: "/api/v1/careers/<idCarrera>/institutions/<idCarreraInstitucion>"
                   const pathParts = carreraInst.detailPath.split('/');
                   const carreraId = pathParts[pathParts.length - 3]; // careers/ID/institutions
-                  const institucionId = pathParts[pathParts.length - 1]; // institutions/ID
+                  const carreraInstitucionId = carreraInst.idCarreraInstitucion;
 
-                  console.log('IDs extraídos:', { carreraId, institucionId });
+                  console.log('IDs extraídos:', {
+                    carreraId,
+                    carreraInstitucionId,
+                  });
 
                   navigate(
-                    `/app/student/carrera-institucion/${carreraId}/${institucionId}`
+                    `/app/student/carrera-institucion/${carreraId}/${carreraInstitucionId}`
                   );
                 }}
                 style={{ cursor: 'pointer' }}
