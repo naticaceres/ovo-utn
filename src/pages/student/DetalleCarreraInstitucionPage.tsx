@@ -15,6 +15,8 @@ interface CarreraInstitucionResponse {
     duracion: number;
     horasCursado: number;
     id: number;
+    fechaInicio?: string | null;
+    fechaFin?: string | null;
     modalidad: string;
     montoCuota: number;
     nombreCarrera: string;
@@ -103,15 +105,22 @@ export default function DetalleCarreraInstitucionPage() {
           console.log('Interés encontrado:', found);
 
           if (found) {
-            const foundId = found.id || found._id || null;
-            console.log('Estableciendo interestId:', foundId);
-            setInterestId(foundId as number);
+            // Guardamos el idCarreraInstitucion como interestId
+            console.log('Estableciendo interestId:', carreraInstId);
+            setInterestId(carreraInstId);
           } else {
             console.log('No se encontró interés, estableciendo null');
             setInterestId(null);
           }
-        } catch (e) {
-          console.warn('No se pudieron cargar intereses del usuario', e);
+        } catch (e: unknown) {
+          // Si el error es ERR1 (no tiene preferencias), no hacer nada
+          // Solo logueamos otros errores
+          if ((e as any)?.errorCode !== 'ERR1') {
+            console.warn('Error al cargar intereses del usuario', e);
+          } else {
+            console.log('Usuario no tiene intereses aún');
+            setInterestId(null);
+          }
         }
       } catch (err) {
         console.error('Error al cargar detalle carrera-institución:', err);
@@ -163,6 +172,17 @@ export default function DetalleCarreraInstitucionPage() {
 
   const { institucion, carreraInstitucion: carreraInfo } = carreraInstitucion;
 
+  const formatDate = (dateStr?: string | null) => {
+    if (!dateStr) return 'No especificado';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return 'No especificado';
+      return d.toLocaleDateString('es-AR');
+    } catch {
+      return 'No especificado';
+    }
+  };
+
   return (
     <div className={styles.container}>
       <BackButton />
@@ -185,7 +205,15 @@ export default function DetalleCarreraInstitucionPage() {
             </div>
             <div className={styles.infoItem}>
               <span className={styles.label}>Fecha de Inicio:</span>
-              <span className={styles.value}>6/1/2025</span>
+              <span className={styles.value}>
+                {formatDate(carreraInfo.fechaInicio)}
+              </span>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.label}>Fecha de Fin:</span>
+              <span className={styles.value}>
+                {formatDate(carreraInfo.fechaFin)}
+              </span>
             </div>
             <div className={styles.infoItem}>
               <span className={styles.label}>Horas de Cursado:</span>
@@ -315,9 +343,12 @@ export default function DetalleCarreraInstitucionPage() {
               setInterestLoading(true);
               try {
                 if (interestId) {
-                  // remove
-                  console.log('Removiendo interés con ID:', interestId);
-                  await removeInterest(interestId);
+                  // remove - usar el idCarreraInstitucion directamente
+                  console.log(
+                    'Removiendo interés con idCarreraInstitucion:',
+                    carreraInstId
+                  );
+                  await removeInterest(carreraInstId);
                   setInterestId(null);
                   showToast('Interés eliminado', { variant: 'success' });
                 } else {
@@ -325,23 +356,11 @@ export default function DetalleCarreraInstitucionPage() {
                     'Agregando interés para carrera ID:',
                     carreraInstId
                   );
-                  const res = await addInterest({
+                  await addInterest({
                     idCarreraInstitucion: carreraInstId,
                   });
-                  console.log('Respuesta al agregar interés:', res);
-
-                  const r = res as unknown as Record<string, unknown>;
-                  const newId = r['id'] ?? r['_id'] ?? r['insertedId'] ?? null;
-
-                  console.log('Nuevo ID de interés:', newId);
-
-                  if (
-                    newId &&
-                    (typeof newId === 'string' || typeof newId === 'number')
-                  ) {
-                    setInterestId(Number(newId));
-                    console.log('InterestId actualizado a:', Number(newId));
-                  }
+                  console.log('Interés agregado exitosamente');
+                  setInterestId(carreraInstId);
                   showToast('Interés agregado', { variant: 'success' });
                 }
               } catch (e) {
@@ -352,20 +371,11 @@ export default function DetalleCarreraInstitucionPage() {
               }
             }}
           >
-            {(() => {
-              const buttonText = interestLoading
-                ? '...'
-                : interestId
-                  ? 'Quitar interés'
-                  : 'Me interesa';
-              console.log(
-                'Estado del botón - interestId:',
-                interestId,
-                'texto:',
-                buttonText
-              );
-              return buttonText;
-            })()}
+            {interestLoading
+              ? '...'
+              : interestId
+                ? 'Quitar interés'
+                : 'Me interesa'}
           </Button>
           <Button
             variant='outline'

@@ -48,20 +48,23 @@ export default function FavoriteCareersPage() {
     load();
   }, []);
 
-  const handleUnmark = async (id: number | string) => {
-    setProcessingId(id);
+  const handleUnmark = async (interestId: number | string) => {
+    setProcessingId(interestId);
     setError(null);
     try {
       // intenta usar removeInterest; si no existe usa setCareerInterest
       if (typeof removeInterest === 'function') {
-        await removeInterest(id);
+        await removeInterest(interestId);
       } else {
         // backend API exposes setCareerInterest(careerId)
-        await setCareerInterest(id);
+        await setCareerInterest(interestId);
       }
-      // actualizar UI localmente
+      // actualizar UI localmente - filtrar por el id del interés
       setCarreras(prev =>
-        prev.filter(c => String(c.idCarreraInstitucion) !== String(id))
+        prev.filter(c => {
+          const carreraId = c.id || c.idCarreraInstitucion;
+          return String(carreraId) !== String(interestId);
+        })
       );
     } catch {
       setError('No se pudo quitar el interés. Intente de nuevo.');
@@ -110,12 +113,6 @@ export default function FavoriteCareersPage() {
       ) : !carreras || carreras.length === 0 ? (
         <div className={styles.empty}>
           <p>No tenés carreras marcadas como de interés.</p>
-          <Button
-            variant='outline'
-            onClick={() => navigate('/app/student/carreras')}
-          >
-            Explorar carreras
-          </Button>
         </div>
       ) : (
         <>
@@ -187,38 +184,54 @@ export default function FavoriteCareersPage() {
             </div>
           </div>
 
-          <ul className={styles.list}>
-            {filteredCarreras.map(c => (
-              <li key={c.idCarreraInstitucion} className={styles.item}>
-                <div>
-                  <div className={styles.name}>
-                    {c.nombreCarreraInstitucion}
+          {filteredCarreras.length === 0 ? (
+            <div className={styles.empty}>
+              <p>No se encontraron carreras con los filtros aplicados.</p>
+              <Button variant='outline' onClick={clearFilters}>
+                Limpiar filtros
+              </Button>
+            </div>
+          ) : (
+            <ul className={styles.list}>
+              {filteredCarreras.map(c => (
+                <li key={c.idCarreraInstitucion} className={styles.item}>
+                  <div>
+                    <div className={styles.name}>
+                      {c.nombreCarreraInstitucion}
+                    </div>
+                    <div className={styles.sub}>{c.nombreInstitucion}</div>
                   </div>
-                  <div className={styles.sub}>{c.nombreInstitucion}</div>
-                </div>
-                <div className={styles.actions}>
-                  <Button
-                    variant='primary'
-                    onClick={() =>
-                      navigate(
-                        `/app/student/carrera-detalle/${c.idCarreraInstitucion}`
-                      )
-                    }
-                  >
-                    Ver detalles
-                  </Button>
-                  <Button
-                    variant='outline'
-                    onClick={() => handleUnmark(c.idCarreraInstitucion)}
-                    disabled={processingId === c.idCarreraInstitucion}
-                    isLoading={processingId === c.idCarreraInstitucion}
-                  >
-                    Quitar interés
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
+                  <div className={styles.actions}>
+                    <Button
+                      variant='primary'
+                      onClick={() =>
+                        navigate(
+                          `/app/student/carrera-detalle/${c.idCarreraInstitucion}`
+                        )
+                      }
+                    >
+                      Ver detalles
+                    </Button>
+                    <Button
+                      variant='outline'
+                      onClick={() => {
+                        const interestId = c.id || c.idCarreraInstitucion;
+                        handleUnmark(interestId);
+                      }}
+                      disabled={
+                        processingId === (c.id || c.idCarreraInstitucion)
+                      }
+                      isLoading={
+                        processingId === (c.id || c.idCarreraInstitucion)
+                      }
+                    >
+                      Quitar interés
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </>
       )}
     </div>

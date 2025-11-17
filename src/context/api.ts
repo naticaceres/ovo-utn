@@ -104,13 +104,20 @@ api.interceptors.response.use(
 
     // Emitir evento genérico para errores con status para permitir manejo global opcional
     if (typeof status === 'number' && status >= 400) {
-      try {
-        const ev = new CustomEvent('api:error', {
-          detail: { status, message: friendlyMessage },
-        });
-        window.dispatchEvent(ev);
-      } catch {
-        /* ignore */
+      // No mostrar toast para el error ERR1 del endpoint de intereses (usuario sin intereses)
+      const isInterestsEndpoint =
+        error.config?.url?.includes('/user/interests');
+      const isErrCode1 = data?.errorCode === 'ERR1';
+
+      if (!(isInterestsEndpoint && isErrCode1)) {
+        try {
+          const ev = new CustomEvent('api:error', {
+            detail: { status, message: friendlyMessage },
+          });
+          window.dispatchEvent(ev);
+        } catch {
+          /* ignore */
+        }
       }
     }
     return Promise.reject(error);

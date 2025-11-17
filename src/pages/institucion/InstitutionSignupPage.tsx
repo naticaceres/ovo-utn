@@ -274,8 +274,9 @@ export default function InstitutionSignupPage() {
       errors.anioFundacion = 'Completa este campo';
     } else {
       const year = Number(anioFundacion);
-      if (year < 1800 || year > 2025) {
-        errors.anioFundacion = 'El año debe estar entre 1800 y 2025';
+      const currentYear = new Date().getFullYear();
+      if (year < 1800 || year > currentYear) {
+        errors.anioFundacion = `El año debe estar entre 1800 y ${currentYear}`;
       }
     }
 
@@ -752,11 +753,8 @@ export default function InstitutionSignupPage() {
                   value={anioFundacion}
                   onChange={e => {
                     const value = e.target.value;
-                    // Validar que esté en el rango correcto
-                    if (
-                      value === '' ||
-                      (Number(value) >= 1800 && Number(value) <= 2025)
-                    ) {
+                    // Limitar a 4 dígitos
+                    if (value.length <= 4) {
                       setAnioFundacion(value);
                     }
                     if (fieldErrors.anioFundacion) {
@@ -771,7 +769,7 @@ export default function InstitutionSignupPage() {
                   required
                   placeholder='1952'
                   min='1800'
-                  max='2025'
+                  max={new Date().getFullYear().toString()}
                   error={fieldErrors.anioFundacion}
                 />
               </div>
