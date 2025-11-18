@@ -14,6 +14,7 @@ interface Carrera {
   nombreInstitucion: string;
   titulo?: string;
   estado?: string;
+  detailPath?: string;
 }
 
 export default function FavoriteCareersPage() {
@@ -204,11 +205,30 @@ export default function FavoriteCareersPage() {
                   <div className={styles.actions}>
                     <Button
                       variant='primary'
-                      onClick={() =>
-                        navigate(
-                          `/app/student/carrera-detalle/${c.idCarreraInstitucion}`
-                        )
-                      }
+                      onClick={() => {
+                        // Extraer carreraId del detailPath si está disponible
+                        try {
+                          const detailPath = c.detailPath || '';
+                          if (detailPath) {
+                            const pathParts = detailPath.split('/');
+                            const carreraId = pathParts[pathParts.length - 3]; // careers/ID/institutions
+                            navigate(
+                              `/app/student/carrera-institucion/${carreraId}/${c.idCarreraInstitucion}`
+                            );
+                          } else {
+                            // Fallback: usar la ruta vieja que ahora maneja el componente
+                            navigate(
+                              `/app/student/carrera-detalle/${c.idCarreraInstitucion}`
+                            );
+                          }
+                        } catch (error) {
+                          console.error('Error al extraer carreraId:', error);
+                          // Fallback: usar la ruta vieja
+                          navigate(
+                            `/app/student/carrera-detalle/${c.idCarreraInstitucion}`
+                          );
+                        }
+                      }}
                     >
                       Ver detalles
                     </Button>

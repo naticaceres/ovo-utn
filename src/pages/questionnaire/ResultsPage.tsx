@@ -62,7 +62,10 @@ export function ResultsPage() {
 
   // Estado para detalles completos de carreras (con info de institución para filtrar)
   const [carrerasDetalles, setCarrerasDetalles] = useState<
-    Map<number, Record<string, unknown>>
+    Map<
+      number,
+      { detalle: Record<string, unknown>; carreraId: string | number }
+    >
   >(new Map());
   const [loadingDetalles, setLoadingDetalles] = useState(false);
 
@@ -237,21 +240,50 @@ export function ResultsPage() {
               const detalle = await getCareerInstitutionById(
                 carrera.idCarreraInstitucion
               );
-              return { id: carrera.idCarreraInstitucion, detalle };
+
+              // Extraer carreraId del detailPath si existe
+              let carreraId = null;
+              if (
+                detalle &&
+                typeof detalle === 'object' &&
+                'carreraInstitucion' in detalle
+              ) {
+                const ci = detalle.carreraInstitucion as Record<
+                  string,
+                  unknown
+                >;
+                if (
+                  ci &&
+                  'detailPath' in ci &&
+                  typeof ci.detailPath === 'string'
+                ) {
+                  const pathParts = ci.detailPath.split('/');
+                  carreraId = pathParts[pathParts.length - 3]; // careers/ID/institutions
+                }
+              }
+
+              return { id: carrera.idCarreraInstitucion, detalle, carreraId };
             } catch (error) {
               console.error(
                 `Error cargando detalle de carrera ${carrera.idCarreraInstitucion}:`,
                 error
               );
-              return { id: carrera.idCarreraInstitucion, detalle: null };
+              return {
+                id: carrera.idCarreraInstitucion,
+                detalle: null,
+                carreraId: null,
+              };
             }
           }
         );
 
         const results = await Promise.all(promises);
-        results.forEach(({ id, detalle }) => {
-          if (detalle) {
-            detallesMap.set(id, detalle as Record<string, unknown>);
+        results.forEach(({ id, detalle, carreraId }) => {
+          if (detalle && carreraId) {
+            detallesMap.set(id, {
+              detalle: detalle as Record<string, unknown>,
+              carreraId,
+            });
           }
         });
 
@@ -343,11 +375,13 @@ export function ResultsPage() {
         }
 
         // Obtener detalles de la carrera para filtros avanzados
-        const detalle = carrerasDetalles.get(carrera.idCarreraInstitucion);
-        if (!detalle) {
+        const detalleData = carrerasDetalles.get(carrera.idCarreraInstitucion);
+        if (!detalleData) {
           // Si no hay detalles cargados aún, solo aplicar filtros básicos
           return true;
         }
+
+        const detalle = detalleData.detalle;
 
         // Extraer datos de la estructura del detalle
         // Estructura esperada: { institucion: {...}, carreraInstitucion: {...} }
@@ -862,7 +896,17 @@ export function ResultsPage() {
                       </div>
                       <div className={styles.recommendationActions}>
                         <Link
-                          to={`/app/student/carrera-detalle/${carrera.idCarreraInstitucion}`}
+                          to={(() => {
+                            const detalleData = carrerasDetalles.get(
+                              carrera.idCarreraInstitucion
+                            );
+                            const carreraId = detalleData?.carreraId;
+                            // Si tenemos el carreraId, usar la ruta nueva, si no, usar la vieja
+                            if (carreraId) {
+                              return `/app/student/carrera-institucion/${carreraId}/${carrera.idCarreraInstitucion}`;
+                            }
+                            return `/app/student/carrera-detalle/${carrera.idCarreraInstitucion}`;
+                          })()}
                         >
                           <Button variant='outline' size='sm'>
                             Ver detalles

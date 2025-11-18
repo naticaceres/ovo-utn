@@ -3,7 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styles from './DetalleCarreraInstitucionPage.module.css';
 import { BackButton } from '../../components/ui/BackButton';
 import { Button } from '../../components/ui/Button';
-import { getCareerInstitution } from '../../services/careers';
+import {
+  getCareerInstitution,
+  getCareerInstitutionById,
+} from '../../services/careers';
 import { getInterests, addInterest, removeInterest } from '../../services/user';
 import { useToast } from '../../components/ui/toast/useToast';
 
@@ -59,8 +62,8 @@ export default function DetalleCarreraInstitucionPage() {
 
   useEffect(() => {
     async function fetchCarreraInstitucion() {
-      // Verificar que tengamos ambos parámetros
-      if (!careerId || !carreraInstitucionId) {
+      // Si no tenemos carreraInstitucionId, no podemos hacer nada
+      if (!carreraInstitucionId) {
         setError('Parámetros faltantes');
         setLoading(false);
         return;
@@ -70,19 +73,32 @@ export default function DetalleCarreraInstitucionPage() {
         setLoading(true);
         setError(null);
 
-        console.log('Obteniendo detalle carrera-institución:', {
-          careerId,
-          carreraInstitucionId,
-        });
-        const data = await getCareerInstitution(
-          careerId!,
-          carreraInstitucionId!
-        );
+        let data: CarreraInstitucionResponse;
+
+        // Si tenemos careerId y no es "unknown", usar getCareerInstitution
+        if (careerId && careerId !== 'unknown') {
+          console.log('Obteniendo detalle carrera-institución:', {
+            careerId,
+            carreraInstitucionId,
+          });
+          data = (await getCareerInstitution(
+            careerId,
+            carreraInstitucionId
+          )) as CarreraInstitucionResponse;
+        } else {
+          // Si no tenemos careerId o es "unknown", usar getCareerInstitutionById
+          console.log('Obteniendo detalle por ID carrera-institución:', {
+            carreraInstitucionId,
+          });
+          data = (await getCareerInstitutionById(
+            carreraInstitucionId
+          )) as CarreraInstitucionResponse;
+        }
 
         console.log('Datos recibidos:', data);
 
         // La nueva API devuelve directamente la estructura esperada
-        setCarreraInstitucion(data as CarreraInstitucionResponse);
+        setCarreraInstitucion(data);
 
         // Check if current user has this carreraInstitucion as interest
         try {
@@ -90,8 +106,7 @@ export default function DetalleCarreraInstitucionPage() {
           const list = Array.isArray(interests) ? interests : [];
 
           // Buscar por idCarreraInstitucion
-          const carreraInstId = (data as CarreraInstitucionResponse)
-            .carreraInstitucion.id;
+          const carreraInstId = data.carreraInstitucion.id;
 
           console.log('Buscando interés para carrera ID:', carreraInstId);
           console.log('Lista de intereses del usuario:', list);
@@ -115,7 +130,8 @@ export default function DetalleCarreraInstitucionPage() {
         } catch (e: unknown) {
           // Si el error es ERR1 (no tiene preferencias), no hacer nada
           // Solo logueamos otros errores
-          if ((e as any)?.errorCode !== 'ERR1') {
+          const error = e as { errorCode?: string };
+          if (error?.errorCode !== 'ERR1') {
             console.warn('Error al cargar intereses del usuario', e);
           } else {
             console.log('Usuario no tiene intereses aún');
